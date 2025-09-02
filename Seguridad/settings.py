@@ -52,10 +52,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Seguridad.urls'
 
+STATICFILES_DIRS = [BASE_DIR / 'static']  # Si tus archivos estáticos están en la raíz del proyecto
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,7 +81,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'BDSEGURIDAD', # crea primero esta BD en PostgreSQL
         'USER': 'postgres',
-        'PASSWORD': 'admin', 
+        'PASSWORD': 'emerson2003', 
         'HOST': '127.0.0.1',
         'DATABASE_PORT': '5432'
     }

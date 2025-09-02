@@ -17,6 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from api import views  # Asegúrate de importar las vistas de tu aplicación
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login/', views.login_view, name='login')  # Añadimos la ruta para el login
 ]
