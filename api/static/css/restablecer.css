@@ -1,0 +1,50 @@
+body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,.7)),
+                  url("https://images.unsplash.com/photo-1581090700227-4c4b1a57a3a4")
+                  no-repeat center center/cover;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card-reset {
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(6px);
+      border-radius: 20px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+      animation: dropIn .8s ease;
+    }
+    .logo-wrap {
+      display: flex; justify-content: center; margin-bottom: .75rem;
+    }
+    .logo-wrap img {
+      width: 72px; height: 72px; border-radius: 50%;
+      border: 3px solid #1d3557; padding: 5px; background: #fff;
+    }
+    h2 {
+      text-align: center; font-weight: 700; color: #1d3557; margin-bottom: 1rem;
+    }
+    .nav-tabs { border: none; justify-content: center; margin-bottom: 1rem; }
+    .nav-tabs .nav-link {
+      border: none; border-radius: 12px; font-weight: 600; color: #1d3557;
+    }
+    .nav-tabs .nav-link.active {
+      background: #1d3557; color: #fff;
+    }
+    .input-group-text {
+      border-radius: 10px 0 0 10px; background: #1d3557; color: #fff;
+    }
+    .form-control { border-radius: 10px; padding: .75rem; }
+    .btn-primary {
+      background: #1d3557; border: none; border-radius: 12px; padding: .75rem; font-weight: 700;
+    }
+    .btn-primary:hover { background: #457b9d; }
+    .small-muted { font-size: .9rem; color: #6c757d; }
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }

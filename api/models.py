@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-
+from django.db import models
 
 class Usuario(models.Model):
     idUsuario = models.AutoField(primary_key=True)
@@ -13,6 +13,15 @@ class Usuario(models.Model):
 
     def __str__(self):
         return self.correo
+
+
+class Usua(models.Model):
+    correo = models.CharField(max_length=100, unique=True)
+    contrasena = models.CharField(max_length=255)
+    fechacreacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "usua"  # Esto le dice a Django que use tu tabla ya creada
 
 
 class RolUsuario(models.Model):
