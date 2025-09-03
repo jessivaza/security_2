@@ -81,7 +81,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'BDSEGURIDAD', # crea primero esta BD en PostgreSQL
         'USER': 'postgres',
-        'PASSWORD': '1234', 
+        'PASSWORD': 'Celeste', 
         'HOST': '127.0.0.1',
         'PORT': '5432'
     }
@@ -128,3 +128,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'allisonvillalobospena@gmail.com'         # ← tu correo real
+EMAIL_HOST_PASSWORD = 'bfjldktstpnurzfd'       # ← contraseña de aplicación de Gmail

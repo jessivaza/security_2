@@ -22,9 +22,11 @@ from api import views  # Asegúrate de importar las vistas de tu aplicación
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', views.login_view, name='login'),
-    path('login/restablecer.html', views.restablecer_view, name='restablecer'),
     path('dashboard/', views.dashboard_view, name='dashboard'),  # URL del dashboard
     path('logout/', views.logout_view, name='logout'),
     path('registro/', views.registro, name='registro'),
-]
+    path('login/restablecer.html', views.restablecer_view, name='restablecer'),
+    path('restablecer/', views.restablecer_view, name='restablecer'),
+    path('password_reset_confirm/', views.contrarestablecida_view, name='password_reset_confirm'),
 
+]

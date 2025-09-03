@@ -37,8 +37,8 @@
     <div class="tab-content">
       <!-- Paso 1: Solicitar enlace -->
       <div class="tab-pane fade show active" id="solicitar" role="tabpanel" aria-labelledby="solicitar-tab">
-        <form method="post" action="/password/reset/request/">
-          <!-- {% csrf_token %} en Django -->
+        <form method="post" action="{% url 'restablecer' %}">
+          {% csrf_token %}
           <div class="alert alert-info small-muted" role="alert">
             Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
           </div>
@@ -58,11 +58,11 @@
 
       <!-- Paso 2: Nueva contraseña (con token) -->
       <div class="tab-pane fade" id="nueva" role="tabpanel" aria-labelledby="nueva-tab">
-        <form method="post" action="/password/reset/confirm/">
-          <!-- {% csrf_token %} en Django -->
+        <form method="post" >
+          {% csrf_token %} 
           <!-- En Django normalmente llegará como parte de la URL: /reset/<uidb64>/<token>/ -->
-          <input type="hidden" name="uid" value="{{ uid|default:'' }}">
-          <input type="hidden" name="token" value="{{ token|default:'' }}">
+          <input type="hidden" name="token" value="{{ token }}">
+          <input type="hidden" name="email" value="{{ correo }}">
 
           <div class="mb-3">
             <label for="newPass" class="form-label">Nueva contraseña</label>

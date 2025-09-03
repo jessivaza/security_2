@@ -1,5 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
+from django.urls import reverse
 from .models import Usuario
 
 def login_view(request):
@@ -63,7 +66,71 @@ def logout_view(request):
 
 def restablecer_view(request):
     if request.method == "POST":
-        correo = request.POST.get("correo")
-        # Aquí luego puedes agregar la lógica para enviar un correo o token
-        print("Correo ingresado:", correo)
+        correo = request.POST.get("email").strip().lower()
+        usuario = Usuario.objects.filter(correo=correo).first()
+
+        if usuario:
+            # Generamos token temporal
+            token = get_random_string(32)
+
+            # Guardamos el token en sesión (puedes crear un campo en la BD si quieres persistirlo)
+            request.session['reset_token'] = token
+            request.session['reset_email'] = correo
+
+            # URL de confirmación
+            reset_url = request.build_absolute_uri(
+                reverse('password_reset_confirm') + f'?token={token}&email={correo}'
+            )
+
+            # Enviar correo
+            send_mail(
+                'Restablecimiento de contraseña',
+                f'Hola, para restablecer tu contraseña entra aquí:\n{reset_url}',
+                'allisonvillalobospena@gmail.com',
+                [correo],
+                fail_silently=False,
+            )
+
+            messages.success(request, 'Se ha enviado un enlace a tu correo.')
+        else:
+            messages.error(request, 'El correo no está registrado.')
+
     return render(request, "restablecer.html")
+
+
+# 2. Vista para confirmar nueva contraseña
+def contrarestablecida_view(request):
+    token = request.GET.get('token')
+    correo = request.GET.get('email')
+
+    # Validamos que el token coincida con el guardado en sesión
+    if request.session.get('reset_token') != token or request.session.get('reset_email') != correo:
+        messages.error(request, "El enlace no es válido o expiró.")
+        return redirect('restablecer')
+
+    usuario = Usuario.objects.filter(correo=correo).first()
+    if not usuario:
+        messages.error(request, "El correo no está registrado.")
+        return redirect('restablecer')
+
+    if request.method == "POST":
+        nueva_contra = request.POST.get("new_password1")
+        confirmar_contra = request.POST.get("new_password2")
+
+        if nueva_contra != confirmar_contra:
+            messages.error(request, "Las contraseñas no coinciden.")
+        elif len(nueva_contra) < 8:
+            messages.error(request, "La contraseña debe tener al menos 8 caracteres.")
+        else:
+            # ✅ Guardamos la nueva contraseña en la base de datos
+            usuario.contra = nueva_contra
+            usuario.save()
+
+            # Limpiamos la sesión
+            request.session.pop('reset_token', None)
+            request.session.pop('reset_email', None)
+
+            messages.success(request, "Contraseña restablecida correctamente.")
+            return redirect('login')
+
+    return render(request, "restablecer.html", {"correo": correo, "token": token})
