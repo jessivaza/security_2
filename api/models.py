@@ -23,7 +23,25 @@ class Usua(models.Model):
     class Meta:
         db_table = "usua"  # Esto le dice a Django que use tu tabla ya creada
 
+class Registro(models.Model):
+    nombre = models.CharField(max_length=150)
+    correo = models.EmailField(unique=True)
+    usuario = models.CharField(max_length=50, unique=True)
+    password = models.CharField(max_length=255)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        # Encriptar la contraseña antes de guardar
+        if not self.pk:  # solo al crear
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    class Meta:
+        db_table = 'registro'
+
+    def __str__(self):
+        return self.usuario
+    
 class RolUsuario(models.Model):
     idRolUsuario = models.AutoField(primary_key=True)
     NombreRol = models.CharField(max_length=100)
