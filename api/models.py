@@ -2,45 +2,22 @@ from django.db import models
 from django.utils import timezone
 from django.db import models
 
+
 class Usuario(models.Model):
     idUsuario = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=200, null=True)
     correo = models.CharField(max_length=200)
-    contrasena = models.CharField(max_length=250)
-    FechaCreacion = models.DateTimeField(default=timezone.now)
+    contra = models.CharField(db_column='contra', max_length=250)  # ← usa db_column
+
+    fecha_creacion = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = 'Usuario'
 
     def __str__(self):
-        return self.correo
+        return self.nombre if self.nombre else self.correo
 
 
-class Usua(models.Model):
-    correo = models.CharField(max_length=100, unique=True)
-    contrasena = models.CharField(max_length=255)
-    fechacreacion = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "usua"  # Esto le dice a Django que use tu tabla ya creada
-
-class Registro(models.Model):
-    nombre = models.CharField(max_length=150)
-    correo = models.EmailField(unique=True)
-    usuario = models.CharField(max_length=50, unique=True)
-    password = models.CharField(max_length=255)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        # Encriptar la contraseña antes de guardar
-        if not self.pk:  # solo al crear
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
-
-    class Meta:
-        db_table = 'registro'
-
-    def __str__(self):
-        return self.usuario
     
 class RolUsuario(models.Model):
     idRolUsuario = models.AutoField(primary_key=True)

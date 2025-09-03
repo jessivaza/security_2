@@ -8,52 +8,66 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <style>
         body {
-            background-color: #8b9470; /* Color principal */
+            background-color: #f8f9fa;
             font-family: 'Segoe UI', sans-serif;
         }
         .sidebar {
-            background-color: #d7f1d7;
+            background-color: #1c2b36;
+            color: #fff;
             min-height: 100vh;
             padding: 20px;
         }
         .sidebar a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            color: #333;
+            display: block;
+            color: #adb5bd;
+            margin: 10px 0;
             text-decoration: none;
+            padding: 10px;
             border-radius: 8px;
-            margin-bottom: 5px;
-            transition: 0.3s;
+            transition: all 0.3s;
         }
         .sidebar a:hover {
-            background-color: #c1e1c1;
+            background-color: #0d6efd;
+            color: #fff;
         }
-        .sidebar .logout {
-            color: #ff4d4d;
+        .logout {
+            background-color: #dc3545 !important;
+            color: #fff !important;
+            text-align: center;
+            margin-top: 20px;
         }
         .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
         }
         .card-metric {
-            border-radius: 15px;
             padding: 20px;
-            color: white;
-        }
-        .card-historial { background-color: #7fcf7f; }
-        .card-incidentes { background-color: #4f94ff; }
-        .card-usuarios { background-color: #9999cc; }
-        .mapa-calor {
-            width: 100%;
-            border-radius: 15px;
+            border-radius: 12px;
+            color: #fff;
+            position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
         }
+        .card-metric:hover {
+            transform: translateY(-5px);
+        }
+        .card-historial { background: #0d6efd; }
+        .card-incidentes { background: #ffc107; color: #212529; }
+        .card-usuarios { background: #198754; }
+        .card-metric i {
+            position: absolute;
+            font-size: 3rem;
+            top: 15px;
+            right: 15px;
+            opacity: 0.3;
+        }
+        #map { border-radius: 12px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -68,16 +82,16 @@
                 <a href="#"><i class="bi bi-clock-history"></i> Historial</a>
                 <a href="#"><i class="bi bi-map-fill"></i> Mapa</a>
             </div>
-            <a href="#" class="logout"><i class="bi bi-box-arrow-left"></i> Logout</a>
+            <a href="{% url 'logout' %}" class="logout"><i class="bi bi-box-arrow-left"></i> Logout</a>
         </div>
 
         <!-- Contenido principal -->
         <div class="col-md-10 p-4">
             <!-- Topbar -->
             <div class="topbar mb-4">
-                <input type="text" class="form-control w-50" placeholder="Search: Mes pasado">
+                <input type="text" class="form-control w-50" placeholder="Buscar incidencias...">
                 <div class="d-flex align-items-center gap-2">
-                    <span>Lindbergh</span>
+                    
                     <img src="https://via.placeholder.com/40" alt="Perfil" class="rounded-circle">
                 </div>
             </div>
@@ -107,10 +121,33 @@
                 </div>
             </div>
 
-            <!-- Mapa de calor -->
-            <div class="mapa-calor">
-                <img src="IMG1/tu-mapa.png" alt="Mapa de calor" class="img-fluid">
-            </div>
+            <!-- Mapa de incidencias -->
+            <div id="map" style="height: 500px;"></div>
+
+            <!-- Leaflet CSS y JS -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+              const losOlivos = [-11.978, -76.999];
+              const map = L.map('map').setView(losOlivos, 14);
+
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                  maxZoom: 19,
+                  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              }).addTo(map);
+
+              // Ejemplo de marcadores de incidencias
+              const incidencias = [
+                { coords: [-11.978, -76.999], mensaje: "Robo en Av. Universitaria" },
+                { coords: [-11.976, -77.002], mensaje: "Accidente de tránsito" },
+                { coords: [-11.981, -76.995], mensaje: "Incendio menor" }
+              ];
+
+              incidencias.forEach(i => {
+                  L.marker(i.coords).addTo(map)
+                    .bindPopup(i.mensaje);
+              });
+            </script>
         </div>
     </div>
 </div>

@@ -12,120 +12,117 @@
   <link rel="stylesheet" href="{% static 'css/login.css' %}">
 </head>
 <body>
-  <div class="auth-card">
-    <div class="auth-logo">
-      <img src="https://cdn-icons-png.flaticon.com/512/3607/3607444.png" alt="Logo Seguridad">
-    </div>
-  
-    <!-- Pestañas -->
-    <ul class="nav nav-tabs" id="authTabs" role="tablist">
-      <li class="nav-item">
-        <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Iniciar Sesión</button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#restablecer" type="button" role="tab">Registrarse</button>
-      </li>
-    </ul>
-
-    <div class="tab-content">
-      <!-- Formulario Login -->
-      <div class="tab-pane fade show active" id="login" role="tabpanel">
-        <form method="post" action="{% url 'login' %}">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label for="usuario" class="form-label">Usuario</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
-              <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Ingrese su correo" required>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Contraseña</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-              <input type="password" class="form-control" id="password" name="password" placeholder="Ingrese su contraseña" required>
-            </div>
-          </div>
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="recordar">
-              <label class="form-check-label" for="recordar">Recordar sesión</label>
-            </div>
-            <a href="restablecer.html" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
-          </div>
-          <button type="submit" class="btn btn-custom">Ingresar</button>
-        </form>
-      </div>
-
-      <!-- Formulario Restablecer -->
-      <div class="tab-pane fade" id="restablecer" role="tabpanel">
-        <form method="post" action="{% url 'restablecer' %}" id="restablecerForm">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label for="nombre" class="form-label">Nombre completo</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-person-vcard"></i></span>
-              <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ingrese su nombre" required>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label for="correo" class="form-label">Correo electrónico</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
-              <input type="email" class="form-control" id="correo" name="correo" placeholder="Ingrese su correo" required>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label for="usuario_reg" class="form-label">Usuario</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
-              <input type="text" class="form-control" id="usuario_reg" name="usuario_reg" placeholder="Cree un usuario" required>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label for="password_reg" class="form-label">Contraseña</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-              <input type="password" class="form-control" id="password_reg" name="password_reg" placeholder="Cree una contraseña" required>
-            </div>
-            <div class="form-text">Mínimo 8 caracteres.</div>
-          </div>
-          <div class="mb-3">
-            <label for="password_confirm" class="form-label">Confirmar Contraseña</label>
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-              <input type="password" class="form-control" id="password_confirm" name="password_confirm" placeholder="Repita su contraseña" required>
-            </div>
-          </div>
-          <div id="msg" class="alert d-none" role="alert"></div>
-          <button type="submit" class="btn btn-custom">Registrarse</button>
-        </form>
-      </div>
-    </div>
+<div class="auth-card container mt-5">
+  <div class="auth-logo text-center mb-4">
+    <img src="https://cdn-icons-png.flaticon.com/512/3607/3607444.png" alt="Logo Seguridad" width="80">
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Pestañas -->
+  <ul class="nav nav-tabs mb-3" id="authTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Iniciar Sesión</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#registro" type="button" role="tab">Registrarse</button>
+    </li>
+  </ul>
 
-  <!-- Validación de contraseñas -->
-  <script>
-    const pass1 = document.getElementById('password_reg');
-    const pass2 = document.getElementById('password_confirm');
-    const msg = document.getElementById('msg');
+  <div class="tab-content">
+    <!-- LOGIN -->
+    <div class="tab-pane fade show active" id="login" role="tabpanel">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="usuario" class="form-label">Correo</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+            <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Ingrese su correo" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="contra" class="form-label">Contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+           <input type="password" class="form-control" id="contra" name="contra" placeholder="Ingrese su contraseña" required>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="recordar">
+            <label class="form-check-label" for="recordar">Recordar sesión</label>
+          </div>
+         <a href="{% url 'restablecer' %}">¿Olvidaste tu contraseña?</a>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+      </form>
+    </div>
 
-    document.getElementById('restablecerForm').addEventListener('submit', (e) => {
-      if (pass1.value !== pass2.value) {
-        e.preventDefault();
-        msg.className = 'alert alert-warning';
-        msg.textContent = 'Las contraseñas no coinciden.';
-      } else if (pass1.value.length < 8) {
-        e.preventDefault();
-        msg.className = 'alert alert-info';
-        msg.textContent = 'La contraseña debe tener al menos 8 caracteres.';
-      } else {
-        msg.className = 'alert d-none';
-        msg.textContent = '';
-      }
-    });
-  </script>
+    <!-- REGISTRO -->
+    <div class="tab-pane fade" id="registro" role="tabpanel">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+      <form method="post" action="{% url 'registro' %}" id="registroForm">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="nombre" class="form-label">Nombre completo</label>
+          <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ingrese su nombre" required>
+        </div>
+        <div class="mb-3">
+          <label for="correo" class="form-label">Correo electrónico</label>
+          <input type="email" class="form-control" id="correo" name="correo" placeholder="Ingrese su correo" required>
+        </div>
+        <div class="mb-3">
+          <label for="contra_reg" class="form-label">Contraseña</label>
+          <input type="password" class="form-control" id="contra_reg" name="contra" placeholder="Cree una contraseña" required>
+          <div class="form-text">Mínimo 8 caracteres.</div>
+        </div>
+        <div class="mb-3">
+          <label for="contra_confirm" class="form-label">Confirmar Contraseña</label>
+          <input type="password" class="form-control" id="contra_confirm" name="contra_confirm" placeholder="Repita su contraseña" required>
+        </div>
+        <div id="msg" class="alert d-none" role="alert"></div>
+        <button type="submit" class="btn btn-success w-100">Registrarse</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Validación de contraseñas -->
+<script>
+const pass1 = document.getElementById('contra_reg');
+const pass2 = document.getElementById('contra_confirm');
+const msg = document.getElementById('msg');
+
+document.getElementById('registroForm').addEventListener('submit', (e) => {
+  if (pass1.value !== pass2.value) {
+    e.preventDefault();
+    msg.className = 'alert alert-warning';
+    msg.textContent = 'Las contraseñas no coinciden.';
+  } else if (pass1.value.length < 8) {
+    e.preventDefault();
+    msg.className = 'alert alert-info';
+    msg.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+  } else {
+    msg.className = 'alert d-none';
+    msg.textContent = '';
+  }
+});
+</script>
 </body>
 </html>

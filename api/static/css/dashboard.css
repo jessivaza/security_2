@@ -1,0 +1,45 @@
+ body {
+            background-color: #8b9470; /* Color principal */
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .sidebar {
+            background-color: #d7f1d7;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #c1e1c1;
+        }
+        .sidebar .logout {
+            color: #ff4d4d;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .card-metric {
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+        }
+        .card-historial { background-color: #7fcf7f; }
+        .card-incidentes { background-color: #4f94ff; }
+        .card-usuarios { background-color: #9999cc; }
+        .mapa-calor {
+            width: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+        }
