@@ -41,7 +41,7 @@
       <form method="post" action="{% url 'login' %}">
         {% csrf_token %}
         <div class="mb-3">
-          <label for="usuario" class="form-label">Correo</label>
+          <label for="usuario" class="form-label">Correo o Usuario</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
             <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Ingrese su correo" required>

@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.login_view, name='login'),
     path('dashboard/', views.dashboard_view, name='dashboard'),  # URL del dashboard
+     path('dasUser/', views.dasUser_view, name='dasUser'), # URL del dasUser
     path('logout/', views.logout_view, name='logout'),
     path('registro/', views.registro, name='registro'),
     path('login/restablecer.html', views.restablecer_view, name='restablecer'),

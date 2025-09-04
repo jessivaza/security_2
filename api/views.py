@@ -7,16 +7,26 @@ from .models import Usuario
 
 def login_view(request):
     if request.method == 'POST':
-        correo = (request.POST.get('usuario') or "").strip().lower()
+        correo = (request.POST.get('usuario') or "").strip()
         contra = (request.POST.get('contra') or "").strip()
 
         try:
-            user = Usuario.objects.get(correo=correo, contra=contra)
+            user = Usuario.objects.get(correo__iexact=correo, contra=contra)
             # Guardar sesión
             request.session['usuario'] = user.correo
             request.session['nombre'] = user.nombre
             messages.success(request, f'Bienvenido {user.nombre}')
-            return redirect('dashboard')  # asegúrate que exista esta ruta
+
+            # Redirección según el correo
+            if correo.lower().startswith('a'):  # empieza con A o a
+                return redirect('dashboard')   # ruta dashboard
+            elif '@' in correo:
+                return redirect('dasUser')    # ruta dasUser
+            else:
+                # Por si no cumple ninguna condición
+                messages.warning(request, 'No tiene redirección definida.')
+                return redirect('login')
+
         except Usuario.DoesNotExist:
             messages.error(request, 'Correo o contraseña incorrectos.')
             return redirect('login')
@@ -134,3 +144,8 @@ def contrarestablecida_view(request):
             return redirect('login')
 
     return render(request, "restablecer.html", {"correo": correo, "token": token})
+
+
+def dasUser_view(request):
+    usuario = request.session.get('nombre', 'Usuario')
+    return render(request, 'dasUser.html', {"usuario": usuario})

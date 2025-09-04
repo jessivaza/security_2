@@ -79,11 +79,14 @@ WSGI_APPLICATION = 'Seguridad.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'BDSEGURIDAD', # crea primero esta BD en PostgreSQL
+        'NAME': 'BDSEGURIDAD',  # crea primero esta BD en PostgreSQL
         'USER': 'postgres',
-        'PASSWORD': 'Celeste', 
+        'PASSWORD': '1234',
         'HOST': '127.0.0.1',
-        'PORT': '5432'
+        'PORT': '5432',
+        'OPTIONS': {
+            'client_encoding': 'UTF8',  # <-- esto asegura que se acepte Ñ y tildes
+        },
     }
 }
 
