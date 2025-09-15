@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'api',  #<---- El nombre de la api creada
+    'rest_framework_simplejwt', #<---- para trabajar con JWT
+    'rest_framework', #<---- para trabajar con REST framework
+    'corsheaders', #<---- para trabajar con CORS
 ]
 
 MIDDLEWARE = [
@@ -48,11 +52,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware', #<---- para trabajar con CORS
+    'django.middleware.common.CommonMiddleware', #<---- para trabajar con CORS
 ]
 
 ROOT_URLCONF = 'Seguridad.urls'
 
-STATICFILES_DIRS = [BASE_DIR / 'static']  # Si tus archivos estáticos están en la raíz del proyecto
 
 TEMPLATES = [
     {
@@ -81,7 +86,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'BDSEGURIDAD',  # crea primero esta BD en PostgreSQL
         'USER': 'postgres',
-        'PASSWORD': '1234',
+        'PASSWORD': 'admin',
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'OPTIONS': {
@@ -137,3 +142,14 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'allisonvillalobospena@gmail.com'         # ← tu correo real
 EMAIL_HOST_PASSWORD = 'bfjldktstpnurzfd'       # ← contraseña de aplicación de Gmail
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=240),
+}
+
+CORS_ALLOW_ALL_ORIGINS = True  # Permitir todas las solicitudes CORS (útil para desarrollo)

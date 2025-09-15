@@ -1,151 +1,73 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
-from django.urls import reverse
 from .models import Usuario
+from .serializer import RegistroSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from django.contrib.auth.models import User
+from django.utils.crypto import get_random_string
+from django.core.cache import cache
+from django.core.mail import send_mail
+from rest_framework import status
+from django.contrib.auth.hashers import make_password 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
-def login_view(request):
-    if request.method == 'POST':
-        correo = (request.POST.get('usuario') or "").strip()
-        contra = (request.POST.get('contra') or "").strip()
-
-        try:
-            user = Usuario.objects.get(correo__iexact=correo, contra=contra)
-            # Guardar sesión
-            request.session['usuario'] = user.correo
-            request.session['nombre'] = user.nombre
-            messages.success(request, f'Bienvenido {user.nombre}')
-
-            # Redirección según el correo
-            if correo.lower().startswith('a'):  # empieza con A o a
-                return redirect('dashboard')   # ruta dashboard
-            elif '@' in correo:
-                return redirect('dasUser')    # ruta dasUser
-            else:
-                # Por si no cumple ninguna condición
-                messages.warning(request, 'No tiene redirección definida.')
-                return redirect('login')
-
-        except Usuario.DoesNotExist:
-            messages.error(request, 'Correo o contraseña incorrectos.')
-            return redirect('login')
-
-    return render(request, 'login.html')
-
-
+@api_view(['POST'])
 def registro(request):
-    if request.method == "POST":
-        nombre = (request.POST.get("nombre") or "").strip()
-        correo = (request.POST.get("correo") or "").strip().lower()
-        contra = (request.POST.get("contra") or "").strip()
-        contra_confirm = (request.POST.get("contra_confirm") or "").strip()
+    serializer = RegistroSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "Usuario registrado exitosamente."}, status=201)
+    return Response(serializer.errors, status=400)
 
-        # Validación de contraseñas
-        if contra != contra_confirm:
-            messages.error(request, "Las contraseñas no coinciden.")
-            return redirect('registro')
+@api_view(['POST'])
+def enviar_correo(request):
+    token = get_random_string(length=32)
+    asunto = "Recuperación de contraseña"
+    mensaje= f"Hola, haz clic en este enlace para recuperar tu contraseña: token= {token}"
+    destinatario = request.data.get('correo')
+    remitente ='allisonvillalobospena@gmail.com'
 
-        # Validación de correo duplicado
-        if Usuario.objects.filter(correo=correo).exists():
-            messages.warning(request, "El correo ya está registrado.")
-            return redirect('login')
+    if not destinatario:
+        return Response({"error": "Correo requerido"}, status=400)
+    elif not User.objects.filter(email=destinatario).exists():
+        return Response({"error": "Este correo no registrado"}, status=status.HTTP_404_NOT_FOUND)
+    
+    try:
+        user=User.objects.get(email=destinatario)
+        cache.set(token, user.id, timeout=3600)  # El token expira en 1 hora
+        send_mail(
+            asunto,
+            mensaje,
+            remitente,
+            [destinatario],
+            fail_silently=False,
+        )
+        return Response({"message": "Correo enviado exitosamente."})
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+    
+@api_view(['POST'])
+def Cambio_Contrasena(request, token):
+    password = request.data.get('password')
+    user_id = cache.get(token)
+    if user_id:
+        user = User.objects.get(id=user_id)
+        user.password = make_password(password)
+        user.save()
+        cache.delete(token)  # Elimina el token después de usarlo
+        return Response({"message": "Contraseña restablecida exitosamente."})
+    else:
+        return Response({"error": "Hubo un error."}, status=status.HTTP_404_NOT_FOUND)
+        
 
-        # Guardar SIN encriptar
-        Usuario.objects.create(nombre=nombre, correo=correo, contra=contra)
-
-        # Autologin (guarda en sesión)
-        request.session['usuario'] = correo
-        request.session['nombre'] = nombre
-        messages.success(request, f"Usuario registrado. Bienvenido {nombre}")
-        return redirect('dashboard')
-
-    return render(request, "login.html")
-
-
-def dashboard_view(request):
-    if not request.session.get('usuario'):
-        return redirect('login')
-    return render(request, "dashboard.html", {
-        "usuario": request.session.get('nombre') or request.session.get('usuario')
-    })
-
-def logout_view(request):
-    request.session.flush()
-    return redirect('login')
-
-def restablecer_view(request):
-    if request.method == "POST":
-        correo = request.POST.get("email").strip().lower()
-        usuario = Usuario.objects.filter(correo=correo).first()
-
-        if usuario:
-            # Generamos token temporal
-            token = get_random_string(32)
-
-            # Guardamos el token en sesión (puedes crear un campo en la BD si quieres persistirlo)
-            request.session['reset_token'] = token
-            request.session['reset_email'] = correo
-
-            # URL de confirmación
-            reset_url = request.build_absolute_uri(
-                reverse('password_reset_confirm') + f'?token={token}&email={correo}'
-            )
-
-            # Enviar correo
-            send_mail(
-                'Restablecimiento de contraseña',
-                f'Hola, para restablecer tu contraseña entra aquí:\n{reset_url}',
-                'allisonvillalobospena@gmail.com',
-                [correo],
-                fail_silently=False,
-            )
-
-            messages.success(request, 'Se ha enviado un enlace a tu correo.')
-        else:
-            messages.error(request, 'El correo no está registrado.')
-
-    return render(request, "restablecer.html")
-
-
-# 2. Vista para confirmar nueva contraseña
-def contrarestablecida_view(request):
-    token = request.GET.get('token')
-    correo = request.GET.get('email')
-
-    # Validamos que el token coincida con el guardado en sesión
-    if request.session.get('reset_token') != token or request.session.get('reset_email') != correo:
-        messages.error(request, "El enlace no es válido o expiró.")
-        return redirect('restablecer')
-
-    usuario = Usuario.objects.filter(correo=correo).first()
-    if not usuario:
-        messages.error(request, "El correo no está registrado.")
-        return redirect('restablecer')
-
-    if request.method == "POST":
-        nueva_contra = request.POST.get("new_password1")
-        confirmar_contra = request.POST.get("new_password2")
-
-        if nueva_contra != confirmar_contra:
-            messages.error(request, "Las contraseñas no coinciden.")
-        elif len(nueva_contra) < 8:
-            messages.error(request, "La contraseña debe tener al menos 8 caracteres.")
-        else:
-            # ✅ Guardamos la nueva contraseña en la base de datos
-            usuario.contra = nueva_contra
-            usuario.save()
-
-            # Limpiamos la sesión
-            request.session.pop('reset_token', None)
-            request.session.pop('reset_email', None)
-
-            messages.success(request, "Contraseña restablecida correctamente.")
-            return redirect('login')
-
-    return render(request, "restablecer.html", {"correo": correo, "token": token})
-
-
-def dasUser_view(request):
-    usuario = request.session.get('nombre', 'Usuario')
-    return render(request, 'dasUser.html', {"usuario": usuario})
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Permitir acceso sin autenticación
+def me(request):
+    user = request.user
+    user_data = {
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+    }
+    return Response(user_data)
