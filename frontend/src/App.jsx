@@ -1,18 +1,42 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/LoginPage";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
-import ProtectedRoute from "./ProtectedRoute";
+
+// 🔹 Función para validar si hay token
+const isAuthenticated = () => {
+  return !!localStorage.getItem("token");
+};
+
+// 🔹 Ruta protegida
+const ProtectedRoute = ({ children }) => {
+  return isAuthenticated() ? children : <Navigate to="/login" replace />;
+};
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Dashboard />} />
-        </Route>
+        {/* Login, Registro y Recuperar */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Restablecer contraseña con token */}
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+        {/* Dashboard protegido */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Redirigir por defecto */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }

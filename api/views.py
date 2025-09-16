@@ -1,73 +1,81 @@
-from .models import Usuario
-from .serializer import RegistroSerializer
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from django.contrib.auth.models import User
-from django.utils.crypto import get_random_string
-from django.core.cache import cache
+from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail
-from rest_framework import status
-from django.contrib.auth.hashers import make_password 
+from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+import jwt
+from django.conf import settings
 
+# 🔹 Registrar usuario
 @api_view(['POST'])
 def registro(request):
-    serializer = RegistroSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"message": "Usuario registrado exitosamente."}, status=201)
-    return Response(serializer.errors, status=400)
+    try:
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
 
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({"error": "El usuario ya existe"}, status=400)
+
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({"error": "El correo ya está registrado"}, status=400)
+
+        user = User.objects.create(
+            username=username,
+            email=email,
+            password=make_password(password)
+        )
+        return JsonResponse({"message": "Usuario registrado correctamente"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# 🔹 Enviar correo de restablecimiento
 @api_view(['POST'])
 def enviar_correo(request):
-    token = get_random_string(length=32)
-    asunto = "Recuperación de contraseña"
-    mensaje= f"Hola, haz clic en este enlace para recuperar tu contraseña: token= {token}"
-    destinatario = request.data.get('correo')
-    remitente ='allisonvillalobospena@gmail.com'
-
-    if not destinatario:
-        return Response({"error": "Correo requerido"}, status=400)
-    elif not User.objects.filter(email=destinatario).exists():
-        return Response({"error": "Este correo no registrado"}, status=status.HTTP_404_NOT_FOUND)
-    
     try:
-        user=User.objects.get(email=destinatario)
-        cache.set(token, user.id, timeout=3600)  # El token expira en 1 hora
+        email = request.data.get('email')
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return JsonResponse({"error": "El correo no está registrado"}, status=400)
+
+        # Generar token JWT
+        token = jwt.encode({"user_id": user.id}, settings.SECRET_KEY, algorithm="HS256")
+
+        reset_url = f"http://localhost:5173/reset-password/{token}"  # URL del frontend
         send_mail(
-            asunto,
-            mensaje,
-            remitente,
-            [destinatario],
+            'Restablecer contraseña',
+            f'Haz clic en el siguiente enlace para restablecer tu contraseña: {reset_url}',
+            'tu_correo@gmail.com',
+            [email],
             fail_silently=False,
         )
-        return Response({"message": "Correo enviado exitosamente."})
+        return JsonResponse({"message": "Correo enviado correctamente"})
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
-    
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# 🔹 Cambiar contraseña con token
 @api_view(['POST'])
 def Cambio_Contrasena(request, token):
-    password = request.data.get('password')
-    user_id = cache.get(token)
-    if user_id:
-        user = User.objects.get(id=user_id)
-        user.password = make_password(password)
+    try:
+        data = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user = User.objects.get(id=data["user_id"])
+        new_password = request.data.get("password")
+        user.password = make_password(new_password)
         user.save()
-        cache.delete(token)  # Elimina el token después de usarlo
-        return Response({"message": "Contraseña restablecida exitosamente."})
-    else:
-        return Response({"error": "Hubo un error."}, status=status.HTTP_404_NOT_FOUND)
-        
+        return JsonResponse({"message": "Contraseña cambiada con éxito"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
+
+# 🔹 Obtener información del usuario logueado
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])  # Permitir acceso sin autenticación
+@permission_classes([IsAuthenticated])
 def me(request):
-    user = request.user
-    user_data = {
-        "username": user.username,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "email": user.email,
-    }
-    return Response(user_data)
+    return JsonResponse({
+        "id": request.user.id,
+        "username": request.user.username,
+        "email": request.user.email
+    })

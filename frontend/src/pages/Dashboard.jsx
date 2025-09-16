@@ -1,34 +1,15 @@
-import React, { useEffect, useState } from "react";
-import api from "../api";
-import { logout } from "../auth";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 
 export default function Dashboard() {
-  const [me, setMe] = useState(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    api.get("me")
-      .then((res) => setMe(res.data))
-      .catch(() => navigate("/login"));
-  }, [navigate]);
+  const logout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  };
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto" }}>
-      <h2>Dashboard</h2>
-      {me ? (
-        <p>Hola, {me.username} ({me.email})</p>
-      ) : (
-        <p>Cargando...</p>
-      )}
-      <button
-        onClick={() => {
-          logout();
-          navigate("/login");
-        }}
-      >
-        Salir
-      </button>
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <h2>Bienvenido al Dashboard 🎉</h2>
+      <button onClick={logout}>Cerrar sesión</button>
     </div>
   );
 }
