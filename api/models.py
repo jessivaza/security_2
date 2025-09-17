@@ -186,14 +186,19 @@ class DetalleAlerta(models.Model):
         Alerta,
         on_delete=models.CASCADE,
         related_name='detalles',
-        db_column='idAlerta'
+        db_column='idAlerta',
+        null=True,
+        blank=True
     )
     idEscalaIncidencia = models.ForeignKey(
         EscalaAlerta,
         on_delete=models.CASCADE,
         related_name='detalles_escala',
-        db_column='idEscalaIncidencia'
+        db_column='idEscalaIncidencia',
+        null=True,
+        blank=True
     )
+    NombreIncidente = models.CharField(max_length=250)
 
     class Meta:
         db_table = 'DetalleAlerta'

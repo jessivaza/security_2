@@ -7,6 +7,20 @@ from rest_framework.permissions import IsAuthenticated
 import jwt
 from django.conf import settings
 
+from rest_framework.response import Response
+from rest_framework import status
+from .models import DetalleAlerta
+from .serializer import DetalleAlertaSerializer
+
+# Endpoint para registrar incidente
+@api_view(['POST'])
+def registrar_incidente(request):
+    serializer = DetalleAlertaSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'message': 'Incidente registrado correctamente'}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 # 🔹 Registrar usuario
 @api_view(['POST'])
 def registro(request):

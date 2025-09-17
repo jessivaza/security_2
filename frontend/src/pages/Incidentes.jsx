@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
 import "../css/incidentes.css";
 
@@ -18,10 +19,22 @@ export default function Incidentes() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Aquí puedes agregar la lógica para enviar los datos al servidor
-    console.log("Formulario enviado: ", formData);
+    try {
+      // Ajusta los nombres de los campos para que coincidan con el backend
+      const payload = {
+        NombreIncidente: formData.tipoIncidente,
+        Ubicacion: formData.ubicacion,
+        FechaHora: formData.horaReporte,
+        Descripcion: formData.descripcion,
+      };
+  const response = await axios.post("/api/registrar-incidente/", payload);
+      alert(response.data.message || "Incidente registrado correctamente");
+      setFormData({ tipoIncidente: "", ubicacion: "", horaReporte: "", descripcion: "" });
+    } catch (error) {
+      alert("Error al registrar incidente: " + (error.response?.data?.message || error.message));
+    }
   };
 
   const logout = () => {

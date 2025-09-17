@@ -17,3 +17,9 @@ class RegistroSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+from .models import DetalleAlerta
+
+class DetalleAlertaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DetalleAlerta
+        fields = '__all__'
