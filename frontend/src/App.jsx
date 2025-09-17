@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./pages/LoginPage";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import Incidentes from "./pages/Incidentes";
 
 // 🔹 Función para validar si hay token
 const isAuthenticated = () => {
@@ -33,7 +34,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route path="/incidentes" element={<Incidentes />} />
         {/* Redirigir por defecto */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
