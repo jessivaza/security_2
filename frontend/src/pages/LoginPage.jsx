@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import axios from "axios";
 import "../css/index.css";
 
@@ -8,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faLock, faEye, faEyeSlash, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 export default function LoginPage() {
+  const savedUsername = typeof window !== "undefined" ? localStorage.getItem("savedUsername") || "" : "";
   const navigate = useNavigate();
   const [tab, setTab] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -84,21 +86,29 @@ export default function LoginPage() {
     <div className="login-background">
       <div className="login-card">
         {/*  Icono grande de usuario arriba */}
-        <div className="avatar-wrap">
-          <FontAwesomeIcon icon={faUser} size="4x" />
+        <div className="logo-wrap">
+          <div className="icon-container">
+            <i className="bi bi-person-fill icon-user"></i>
+          </div>
+        </div>
+        {/* Tabs de navegación */}
+        <div className="tab-header">
+          <button
+            className={`tab-btn ${tab === "login" ? "active" : ""}`}
+            onClick={() => changeTab("login")}
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            className={`tab-btn ${tab === "registro" ? "active" : ""}`}
+            onClick={() => changeTab("registro")}
+          >
+            Regístrate
+          </button>
         </div>
 
-        {/*  Título dinámico según tab */}
-        <h1>
-          {tab === "login" ? "Iniciar Sesión" :
-            tab === "registro" ? "Registrar" :
-              "Restablecer Contraseña"}
-        </h1>
-
-        <form
-          onSubmit={(e) => e.preventDefault()} // prevenimos recargar la página
-        >
-          {/*  Campo usuario (solo login y registro) */}
+        <form onSubmit={(e) => e.preventDefault()}>
+          {/* Usuario */}
           {(tab === "login" || tab === "registro") && (
             <div className="input-group">
               <label>Usuario</label>
@@ -119,7 +129,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/*  Campo email (solo registro y reset) */}
+          {/* Email */}
           {(tab === "registro" || tab === "reset") && (
             <div className="input-group">
               <label>Email</label>
@@ -140,7 +150,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Campo contraseña (solo login y registro) */}
+          {/* Contraseña */}
           {(tab === "login" || tab === "registro") && (
             <div className="input-group">
               <label>Contraseña</label>
@@ -149,7 +159,7 @@ export default function LoginPage() {
                   <FontAwesomeIcon icon={faLock} />
                 </div>
                 <input
-                  type={showPassword ? "text" : "password"} // mostrar/ocultar
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Ingrese su contraseña"
                   value={form.password}
@@ -157,27 +167,37 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                 />
-                {/*  Botón de mostrar/ocultar */}
                 <div
                   className="icon-box eye-icon"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ cursor: "pointer" }}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </div>
               </div>
             </div>
           )}
+
           {error && <p className="login-error">{error}</p>}
-          <div className="btn-group">
-            {tab === "login" && <button className="btn login-btn" onClick={handleLogin}>Ingresar</button>}
-            {tab === "registro" && <button className="btn register-btn" onClick={handleRegister}>Registrar</button>}
-            {tab === "reset" && <button className="btn reset-btn" onClick={handleReset}>Enviar Correo</button>}
+          <div className="small-options">
+            <label className="remember-me">
+              <input type="checkbox" /> Recordar sesión
+            </label>
+            <button className="link-btn" onClick={() => changeTab("reset")}>
+              ¿Olvidaste tu contraseña?
+            </button>
           </div>
-          <div className="small-link" style={{ marginTop: "10px" }}>
-            {tab !== "login" && <button className="link-btn" onClick={() => changeTab("login")}>Ir a Login</button>}
-            {tab !== "registro" && <button className="link-btn" onClick={() => changeTab("registro")}>Ir a Registro</button>}
-            {tab !== "reset" && <button className="link-btn" onClick={() => changeTab("reset")}>Olvidé mi contraseña</button>}
+
+         {/* Botones principales */}
+          <div className="btn-group">
+            {tab === "login" && (
+              <button className="btn login-btn" onClick={handleLogin}>Ingresar</button>
+            )}
+            {tab === "registro" && (
+              <button className="btn register-btn" onClick={handleRegister}>Registrar</button>
+            )}
+            {tab === "reset" && (
+              <button className="btn reset-btn" onClick={handleReset}>Enviar Correo </button>
+            )}
           </div>
         </form>
       </div>
