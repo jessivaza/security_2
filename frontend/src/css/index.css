@@ -1,0 +1,249 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Fondo del login con colores oscuros */
+.login-background {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  /* Gradiente oscuro animado */
+  background: linear-gradient(
+    270deg,
+    #426777, /* azul oscuro */
+    #2a6579, /* azul grisáceo */
+    #185975, /* azul verdoso oscuro */
+    #26b1bb /* casi negro */
+  );
+  background-size: 800% 800%;
+  animation: gradientMove 20s ease infinite;
+}
+
+/* Animación del gradiente */
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+
+/* Partículas flotantes */
+.particle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  animation: floatParticle 15s linear infinite;
+}
+
+/* Animación de partículas */
+@keyframes floatParticle {
+  0% {
+    transform: translateY(100vh) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% { opacity: 0.5; }
+  50% {
+    transform: translateY(0) translateX(50px) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(-50px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.login-card {
+  background: #fff;
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+  width: 350px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-5px);
+}
+
+.avatar-wrap svg {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 15px;
+  fill: #374169;
+}
+
+h1 {
+  margin-bottom: 25px;
+  font-size: 22px;
+  color: #333;
+}
+
+.input-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* Contenedor de cada input */
+.input-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Caja del icono */
+.icon-box {
+  background-color: white; /* fondo blanco */
+  padding: 8px;
+  border-radius: 8px; /* bordes redondeados opcional */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px; /* espacio entre icono y input */
+}
+
+/* Icono del ojo para mostrar contraseña */
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #555;
+  background-color: white; /* fondo blanco también */
+  padding: 4px;
+  border-radius: 50%; /* opcional: círculo */
+}
+
+/* Input de usuario y contraseña */
+.input-row input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+}
+
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.btn {
+  width: 100%;
+  padding: 12px;
+  background: #764ba2;
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn:hover {
+  background: #667eea;
+}
+
+.login-error {
+  color: #e74c3c;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.small-link {
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+.small-link a {
+  color: #374169;
+  text-decoration: none;
+}
+
+.small-link a:hover {
+  text-decoration: underline;
+}
+
+/* Botones principales */
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+/* Login button */
+.login-btn {
+  background-color: #007bff;
+  color: white;
+}
+.login-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Registro button */
+.register-btn {
+  background-color: #28a745;
+  color: white;
+}
+.register-btn:hover {
+  background-color: #1e7e34;
+}
+
+/* Reset button */
+.reset-btn {
+  background-color: #ffc107;
+  color: black;
+}
+.reset-btn:hover {
+  background-color: #e0a800;
+}
+
+/* Botones tipo link para cambiar pestañas */
+.link-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  margin: 5px;
+  text-decoration: underline;
+}
+.link-btn:hover {
+  color: #0056b3;
+}
+
+/* Error */
+.login-error {
+  color: red;
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
