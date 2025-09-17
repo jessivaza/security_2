@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);//  Estado para mostrar/ocultar contraseña
   const [error, setError] = useState("");
+  
   //  Manejar cambios en los inputs
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -85,7 +86,6 @@ export default function LoginPage() {
   return (
     <div className="login-background">
       <div className="login-card">
-        {/*  Icono grande de usuario arriba */}
         <div className="logo-wrap">
           <div className="icon-container">
             <i className="bi bi-person-fill icon-user"></i>
