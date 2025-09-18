@@ -93,3 +93,15 @@ def me(request):
         "username": request.user.username,
         "email": request.user.email
     })
+# 🔹 Vista simple para dashUsuario (opcional, si quieres tener un endpoint en el backend)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashUsuario(request):
+    return JsonResponse({
+        "message": "Bienvenido al Dashboard de Usuario",
+        "user": {
+            "id": request.user.id,
+            "username": request.user.username,
+            "email": request.user.email
+        }
+    })

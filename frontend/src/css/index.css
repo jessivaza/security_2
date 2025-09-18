@@ -1,230 +1,302 @@
-/* ===== Reset y base ===== */
+/* ================================
+   RESET
+================================ */
 body, html {
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', sans-serif;
+  height: 100%;
 }
 
-/* ===== Fondo general ===== */
+/* ================================
+   FONDO GENERAL
+================================ */
 .login-background {
   width: 100%;
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
   overflow: hidden;
-  position: relative;
-  background: #777575; /* gris oscuro */
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* ===== Tarjeta principal ===== */
+/* ================================
+   CARD PRINCIPAL
+================================ */
 .login-card {
   background: #fff;
-  padding: 40px;
-  border-radius: 15px;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.2);
-  width: 280px;
-  text-align: center;
-  transition: transform 0.3s ease;
-}
-.login-card:hover {
-  transform: translateY(-5px);
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  width: 880px;
+  max-width: 100%;
+  display: flex;
+  overflow: hidden;
 }
 
-h1 {
-  margin-bottom: 25px;
-  font-size: 22px;
-  color: #333;
+/* ================================
+   HERO (IZQUIERDA - IMAGEN/LOGO)
+================================ */
+.card-hero {
+  flex: 1;
+  min-width: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* transparente */
+  padding: 20px;
+}
+.hero-img {
+  width: 100%;              /* ocupa todo el ancho disponible */
+  max-width: 500px;         /* antes estaba en 900px, ahora lo hacemos más grande pero controlado */
+  height: auto;
+  object-fit: contain;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  transform: scale(1.1);    /* efecto para agrandarla un poco más */
 }
 
-/* ===== Logo/Icono ===== */
+
+/* ================================
+   FORM (DERECHA)
+================================ */
+.card-form {
+  flex: 1.5;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Logo circular opcional */
 .logo-wrap {
-  width: 120px;
-  height: 120px;
-  border: 4px solid #0f0874; /* Azul noche */
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px auto;
+  margin: 0 auto 18px auto;
+  background: #1f3a60;
 }
-
-.icon-container {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #4dbb90; /* verde jade */
-}
-
 .icon-user {
-  font-size: 50px;
-  color: white; /* ícono blanco */
+  font-size: 36px;
+  color: white;
 }
 
-/* ===== Tabs ===== */
+/* ================================
+   TABS (Iniciar sesión | Regístrate)
+================================ */
 .tab-header {
   display: flex;
   justify-content: center;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 22px;
 }
-
 .tab-btn {
-  flex: 1;
-  padding: 10px;
-  background: #e9ecef;
+  padding: 10px 20px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 25px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
   transition: all 0.3s ease;
+  background: #e9ecef;
+  color: #1b263b;
 }
 .tab-btn:hover {
-  background: #d6d8db;
+  background: #415a77;
+  color: #fff;
 }
 .tab-btn.active {
-  background: #334f6e; /* azul activo */
+  background: linear-gradient(135deg, #1b263b, #415a77);
   color: #fff;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(65, 90, 119, 0.3);
 }
 
-/* ===== Inputs ===== */
+/* ================================
+   INPUTS
+================================ */
 .input-group {
-  margin-bottom: 20px;
-  text-align: left;
+  margin-bottom: 16px;
 }
 .input-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: #555;
-  font-weight: 500;
-}
-
-.input-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.icon-box {
-  background-color: rgb(57, 54, 110); 
-  color: white;
-  padding: 8px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-.input-row input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  outline: none;
-}
-
-/* Ícono de ojo */
-.eye-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: white;
-  background-color: rgb(15, 8, 116);
-  padding: 6px;
-  border-radius: 50%;
+  font-weight: 600;
   font-size: 14px;
+  color: #1f3a60;
+}
+.input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f9f9f9;
+}
+.input-row input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  background: transparent;
+  padding: 6px 8px;
+}
+.icon-box {
+  color: #2c5282;
+  font-size: 18px;
+}
+.eye-icon {
+  cursor: pointer;
+  color: #4ea8de;
 }
 
-/* ===== Botones principales ===== */
+/* ================================
+   BOTONES
+================================ */
 .btn {
   width: 100%;
   padding: 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 10px;
+  transition: all 0.25s ease;
+  margin-top: 12px;
+  font-size: 15px;
+  letter-spacing: 0.5px;
 }
-
-/* Login */
 .login-btn {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #1b263b, #415a77);
   color: white;
+  box-shadow: 0 6px 16px rgba(65, 90, 119, 0.4);
 }
 .login-btn:hover {
-  background-color: #0056b3;
+  background: linear-gradient(135deg, #0d1b2a, #1b263b);
+  transform: translateY(-2px);
 }
-
-/* Registro */
 .register-btn {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #778da9, #415a77);
   color: white;
+  box-shadow: 0 6px 16px rgba(119,141,169,0.4);
 }
 .register-btn:hover {
-  background-color: #1e7e34;
+  background: linear-gradient(135deg, #415a77, #1b263b);
+  transform: translateY(-2px);
 }
-
-/* Reset */
 .reset-btn {
-  background-color: #ffc107;
-  color: black;
-}
-.reset-btn:hover {
-  background-color: #e0a800;
+  background-color: #718096;
+  color: white;
 }
 
-/* ===== Opciones pequeñas (Recuérdame + Link) ===== */
+/* ================================
+   OPCIONES PEQUEÑAS
+================================ */
 .small-options {
   display: flex;
-  align-items: center;
-  justify-content: space-between; /* checkbox izq, link der */
-  margin: 12px 0 18px;
-  width: 100%;
-  flex-wrap: nowrap;
+  justify-content: space-between;
+  font-size: 13px;
+  margin: 10px 0 16px;
 }
-
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #2c3e50;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.remember-me input {
-  accent-color: #3b7cdf;
-}
-
 .link-btn {
   background: none;
   border: none;
-  font-size: 14px;
-  color: #3b7cdf;
+  color: #2c5282;
   text-decoration: underline;
   cursor: pointer;
-  transition: color 0.3s ease;
-  white-space: nowrap;
-}
-.link-btn:hover {
-  color: #004d40;
 }
 
-/* ===== Error ===== */
+/* ================================
+   ERROR
+================================ */
 .login-error {
-  color: red;
-  margin-top: 8px;
-  font-size: 0.9rem;
+  color: #d9534f;
+  margin-top: 6px;
+  font-size: 0.95rem;
 }
 
+/* ================================
+   RESPONSIVE
+================================ */
+@media (max-width: 880px) {
+  .login-card {
+    flex-direction: column;
+    width: 100%;
+  }
+  .card-hero {
+    min-height: 180px;
+    width: 100%;
+  }
+  .card-form {
+    padding: 22px;
+  }
+}
 
+/* Animación fade + zoom */
+@keyframes fadeZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Aplicamos a la imagen */
+.hero-img {
+  width: 100%;
+  max-width: 420px; /* más grande */
+  height: auto;
+  object-fit: contain;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  animation: fadeZoomIn 1s ease-out; /* animación al cargar */
+}
+@keyframes shieldBounce {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.hero-img {
+  width: 100%;
+  max-width: 420px;
+  animation: shieldBounce 1s ease-out;
+}
+/* Animación principal: aparece con zoom */
+@keyframes shieldReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-15deg);
+    filter: drop-shadow(0 0 0px rgba(0, 150, 255, 0));
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.2) rotate(5deg);
+    filter: drop-shadow(0 0 20px rgba(0, 150, 255, 0.6));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.8));
+  }
+}
+
+/* Efecto resplandor continuo */
+@keyframes shieldGlow {
+  0% {
+    filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(0, 150, 255, 1));
+  }
+  100% {
+    filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.5));
+  }
+}
