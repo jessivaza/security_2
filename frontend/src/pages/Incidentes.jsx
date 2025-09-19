@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import "../css/incidentes.css";
@@ -11,6 +11,16 @@ export default function Incidentes() {
     descripcion: "",
   });
 
+  const [user, setUser] = useState(null);
+
+  // 🔹 Al montar el componente, obtenemos el usuario del localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -22,15 +32,17 @@ export default function Incidentes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Ajusta los nombres de los campos para que coincidan con el backend
       const payload = {
         NombreIncidente: formData.tipoIncidente,
         Ubicacion: formData.ubicacion,
         FechaHora: formData.horaReporte,
         Descripcion: formData.descripcion,
       };
-  const response = await axios.post("/api/registrar-incidente/", payload);
+
+      const response = await axios.post("/api/registrar-incidente/", payload);
       alert(response.data.message || "Incidente registrado correctamente");
+
+      // limpiar formulario
       setFormData({ tipoIncidente: "", ubicacion: "", horaReporte: "", descripcion: "" });
     } catch (error) {
       alert("Error al registrar incidente: " + (error.response?.data?.message || error.message));
@@ -39,6 +51,7 @@ export default function Incidentes() {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     window.location.href = "/login";
   };
 
@@ -48,9 +61,11 @@ export default function Incidentes() {
       <div className="sidebar">
         <h2>Seguridad</h2>
         <ul>
-          <li>Dashboard</li>
           <li>
-            <Link to="/incidentes" className="sidebar-link">Incidentes</Link>
+            <Link to="/dashboard" className="sidebar-link">Dashboard</Link>
+          </li>
+          <li>
+            <Link to="/dashboard" className="sidebar-link">Incidentes</Link>
           </li>
           <li>Historial</li>
           <li>Mapa</li>
@@ -60,10 +75,18 @@ export default function Incidentes() {
       {/* Main content */}
       <div className="main-content">
         <div className="header">
-          <h3>Reporte de Incidentes</h3>
+          <input
+            type="text"
+            className="search-bar"
+            placeholder="Buscar incidencias..."
+          />
           <div className="user-info">
-            <p>Hola, emerson (emontenegro1234@gmail.com)</p>
-            <button className="profile-btn">Profile</button>
+            {user ? (
+              <p>Hola, {user.username}</p>
+            ) : (
+              <p>Hola, Usuario</p>
+            )}
+            <button className="profile-btn">Perfil</button>
           </div>
         </div>
 

@@ -45,19 +45,35 @@
 .sidebar ul {
   list-style: none;
   padding: 0;
+  margin-top: 20px;
+  flex-grow: 1;
   width: 100%;
 }
-.sidebar ul li {
+.sidebar li {
+  margin: 12px 0;
   padding: 12px;
-  margin: 8px 0;
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: 0.3s;
-  text-align: center;
+  transition: all 0.3s;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: left;
 }
-.sidebar ul li:hover {
-  background: #3498db;
+.sidebar li:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(5px);
+}
+
+/* 🔴 Logout fijo abajo */
+.sidebar .logout-item {
+  background: #e63946;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  margin-top: auto;
+}
+.sidebar .logout-item:hover {
+  background: #d62828;
 }
 
 /* Main */
@@ -107,6 +123,7 @@
 /* Map */
 .map-section {
   margin-bottom: 25px;
+  position: relative;
 }
 .mapa {
   height: 350px;
@@ -115,111 +132,13 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-/* Reports */
-.reports {
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.report-btn {
-  background: #27ae60;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-.report-btn:hover {
-  background: #219150;
-}
-.reports ul {
-  list-style: none;
-  padding: 0;
-}
-.reports ul li {
-  margin: 8px 0;
-  padding: 8px;
-  border-radius: 8px;
-  background: #f0f4f8;
-}
-.pending { color: orange; font-weight: bold; }
-.in-progress { color: #3498db; font-weight: bold; }
-.resolved { color: green; font-weight: bold; }
-
-/* Perfil */
-.profile {
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.profile p {
-  margin: 6px 0;
-}
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
-  flex-grow: 1;
-}
-
-.sidebar li {
-  margin: 12px 0;
-  padding: 12px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  text-align: left;
-}
-
-.sidebar li:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateX(5px);
-}
-
-/* 🔴 Logout fijo abajo */
-.sidebar .logout-item {
-  background: #e63946;
-  font-weight: bold;
-  color: white;
-  text-align: center;
-  margin-top: auto;   /* 👈 Esto lo empuja al fondo */
-}
-
-.sidebar .logout-item:hover {
-  background: #d62828;
-}
-.map-section {
-  position: relative;
-}
-
-.hide-logo {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 120px;  /* ajusta según el tamaño del logo */
-  height: 40px;
-  background: white; /* o transparente */
-  border-top-left-radius: 8px;
-  z-index: 2;
-}
-
-.map-section iframe {
-  border: none;
-  border-radius: 12px;
-}
+/* Buscador */
 .route-form {
   display: flex;
   justify-content: center;
   margin-bottom: 10px;
   gap: 10px;
 }
-
 .route-input {
   flex: 1;
   padding: 10px 15px;
@@ -228,12 +147,10 @@
   outline: none;
   font-size: 15px;
 }
-
 .route-input:focus {
   border-color: #00b4d8;
   box-shadow: 0 0 6px rgba(0, 180, 216, 0.6);
 }
-
 .route-btn {
   background: #0077b6;
   color: white;
@@ -244,15 +161,52 @@
   cursor: pointer;
   transition: 0.3s;
 }
-
 .route-btn:hover {
   background: #00b4d8;
 }
 
+/* ================================
+   ICONOS DE MAPA
+================================ */
+.leaflet-marker-icon.icon-red {
+  filter: hue-rotate(0deg) saturate(3);
+}
 .leaflet-marker-icon.icon-orange {
   filter: hue-rotate(330deg) saturate(3);
 }
-
 .leaflet-marker-icon.icon-yellow {
   filter: hue-rotate(60deg) saturate(3);
+}
+
+/* ================================
+   LEYENDA
+================================ */
+.map-legend {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  background: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.map-legend div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.map-legend .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.map-legend .red { background: red; }
+.map-legend .orange { background: orange; }
+.map-legend .yellow { background: gold; }
+.map-legend .label {
+  font-size: 13px;
+  color: #333;
 }

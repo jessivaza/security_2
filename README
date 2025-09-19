@@ -23,3 +23,18 @@ BDSEGURIDAD
 ``` 
 py manage.py runserver
 ```
+
+5. **Diseño del Login**
+Primero entra cd fronted y instalar estas dependencias 
+
+   npm install bootstrap
+   npm install daisyui
+   npm install --save @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons 
+   npm install react-tsparticles
+
+6. **Dashboard del Usuario**
+
+Instalar estas dependencias para el mapa y iconos 
+   npm install react-icons
+   npm install react-leaflet leaflet
+   npm install leaflet leaflet-routing-machine react-leaflet
