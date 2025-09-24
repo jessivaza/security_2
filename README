@@ -42,9 +42,18 @@ Instalar estas dependencias para el mapa y iconos
 7. **==========🌳TRABAJAR POR RAMAS(Git Bash)===============**
 ```
 Para vesualizar las ramas existentes 
-git branch -a  
+   git branch -a  
 
 Para seleccionar la rama en la que quieres trabajar 
-git checkout nombre-rama
+   git checkout nombre-rama
+
+Descarga cambios de un repositorio remoto (Pull)
+   git pull origin nombre-rama
+
+Comentar cambios realizados (COMMIT)
+   git commit -m "comentario"
+
+Subir tus cambios locales (Push)
+   git push -u origin nombre-rama
 
 ```
