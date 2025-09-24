@@ -267,14 +267,14 @@
 
 /* ============ Sección Tecnología ============ */
 .tech-section {
-    padding: 100px 0;
-    background: linear-gradient(to bottom, #f8fafc, #fff);
+    padding: 60px 0;
 }
 
 .tech-header h2 {
     white-space: nowrap; /* fuerza a que todo esté en una sola línea */
     overflow: hidden;    /* oculta cualquier exceso si es demasiado largo */
     text-overflow: ellipsis; /* opcional, agrega "..." si se corta */
+    text-align: center;
 }
 
 .tech-header h2 {
@@ -311,7 +311,6 @@
 
 .services-section {
     padding: 60px 0;
-    background: linear-gradient(to bottom, #ffffff, #f8fafc);
 }
 
 .services-header {
