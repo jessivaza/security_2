@@ -2,9 +2,6 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/LoginPage";
 import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Incidentes from "./pages/Incidentes";
-import DashUsuario from "./pages/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
 
 // 🔹 Función para validar si hay token
 const isAuthenticated = () => {
