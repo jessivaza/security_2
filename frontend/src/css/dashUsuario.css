@@ -210,3 +210,28 @@
   font-size: 13px;
   color: #333;
 }
+.resumen-section {
+  margin-top: 20px;
+}
+
+.resumen-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.resumen-cards {
+  display: flex;
+  gap: 20px;         /* espacio entre los gráficos */
+  justify-content: space-between;
+}
+
+.resumen-card {
+  flex: 1;           /* cada gráfico ocupa el mismo ancho */
+  background: #fff;  /* opcional: fondo blanco */
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}

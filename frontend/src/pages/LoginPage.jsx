@@ -33,7 +33,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError("");
     try {
-      const res = await axios.post("http://localhost:8000/api/login", {
+      const res = await axios.post("http://localhost:8000/api/login/", {
         username: form.username,
         password: form.password,
       });

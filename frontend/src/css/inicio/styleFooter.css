@@ -1,0 +1,13 @@
+/* Contenedor principal del footer */
+.footer {
+  padding: 18px; /* Espaciado interno en todos los lados para que el contenido no quede pegado al borde */
+  font-size: 13px; /* Tamaño de letra pequeño, adecuado para texto de pie de página */
+  color: #94a3b8; /* Color gris claro para texto menos destacado */
+}
+
+/* Contenedor interno para centrar y limitar el ancho */
+.footer-container {
+  max-width: 1080px; /* Limita el ancho máximo del contenido para que no se extienda demasiado en pantallas grandes */
+  margin: 0 auto; /* Centra horizontalmente el contenedor */
+  text-align: center; /* Centra el texto dentro del contenedor */
+}

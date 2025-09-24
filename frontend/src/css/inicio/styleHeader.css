@@ -1,0 +1,86 @@
+/* Contenedor principal del header */
+.header {
+    background: #ffffff; /* Color de fondo blanco */
+    padding: 20px 16px;  /* Espaciado interno: 20px arriba/abajo y 16px izquierda/derecha */
+    box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06); /* Sombra suave para dar profundidad */
+}
+
+/* Contenedor interno que centra y organiza el contenido */
+.header-container {
+    max-width: 1080px; /* Ancho máximo para que no crezca demasiado en pantallas grandes */
+    margin: 0 auto; /* Centra horizontalmente el contenedor */
+    display: flex; /* Se usa Flexbox para alinear los elementos en línea */
+    align-items: center; /* Centra verticalmente los elementos dentro del contenedor */
+    justify-content: space-between; /* Espacia los elementos al máximo, uno a la izquierda y otro a la derecha */
+    gap: 12px; /* Espacio entre elementos directos hijos */
+}
+
+/* Sección del logo (icono + texto) */
+.logo-section {
+    display: flex; /* Flexbox para alinear icono y texto horizontalmente */
+    align-items: center; /* Centrado vertical de los elementos dentro de la sección */
+    gap: 12px; /* Espacio entre el icono y el texto */
+}
+
+/* Círculo que contiene el icono del logo */
+.logo-circle {
+    width: 44px;  /* Ancho fijo */
+    height: 44px; /* Alto fijo */
+    border-radius: 8px; /* Bordes redondeados */
+    background: rgb(255, 255, 255); /* Color de fondo del círculo (azul fuerte) */
+    display: flex; /* Flexbox para centrar la imagen dentro del círculo */
+    align-items: center; /* Centrado vertical */
+    justify-content: center; /* Centrado horizontal */
+    color: #ffffff; /* Color de texto (si se usa) */
+    font-weight: 800; /* Grosor del texto dentro del círculo */
+}
+
+/* Imagen dentro del logo-circle */
+.logo-circle img {
+    width: 100%; /* La imagen ocupa todo el ancho del contenedor */
+    height: 100%; /* La imagen ocupa todo el alto del contenedor */
+    object-fit: contain; /* Escala la imagen manteniendo proporciones sin recortarla */
+}
+
+/* Sección del texto del logo */
+.logo-text {
+    display: flex; /* Flexbox vertical */
+    flex-direction: column; /* Coloca los elementos en columna: título arriba, subtítulo abajo */
+}
+
+/* Título principal del logo */
+.logo-text .title {
+    font-size: 18px; /* Tamaño del texto */
+    font-weight: 800; /* Negrita fuerte */
+    color: #030303ff; /* Color negro */
+}
+
+/* Subtítulo o descripción debajo del título */
+.logo-text .subtitle {
+    font-size: 12px; /* Texto más pequeño */
+    color: #64748b; /* Color gris azulado para dar contraste y menor jerarquía */
+}
+
+/* Contenedor de los botones de navegación */
+.nav-buttons {
+    display: flex; /* Flexbox para alinear los botones horizontalmente */
+    gap: 18px; /* Espacio entre cada botón */
+    align-items: center; /* Centrado vertical */
+    justify-content: center; /* Centrado horizontal (en caso de que haya espacio extra) */
+    
+}
+.nav-buttons a {
+    text-decoration: none; /* Quita el subrayado de los enlaces */
+    color: #000000; /* Opcional: cambia el color del enlace */
+}
+
+/* Estilo de los botones dentro de nav-buttons */
+.nav-buttons button {
+    padding: 8px 12px; /* Espaciado interno: 8px arriba/abajo, 12px izquierda/derecha */
+    border-radius: 8px; /* Bordes redondeados */
+    border: 2px solid #ff0000; /* Borde azul oscuro */
+    background: #ff0000; /* Fondo azul oscuro */
+    color: #fff; /* Color de texto blanco */
+    font-weight: 700; /* Negrita moderada */
+    cursor: pointer; /* Cambia el cursor al pasar sobre el botón para indicar que es clickeable */
+}
