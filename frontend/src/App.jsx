@@ -1,11 +1,15 @@
+
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+import Dashboard from "./pages/Dashboard";
+import DashUsuario from "./pages/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
+import Incidentes from "./pages/Incidentes";
+// Inicio moved to subfolder
+
 import Inicio from "./pages/inicio/inicio";
 import Login from "./pages/LoginPage";
 import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Incidentes from "./pages/Incidentes";
-import DashUsuario from "./pages/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
 
 // 🔹 Función para validar si hay token
 const isAuthenticated = () => {
@@ -21,6 +25,9 @@ export default function App() {
   return (
     <Router>
       <Routes>
+        {/* Página principal promocional */}
+        <Route path="/" element={<Inicio />} />
+        <Route path="/inicio" element={<Inicio />} />
         {/* Login, Registro y Recuperar */}
         <Route path="/login" element={<Login />} />
         <Route path="/inicio" element={<Inicio />} />
@@ -50,7 +57,11 @@ export default function App() {
         {/* Módulo de incidentes */}
         <Route path="/incidentes" element={<Incidentes />} />
 
+
         {/* Redirigir por defecto */}
+
+        {/* Redirigir por defecto a la página principal */}
+
         <Route path="*" element={<Navigate to="/inicio" replace />} />
       </Routes>
     </Router>

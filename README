@@ -38,3 +38,7 @@ Instalar estas dependencias para el mapa y iconos
    npm install react-icons
    npm install react-leaflet leaflet
    npm install leaflet leaflet-routing-machine react-leaflet
+
+6. **Frontend Inicio**
+Para el mapa:
+npm install lucide-react

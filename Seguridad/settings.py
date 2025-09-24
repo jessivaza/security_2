@@ -87,7 +87,11 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'BDSEGURIDAD',  # crea primero esta BD en PostgreSQL
         'USER': 'postgres',
+<<<<<<< HEAD
         'PASSWORD': 'Celeste',
+=======
+        'PASSWORD': 'admin',
+>>>>>>> 101a3111a2c9f9e5f3dbb57d827220a9f24a64b7
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'OPTIONS': {
