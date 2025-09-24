@@ -16,6 +16,7 @@ import jwt
 from rest_framework import status
 from django.utils.timezone import now, timedelta
 from .models import DetalleAlerta
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Usuario, DetalleAlerta
 from .serializer import DetalleAlertaSerializer
@@ -178,12 +179,9 @@ def resumen(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# 🔹 Custom JWT Serializer (login con Usuario, no con User de Django)
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        return token
+class MyTokenObtainPairSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
         username = attrs.get("username")
@@ -193,12 +191,21 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not usuario or not check_password(password, usuario.contra):
             raise serializers.ValidationError("Usuario o contraseña incorrectos")
 
-        data = super().validate({"username": usuario.nombre, "password": password})
+        # Generar tokens JWT sin depender del modelo User
+        refresh = RefreshToken()
+        refresh["idUsuario"] = usuario.idUsuario
+        refresh["username"] = usuario.nombre
+        refresh["email"] = usuario.correo
 
-        data['idUsuario'] = usuario.idUsuario
-        data['username'] = usuario.nombre
-        return data
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "idUsuario": usuario.idUsuario,
+            "username": usuario.nombre,
+            "email": usuario.correo,
+        }
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
