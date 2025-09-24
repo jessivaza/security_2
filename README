@@ -3,11 +3,11 @@
 #CONFIGURAR LA CONEXIÓN A LA BD:
 -Ingresar a la carpeta settings.py y modificar "DATABASES" con los datos de tu base de datos en POSTGRESQL
 
-1. **Crear BD en PostgreSQL**
+1. **🛡️Crear BD en PostgreSQL**
 ```
-BDSEGURIDAD
+ BDSEGURIDAD
 ```
-2. **Instalar dependencias**
+2. **⚡Instalar dependencias**
    ```
    pip install -r requirements.txt
    ```
@@ -39,6 +39,12 @@ Instalar estas dependencias para el mapa y iconos
    npm install react-leaflet leaflet
    npm install leaflet leaflet-routing-machine react-leaflet
 
-6. **Frontend Inicio**
-Para el mapa:
-npm install lucide-react
+7. **==========🌳TRABAJAR POR RAMAS(Git Bash)===============**
+```
+Para vesualizar las ramas existentes 
+git branch -a  
+
+Para seleccionar la rama en la que quieres trabajar 
+git checkout nombre-rama
+
+```
