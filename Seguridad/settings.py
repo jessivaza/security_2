@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-bd=3xv8!b)du^a*ljxv5-qz)6!1w%!tqjzp&kx@!k97f^vzj1a
 DEBUG = True
 
 ALLOWED_HOSTS = []
+APPEND_SLASH = False
 
 
 # Application definition
@@ -86,7 +87,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'BDSEGURIDAD',  # crea primero esta BD en PostgreSQL
         'USER': 'postgres',
-        'PASSWORD': 'admin',
+        'PASSWORD': 'Celeste',
         'HOST': '127.0.0.1',
         'PORT': '5432',
         'OPTIONS': {
@@ -113,6 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
 
 
 # Internationalization
