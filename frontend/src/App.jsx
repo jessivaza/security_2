@@ -30,7 +30,6 @@ export default function App() {
         <Route path="/inicio" element={<Inicio />} />
         {/* Login, Registro y Recuperar */}
         <Route path="/login" element={<Login />} />
-        <Route path="/inicio" element={<Inicio />} />
         {/* Restablecer contraseña con token */}
         <Route path="/reset-password/:token" element={<ResetPassword />} />
 
@@ -53,6 +52,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        
 
         {/* Módulo de incidentes */}
         <Route path="/incidentes" element={<Incidentes />} />

@@ -39,7 +39,9 @@ export default function LoginPage() {
       });
       const token = res.data.access;
       if (token) {
-        localStorage.setItem("token", token);
+        localStorage.setItem("token", token); // usa "access" para coincidir con resumen.jsx
+     
+
         alert("Login exitoso ✅");
         navigate("/dashUsuario");
 

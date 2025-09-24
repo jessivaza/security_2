@@ -1,25 +1,68 @@
 from django.db import models
 from django.utils import timezone
-from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    PermissionsMixin,
+    BaseUserManager
+)
 
 
-class Usuario(models.Model):
+# ========================
+#  MANAGER DE USUARIO
+# ========================
+class UsuarioManager(BaseUserManager):
+    def create_user(self, correo, contra=None, **extra_fields):
+        if not correo:
+            raise ValueError("El usuario debe tener un correo")
+        correo = self.normalize_email(correo)
+        user = self.model(correo=correo, **extra_fields)
+        user.set_password(contra)  # encripta la contraseña y la guarda en `contra`
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, correo, contra=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("El superusuario debe tener is_staff=True")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("El superusuario debe tener is_superuser=True")
+
+        return self.create_user(correo, contra, **extra_fields)
+
+
+# ========================
+#  TABLA USUARIO
+# ========================
+class Usuario(AbstractBaseUser, PermissionsMixin):
     idUsuario = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=200, null=True)
-    correo = models.CharField(max_length=200)
-    contra = models.CharField(db_column='contra', max_length=250)  # ← usa db_column
-
+    nombre = models.CharField(max_length=200, null=True, blank=True)
+    correo = models.CharField(max_length=200, unique=True)
+    password = models.CharField(db_column="contra", max_length=250)
     fecha_creacion = models.DateTimeField(default=timezone.now)
 
+    # Requeridos por Django
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
+    objects = UsuarioManager()
+
+    USERNAME_FIELD = "correo"
+    REQUIRED_FIELDS = ["nombre"]
+
     class Meta:
-        db_table = 'Usuario'
+        db_table = "Usuario"
 
     def __str__(self):
         return self.nombre if self.nombre else self.correo
 
 
-    
+# ========================
+#  DEMÁS TABLAS
+# ========================
+
 class RolUsuario(models.Model):
     idRolUsuario = models.AutoField(primary_key=True)
     NombreRol = models.CharField(max_length=100)
@@ -201,9 +244,8 @@ class DetalleAlerta(models.Model):
     )
     NombreIncidente = models.CharField(max_length=250)
 
-    # 👇 Aquí usas tu modelo Usuario
     idUsuario = models.ForeignKey(
-        "Usuario",   # referencia a tu tabla Usuario
+        Usuario,
         on_delete=models.CASCADE,
         related_name="alertas",
         db_column="idUsuario",

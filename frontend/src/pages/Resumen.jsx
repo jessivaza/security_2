@@ -19,9 +19,15 @@ export default function Resumen() {
   const userId = localStorage.getItem("idUsuario");
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("No hay token disponible. Inicia sesión.");
+      return;
+    }
+
     fetch("http://127.0.0.1:8000/api/resumen/", {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        'Authorization': `Bearer ${token}`,
       },
     })
       .then((res) => {
@@ -32,15 +38,17 @@ export default function Resumen() {
       .catch((err) => setError(err.message));
   }, []);
 
+
   if (error) return <p style={{ color: "red" }}>⚠️ {error}</p>;
   if (!data) return <p>Cargando resumen...</p>;
 
   const COLORS = ["#4caf50", "#ff9800", "#f44336"];
 
-  const incidentesData = data.niveles_incidencia.map((nivel) => ({
+  const incidentesData = data.niveles_incidencia?.map((nivel) => ({
     name: nivel.idEscalaIncidencia__Descripcion,
     value: nivel.total,
-  }));
+  })) || [];
+
 
   const evolucionData =
     data.evolucion_reportes?.map((rep) => ({
@@ -50,7 +58,7 @@ export default function Resumen() {
 
   return (
     <section className="resumen-section">
-      
+
 
       {/* Contenedor en fila */}
       <div className="resumen-cards">

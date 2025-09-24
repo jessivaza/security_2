@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 import jwt
+from rest_framework.permissions import AllowAny
 from rest_framework import status
 from django.utils.timezone import now, timedelta
 from .models import DetalleAlerta
@@ -48,23 +49,30 @@ def registrar_incidente(request):
 
 # 🔹 Registrar usuario
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def registro(request):
-    nombre = request.data.get('username', '').strip()
-    correo = request.data.get('email', '').strip()
-    contra = request.data.get('password', '').strip()
+    try:
+        nombre = request.data.get('username', '').strip()
+        correo = request.data.get('email', '').strip()
+        contra = request.data.get('password', '').strip()
 
-    if Usuario.objects.filter(nombre__iexact=nombre).exists():
-        return Response({"error": "El usuario ya existe"}, status=400)
-    if Usuario.objects.filter(correo__iexact=correo).exists():
-        return Response({"error": "El correo ya está registrado"}, status=400)
+        if Usuario.objects.filter(nombre__iexact=nombre).exists():
+            return Response({"error": "El usuario ya existe"}, status=400)
+        if Usuario.objects.filter(correo__iexact=correo).exists():
+            return Response({"error": "El correo ya está registrado"}, status=400)
 
-    usuario = Usuario.objects.create(
-        nombre=nombre,
-        correo=correo,
-        contra=make_password(contra)
-    )
+        usuario = Usuario.objects.create_user(
+            correo=correo,
+            contra=contra,
+            nombre=nombre
+        )
 
-    return Response({"message": "Usuario registrado correctamente", "id": usuario.idUsuario})
+        return Response({"message": "Usuario registrado correctamente", "id": usuario.idUsuario})
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+
 
 
 # 🔹 Enviar correo de restablecimiento
@@ -149,35 +157,34 @@ def dashUsuario(request):
 # 🔹 Resumen con estadísticas, últimas alertas y evolución
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])  # requiere token válido
+@permission_classes([IsAuthenticated])
 def resumen(request):
-    try:
-        # 1. Conteo por escala de incidencia
-        niveles_incidencia = (
-            DetalleAlerta.objects
-            .values("idEscalaIncidencia__Descripcion")
-            .annotate(total=Count("idEscalaIncidencia"))
-        )
+    user = request.user  # ya es tu Usuario autenticado
 
-        # 2. Evolución de reportes (últimos 7 días)
-        ultimos_dias = now().date() - timedelta(days=7)
-        evolucion_reportes = (
-            DetalleAlerta.objects.filter(FechaHora__date__gte=ultimos_dias)
-            .values("FechaHora__date")
-            .annotate(cantidad=Count("idAlerta"))
-            .order_by("FechaHora__date")
-        )
+    niveles_incidencia = (
+        DetalleAlerta.objects
+        .filter(idUsuario=user)
+        .values("idEscalaIncidencia__Descripcion")
+        .annotate(total=Count("idEscalaIncidencia"))
+    )
 
-        return Response({
-            "niveles_incidencia": list(niveles_incidencia),
-            "evolucion_reportes": [
-                {"fecha": r["FechaHora__date"], "cantidad": r["cantidad"]}
-                for r in evolucion_reportes
-            ]
-        }, status=status.HTTP_200_OK)
+    ultimos_dias = now().date() - timedelta(days=7)
+    evolucion_reportes = (
+        DetalleAlerta.objects
+        .filter(idUsuario=user, FechaHora__date__gte=ultimos_dias)
+        .values("FechaHora__date")
+        .annotate(cantidad=Count("idAlerta"))
+        .order_by("FechaHora__date")
+    )
 
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response({
+        "niveles_incidencia": list(niveles_incidencia),
+        "evolucion_reportes": [
+            {"fecha": r["FechaHora__date"], "cantidad": r["cantidad"]}
+            for r in evolucion_reportes
+        ]
+    })
+
 
 class MyTokenObtainPairSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -188,12 +195,12 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
         password = attrs.get("password")
 
         usuario = Usuario.objects.filter(nombre=username).first()
-        if not usuario or not check_password(password, usuario.contra):
+        if not usuario or not check_password(password, usuario.password):
             raise serializers.ValidationError("Usuario o contraseña incorrectos")
 
         # Generar tokens JWT sin depender del modelo User
         refresh = RefreshToken()
-        refresh["idUsuario"] = usuario.idUsuario
+        refresh["user_id"] = usuario.idUsuario
         refresh["username"] = usuario.nombre
         refresh["email"] = usuario.correo
 

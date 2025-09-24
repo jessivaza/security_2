@@ -148,10 +148,23 @@ EMAIL_HOST_PASSWORD = 'bfjldktstpnurzfd'       # ← contraseña de aplicación 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
+
+
+
+# JWT configuración personalizada para que use idUsuario en lugar de id
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=240),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=240),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "USER_ID_FIELD": "idUsuario",   # 👈 tu PK real en el modelo Usuario
+    "USER_ID_CLAIM": "user_id",
 }
+
+AUTH_USER_MODEL = "api.Usuario"
+
 
 CORS_ALLOW_ALL_ORIGINS = True  # Permitir todas las solicitudes CORS (útil para desarrollo)
