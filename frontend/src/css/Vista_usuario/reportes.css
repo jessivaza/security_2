@@ -1,0 +1,62 @@
+.mis-reportes {
+  padding: 20px;
+  max-width: 900px;
+  margin-left: 20px;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.3s ease;
+}
+
+.mis-reportes h3 {
+  margin-bottom: 20px;
+}
+
+/* TABLA */
+.mis-reportes table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  color: #1e293b;
+}
+
+.mis-reportes th, .mis-reportes td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mis-reportes th {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+.mis-reportes tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* PRIORIDADES */
+.prioridad-alta { background-color: #fee2e2; }
+.prioridad-media { background-color: #fef3c7; }
+.prioridad-baja { background-color: #dcfce7; }
+
+/* MODO OSCURO */
+.mis-reportes.dark {
+  background-color: #1e293b;
+  color: #000; /* letra negra en modo oscuro */
+}
+
+.mis-reportes.dark table {
+  background-color: #334155;
+  color: #000; /* letra negra */
+}
+
+.mis-reportes.dark th {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.mis-reportes.dark tr:hover {
+  background-color: #475569;
+}

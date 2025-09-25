@@ -1,0 +1,70 @@
+.prevencion-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+  padding: 20px;
+}
+
+/* Card cuadrada con animación */
+.prevencion-card {
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 15px;
+  font-size: 0.95rem;
+  color: #fff;
+  background: linear-gradient(135deg, #263758, #238373);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transform: translateY(20px);
+  opacity: 0;
+  animation: fadeSlide 0.6s forwards;
+}
+
+/* Animación con delay por cada card */
+.prevencion-card:nth-child(1) { animation-delay: 0.1s; }
+.prevencion-card:nth-child(2) { animation-delay: 0.2s; }
+.prevencion-card:nth-child(3) { animation-delay: 0.3s; }
+.prevencion-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes fadeSlide {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover con escala y sombra */
+.prevencion-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+}
+
+/* Icono animado */
+.prevencion-card .icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  transition: transform 0.3s;
+}
+
+.prevencion-card:hover .icon {
+  transform: rotate(15deg) scale(1.2);
+}
+
+/* Título */
+.prevencion-card h3 {
+  margin-bottom: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .prevencion-card {
+    width: 100%;
+    height: auto;
+  }
+}

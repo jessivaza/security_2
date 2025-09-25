@@ -215,4 +215,3 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
-

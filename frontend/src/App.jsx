@@ -3,7 +3,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
-import DashUsuario from "./pages/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
+import DashUsuario from "./pages/Vista_usuario/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
 import Incidentes from "./pages/Incidentes";
 // Inicio moved to subfolder
 
