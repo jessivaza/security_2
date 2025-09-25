@@ -41,19 +41,54 @@ Instalar estas dependencias para el mapa y iconos
 
 7. **==========🌳TRABAJAR POR RAMAS(Git Bash)===============**
 ```
-Para vesualizar las ramas existentes 
+1️⃣Para vesualizar las ramas existentes 
    git branch -a  
 
-Para seleccionar la rama en la que quieres trabajar 
+2️⃣Para seleccionar la rama en la que quieres trabajar 
    git checkout nombre-rama
 
-Descarga cambios de un repositorio remoto (Pull)
+3️⃣Descarga cambios de un repositorio remoto (Pull)
    git pull origin nombre-rama
 
-Comentar cambios realizados (COMMIT)
+4️⃣Comentar cambios realizados (COMMIT)
    git commit -m "comentario"
 
-Subir tus cambios locales (Push)
+5️⃣Subir tus cambios locales (Push)
    git push -u origin nombre-rama
+```
 
+8. **==========📘 Guía: Unir main con tu rama de trabajo (nombre_rama)===============**
+```
+1️⃣ Cambiarte a tu rama
+      git checkout nombre_rama
+2️⃣ Actualizar main desde el remoto
+      git fetch origin
+3️⃣ Unir main en tu rama
+      git merge origin/main
+         3.1 👉 Aquí pueden pasar 2 cosas:
+            ✅Si no hay conflictos → se hace el merge directo.
+            ⚡Si hay conflictos → Git te avisará, los resuelves de esta manera: 
+               git add archivo_conflictivo
+               git commit -m "Resolver conflictos al unir main en r_Jhayr"
+4️⃣ Subir tu rama actualizada
+```
+
+9. **==========📘 Guía: Unir tu rama de trabajo con main===============**
+```
+1️⃣Primero asegúrate de estar en la rama donde quieres integrar los cambios: 
+      git checkout main
+2️⃣Actualizar main desde el remoto
+   Trae la última versión de main que está en el repositorio remoto (GitHub, GitLab, etc.):
+      git fetch origin
+      git pull origin main
+3️⃣ Unir tu rama con main
+      git merge nombre_rama
+      
+      3.1 👉 Aquí pueden pasar 2 cosas:
+               ✅Si no hay conflictos → se hace el merge directo.
+               ⚡Si hay conflictos → Git te avisará, los resuelves de esta manera: 
+                  git add archivo_conflictivo
+                  git commit -m "Resolver conflictos al unir nombre_rama en main"
+4️⃣ Subir los cambios al remoto:
+      git push origin main
 ```
