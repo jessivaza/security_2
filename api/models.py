@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Usuario(models.Model):
@@ -199,6 +200,16 @@ class DetalleAlerta(models.Model):
         blank=True
     )
     NombreIncidente = models.CharField(max_length=250)
+
+    # 👇 Aquí usas tu modelo Usuario
+    idUsuario = models.ForeignKey(
+        "Usuario",   # referencia a tu tabla Usuario
+        on_delete=models.CASCADE,
+        related_name="alertas",
+        db_column="idUsuario",
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = 'DetalleAlerta'

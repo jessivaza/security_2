@@ -1,24 +1,48 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password, check_password
+from .models import Usuario, DetalleAlerta
 
+
+# 🔹 Registro de usuario (se guarda en la tabla Usuario)
 class RegistroSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    contra = serializers.CharField(write_only=True)
 
     class Meta:
-        model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'password')
+        model = Usuario
+        fields = ('idUsuario', 'nombre', 'correo', 'contra')
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            email=validated_data['email'],
-            password=validated_data['password']
-        )
+        validated_data['contra'] = make_password(validated_data['contra'])  # 🔐 Encriptar contraseña
+        user = Usuario.objects.create(**validated_data)
         return user
-from .models import DetalleAlerta
 
+
+# 🔹 Login (valida usuario con nombre y contra)
+class LoginSerializer(serializers.Serializer):
+    nombre = serializers.CharField()
+    contra = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        nombre = data.get("nombre")
+        contra = data.get("contra")
+
+        try:
+            usuario = Usuario.objects.get(nombre=nombre)
+        except Usuario.DoesNotExist:
+            raise serializers.ValidationError("Usuario no encontrado")
+
+        if not check_password(contra, usuario.contra):
+            raise serializers.ValidationError("Contraseña incorrecta")
+
+        # Retorna datos útiles del usuario
+        return {
+            "idUsuario": usuario.idUsuario,
+            "nombre": usuario.nombre,
+            "correo": usuario.correo,
+        }
+
+
+# 🔹 Serializador para DetalleAlerta
 class DetalleAlertaSerializer(serializers.ModelSerializer):
     class Meta:
         model = DetalleAlerta

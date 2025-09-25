@@ -24,6 +24,7 @@
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.1",
     "react-simple-animate": "^3.5.3",
+    "recharts": "^3.2.1",
     "styled-components": "^6.1.19",
     "three": "^0.180.0"
   },
