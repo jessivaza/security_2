@@ -1,5 +1,5 @@
 import '../../../css/inicio/styleFooter.css';
-{/*Pie de página*/}
+{/*Pie de página1*/}
 export default function Footer() {
   return (
     <footer className="footer">
