@@ -1,46 +1,109 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom"; 
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import "../css/dashboard.css"; 
+import React, { useState } from 'react';
+import { Link } from "react-router-dom";
+import "../css/dashboard.css";
 
-export default function Dashboard() {
-  const [user, setUser] = useState({ username: "", email: "" });
+const Dashboard = () => {
+  const [user, setUser] = useState({ username: "Admin", email: "admin@security.com" });
+  const [sidebarExpanded, setSidebarExpanded] = useState({
+    elements: false,
+    components: false,
+    formElements: false,
+    tables: false,
+    chartBoxes: false,
+    charts: false
+  });
 
-  // Al cargar el Dashboard, obtenemos el usuario desde localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser)); // Lo convertimos a objeto
+  const toggleSidebar = (section) => {
+    setSidebarExpanded(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const portfolioData = [
+    {
+      title: "Total Incidentes",
+      amount: "2,847",
+      change: "12% más que ayer",
+      icon: "🚨",
+      trend: "up",
+      color: "orange"
+    },
+    {
+      title: "Casos Resueltos", 
+      amount: "1,963",
+      change: "Tasa: 68.9%",
+      icon: "✅",
+      trend: "up",
+      color: "green"
+    },
+    {
+      title: "Alertas Activas",
+      amount: "284",
+      change: "Pendientes de atención",
+      icon: "🔔",
+      trend: "down",
+      color: "red"
     }
-  }, []);
+  ];
 
-  // Inicializar el mapa Leaflet
-  useEffect(() => {
-    const losOlivos = [-11.978, -76.999];
-    const map = L.map("map").setView(losOlivos, 14);
+  const agentsData = [
+    {
+      id: "#54",
+      avatar: "👮‍♂️",
+      name: "Carlos Mendoza",
+      company: "Comisaría Los Olivos",
+      status: "Activo",
+      statusColor: "green",
+      dueDate: "Hoy",
+      progress: 89,
+      progressColor: "green"
+    },
+    {
+      id: "#55",
+      avatar: "👮‍♀️",
+      name: "Ana Vargas",
+      company: "Serenazgo Municipal",
+      status: "En Patrulla",
+      statusColor: "blue",
+      dueDate: "Hoy",
+      progress: 72,
+      progressColor: "blue"
+    },
+    {
+      id: "#56",
+      avatar: "🚑",
+      name: "Dr. Luis Torres",
+      company: "Emergencias Médicas",
+      status: "Disponible",
+      statusColor: "green",
+      dueDate: "Guardia",
+      progress: 95,
+      progressColor: "green"
+    },
+    {
+      id: "#58",
+      avatar: "🚒",
+      name: "Bomberos Los Olivos",
+      company: "Estación Central",
+      status: "En Servicio",
+      statusColor: "orange",
+      dueDate: "24h",
+      progress: 78,
+      progressColor: "orange"
+    }
+  ];
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-
-    const incidencias = [
-      { coords: [-11.978, -76.999], mensaje: "Robo en Av. Universitaria" },
-      { coords: [-11.976, -77.002], mensaje: "Accidente de tránsito" },
-      { coords: [-11.981, -76.995], mensaje: "Incendio menor" },
-    ];
-
-    incidencias.forEach((i) =>
-      L.marker(i.coords).addTo(map).bindPopup(i.mensaje)
-    );
-
-    // Cleanup
-    return () => {
-      map.remove();
-    };
-  }, []);
+  const timelineEvents = [
+    { text: "Reunión de seguridad diaria", status: "default" },
+    { text: "Reporte de incidente en Av. Universitaria", status: "new" },
+    { text: "Patrullaje nocturno programado", status: "default" },
+    { text: "Mantenimiento de equipos", status: "default" },
+    { text: "Capacitación de personal", status: "info" },
+    { text: "Simulacro de emergencia", status: "new" },
+    { text: "Revisión de protocolos", status: "dark" },
+    { text: "Coordinación interinstitucional", status: "default" }
+  ];
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -54,12 +117,49 @@ export default function Dashboard() {
       <div className="sidebar">
         <h2>Seguridad</h2>
         <ul>
-          <li>Dashboard</li>
+          <li className="active">Dashboard</li>
           <li>
             <Link to="/incidentes" className="sidebar-link">Incidentes</Link>
           </li>
-          <li>Historial</li>
-          <li>Mapa</li>
+          <li onClick={() => toggleSidebar('elements')}>
+            Alertas {sidebarExpanded.elements && '▼'}
+            {sidebarExpanded.elements && (
+              <ul className="submenu">
+                <li>Alertas Activas</li>
+                <li>Historial</li>
+                <li>Configuración</li>
+              </ul>
+            )}
+          </li>
+          <li onClick={() => toggleSidebar('components')}>
+            Personal {sidebarExpanded.components && '▼'}
+            {sidebarExpanded.components && (
+              <ul className="submenu">
+                <li>Policías</li>
+                <li>Serenazgo</li>
+                <li>Emergencias</li>
+              </ul>
+            )}
+          </li>
+          <li onClick={() => toggleSidebar('formElements')}>
+            Ubicaciones {sidebarExpanded.formElements && '▼'}
+            {sidebarExpanded.formElements && (
+              <ul className="submenu">
+                <li>Mapa General</li>
+                <li>Zonas de Riesgo</li>
+                <li>Puntos de Control</li>
+              </ul>
+            )}
+          </li>
+          <li onClick={() => toggleSidebar('tables')}>
+            Reportes {sidebarExpanded.tables && '▼'}
+            {sidebarExpanded.tables && (
+              <ul className="submenu">
+                <li>Estadísticas</li>
+                <li>Análisis</li>
+              </ul>
+            )}
+          </li>
         </ul>
       </div>
 
@@ -76,29 +176,60 @@ export default function Dashboard() {
             <button className="profile-btn">Perfil</button>
           </div>
         </div>
-
         <div className="statistics">
           <div className="stat-box">
-            <h3>Historial</h3>
-            <p>2000</p>
+            <h3>Total Incidentes</h3>
+            <p>2,847</p>
           </div>
           <div className="stat-box">
-            <h3>Incidentes</h3>
-            <p>30</p>
+            <h3>Casos Resueltos</h3>
+            <p>1,963</p>
           </div>
           <div className="stat-box">
-            <h3>Usuarios</h3>
-            <p>3000</p>
+            <h3>Alertas Activas</h3>
+            <p>284</p>
           </div>
         </div>
 
         <div className="dashboard-content">
-          <h4>Mapa de Los Olivos</h4>
-          <div
-            id="map"
-            className="map-container"
-            style={{ height: "400px", width: "100%", borderRadius: "10px" }}
-          ></div>
+          <h4>Panel de Control - Los Olivos</h4>
+          <p>Sistema de gestión y monitoreo de seguridad ciudadana</p>
+          
+          {/* Contenido adicional del dashboard */}
+          <div className="dashboard-sections">
+            {/* Personal de Emergencia */}
+            <div className="section">
+              <h3>Personal de Emergencia Activo</h3>
+              <div className="agents-grid">
+                {agentsData.map((agent, index) => (
+                  <div key={index} className="agent-card">
+                    <div className="agent-avatar">{agent.avatar}</div>
+                    <div className="agent-info">
+                      <h4>{agent.name}</h4>
+                      <p>{agent.company}</p>
+                      <span className={`agent-status ${agent.statusColor}`}>
+                        {agent.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Actividades Recientes */}
+            <div className="section">
+              <h3>Actividades Recientes</h3>
+              <div className="timeline-simple">
+                {timelineEvents.slice(0, 5).map((event, index) => (
+                  <div key={index} className="timeline-event">
+                    <span className={`event-dot ${event.status}`}></span>
+                    <span>{event.text}</span>
+                    {event.status === 'new' && <span className="event-badge">NUEVO</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -108,4 +239,6 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
+};
+
+export default Dashboard;
