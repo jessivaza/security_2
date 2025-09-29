@@ -93,3 +93,5 @@ Instalar estas dependencias para el mapa y iconos
 4️⃣ Subir los cambios al remoto:
       git push origin main
 ```
+10. **======== PDF y EXCEL =============**
+  npm install jspdf jspdf-autotable xlsx 
