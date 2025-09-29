@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../../css/Vista_usuario/dashUsuario.css";
 import Resumen from "./Resumen";
+import MapaInteractivo from "./Mapa";
 import Alertas from "./Alertas";
 import Perfil from "./Perfil";
 import Prevencion from "./prevencion";
-import MisReportes from "./Reportes"; // Asegúrate que el archivo se llame Reportes.jsx
+import MisReportes from "./Reportes";
 import { FaMoon, FaSun } from "react-icons/fa";
 import usuarioImg from "../../img/usuario/img.png";
 import {
@@ -23,7 +24,7 @@ import {
 function AlertasComunidad() {
   const [alertas, setAlertas] = useState([]);
 
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       const hora = new Date().toLocaleTimeString();
       setAlertas(prev => [
@@ -65,10 +66,23 @@ export default function DasUsuario() {
   const [darkMode, setDarkMode] = useState(false);
   const [isSlim, setIsSlim] = useState(false);
 
-  const position = { lat: -11.95, lon: -77.07 };
+  const [usuario, setUsuario] = useState({ nombre: "Usuario" });
+
+  // Traer nombre del usuario logueado desde backend
+  useEffect(() => {
+    const token = localStorage.getItem("access"); // JWT
+    if (!token) return;
+
+    fetch("http://127.0.0.1:8000/api/perfilUsuario/", {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setUsuario(prev => ({ ...prev, nombre: data.nombre || prev.nombre })))
+      .catch(err => console.error("Error al cargar usuario:", err));
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("access");
     navigate("/login");
   };
 
@@ -84,7 +98,7 @@ export default function DasUsuario() {
           <img src={usuarioImg} alt="Usuario" className="sidebar-avatar" />
           {!isSlim && (
             <>
-              <h3>Jessica Vazallo</h3>
+              <h3>{usuario.nombre}</h3>
               <p>Los Olivos</p>
             </>
           )}
@@ -126,28 +140,7 @@ export default function DasUsuario() {
         </header>
 
         {activeSection === "resumen" && <Resumen />}
-        {activeSection === "mapa" && (
-          <section className="map-section">
-            <h2>🗺️ Rutas de salida rápida</h2>
-            <form className="route-form" onSubmit={handleSearch}>
-              <input
-                type="text"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="Ingresa tu destino (ej: Mall, Comisaría)"
-                className="route-input"
-              />
-              <button type="submit" className="route-btn">🔍 Buscar Ruta</button>
-            </form>
-            <iframe
-              src={`https://embed.waze.com/iframe?zoom=14&lat=${position.lat}&lon=${position.lon}&pin=1`}
-              width="100%"
-              height="450"
-              allowFullScreen
-              title="Mapa Waze"
-            ></iframe>
-          </section>
-        )}
+        {activeSection === "mapa" && <MapaInteractivo />}
         {activeSection === "prevencion" && <Prevencion />}
         {activeSection === "alertas" && <Alertas />}
         {activeSection === "reportes" && <MisReportes darkMode={darkMode} />}

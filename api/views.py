@@ -16,7 +16,7 @@ import jwt
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 from django.utils.timezone import now, timedelta
-from .models import DetalleAlerta
+from .models import DetalleAlerta, PerfilUsuario
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Usuario, DetalleAlerta
@@ -66,6 +66,9 @@ def registro(request):
             contra=contra,
             nombre=nombre
         )
+
+        # Crear perfil asociado automáticamente
+        PerfilUsuario.objects.create(usuario=usuario)
 
         return Response({"message": "Usuario registrado correctamente", "id": usuario.idUsuario})
 
@@ -159,21 +162,33 @@ def dashUsuario(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def resumen(request):
-    user = request.user  # ya es tu Usuario autenticado
+    # ✅ Extraer el usuario desde el token JWT
+    jwt_auth = JWTAuthentication()
+    header = jwt_auth.get_header(request)
+    raw_token = jwt_auth.get_raw_token(header)
+    validated_token = jwt_auth.get_validated_token(raw_token)
 
+    id_usuario = validated_token.get("user_id")  # <- este nombre sí existe en tu token
+    usuario = Usuario.objects.filter(idUsuario=id_usuario).first()
+
+    if not usuario:
+        return Response({"error": "Usuario no encontrado"}, status=404)
+
+    # ✅ Estadísticas de incidencias por nivel
     niveles_incidencia = (
         DetalleAlerta.objects
-        .filter(idUsuario=user)
+        .filter(idUsuario=usuario)
         .values("idEscalaIncidencia__Descripcion")
         .annotate(total=Count("idEscalaIncidencia"))
     )
 
+    # ✅ Evolución de reportes últimos 7 días
     ultimos_dias = now().date() - timedelta(days=7)
     evolucion_reportes = (
         DetalleAlerta.objects
-        .filter(idUsuario=user, FechaHora__date__gte=ultimos_dias)
+        .filter(idUsuario=usuario, FechaHora__date__gte=ultimos_dias)
         .values("FechaHora__date")
-        .annotate(cantidad=Count("idAlerta"))
+        .annotate(cantidad=Count("idTipoIncidencia"))  # Ajusta este campo si tu PK se llama distinto
         .order_by("FechaHora__date")
     )
 
@@ -215,3 +230,24 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def perfilUsuario(request):
+    user = request.user  # DRF automáticamente obtiene el usuario desde el token
+    perfil = getattr(user, "perfil", None)
+
+    return JsonResponse({
+        "nombre": user.nombre,
+        "email": user.correo,
+        "telefono": perfil.telefono if perfil else "No hay número registrado",
+        "ultimo_acceso": user.fecha_creacion.isoformat(),
+        "contacto_emergencia": {
+            "nombre": perfil.contacto_emergencia_nombre if perfil else "No registrado",
+            "telefono": perfil.contacto_emergencia_telefono if perfil else "No registrado",
+        },
+        "preferencias": perfil.preferencias if perfil else {},
+        "activo": user.is_active
+    })
+
+

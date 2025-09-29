@@ -13,7 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 
 // 🔹 Función para validar si hay token
 const isAuthenticated = () => {
-  return !!localStorage.getItem("token");
+  return !!localStorage.getItem("access");
 };
 
 // 🔹 Ruta protegida

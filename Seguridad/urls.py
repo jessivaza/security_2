@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/', include ('api.urls')), # Ejemplo de una vista en la app 'api'
     path('registrar-incidente/', views.registrar_incidente, name='registrar_incidente'),
     path("api/resumen/<int:idUsuario>/", views.resumen, name="resumen"),
+    path('perfilUsuario/', views.perfilUsuario, name='perfilUsuario'),
     path('dashUsuario/', views.dashUsuario, name='dashUsuario')
 
 ]

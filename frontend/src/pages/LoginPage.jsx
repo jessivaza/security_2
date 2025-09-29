@@ -3,16 +3,12 @@ import { useNavigate } from "react-router-dom";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import axios from "axios";
 import "../css/index.css";
-import logo from "../img/logo.jpg"; // aquí va tu logo
+import logo from "../img/logo.jpg";
 
-
-
-// FontAwesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faLock, faEye, faEyeSlash, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 export default function LoginPage() {
-  const savedUsername = typeof window !== "undefined" ? localStorage.getItem("savedUsername") || "" : "";
   const navigate = useNavigate();
   const [tab, setTab] = useState("login");
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -37,16 +33,17 @@ export default function LoginPage() {
         username: form.username,
         password: form.password,
       });
-      const token = res.data.access;
-      if (token) {
-        localStorage.setItem("token", token); // usa "access" para coincidir con resumen.jsx
-     
 
+      const access = res.data.access;
+      const idUsuario = res.data.idUsuario;
+
+      if (access) {
+        localStorage.setItem("access", access);
+        if (idUsuario) localStorage.setItem("idUsuario", idUsuario);
         alert("Login exitoso ✅");
         navigate("/dashUsuario");
-
       } else {
-        setError("No se recibió token del servidor.");
+        setError("No se recibió el token de acceso.");
       }
     } catch (err) {
       console.error(err);
@@ -66,7 +63,7 @@ export default function LoginPage() {
       changeTab("login");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || err.response?.data?.detail || "Error al registrar");
+      setError(err.response?.data?.error || "Error al registrar");
     }
   };
 
@@ -80,20 +77,17 @@ export default function LoginPage() {
       changeTab("login");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || err.response?.data?.detail || "Error al enviar correo");
+      setError(err.response?.data?.error || "Error al enviar correo");
     }
   };
 
   return (
     <div className="login-background">
       <div className="login-card">
-
-        {/* IZQUIERDA: Logo */}
         <div className="card-hero">
           <img src={logo} alt="Logo" className="hero-img" />
         </div>
 
-        {/* DERECHA: Formulario */}
         <div className="card-form">
           <div className="logo-wrap">
             <div className="icon-container">
@@ -101,7 +95,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="tab-header">
             <button
               className={`tab-btn ${tab === "login" ? "active" : ""}`}
@@ -117,7 +110,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Formulario */}
           <form onSubmit={(e) => e.preventDefault()}>
             {(tab === "login" || tab === "registro") && (
               <div className="input-group">
@@ -130,7 +122,6 @@ export default function LoginPage() {
                     placeholder="Ingrese su usuario"
                     value={form.username}
                     onChange={handleChange}
-                    autoComplete="username"
                     required
                   />
                 </div>
@@ -148,7 +139,6 @@ export default function LoginPage() {
                     placeholder="Ingrese su correo"
                     value={form.email}
                     onChange={handleChange}
-                    autoComplete="email"
                     required
                   />
                 </div>
@@ -166,7 +156,6 @@ export default function LoginPage() {
                     placeholder="Ingrese su contraseña"
                     value={form.password}
                     onChange={handleChange}
-                    autoComplete="current-password"
                     required
                   />
                   <div

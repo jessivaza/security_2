@@ -355,3 +355,23 @@ class ContratoEmpresa(models.Model):
 
     def __str__(self):
         return f"Contrato {self.idContratoEmpresa} - Empresa {self.idDetalleEmpresa_id}"
+
+
+class PerfilUsuario(models.Model):
+    idPerfil = models.AutoField(primary_key=True)
+    usuario = models.OneToOneField(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name="perfil"
+    )
+    telefono = models.CharField(max_length=20, null=True, blank=True)
+    contacto_emergencia_nombre = models.CharField(max_length=200, null=True, blank=True)
+    contacto_emergencia_telefono = models.CharField(max_length=20, null=True, blank=True)
+    preferencias = models.JSONField(default=dict, blank=True)  
+
+    class Meta:
+        db_table = "PerfilUsuario"
+
+    def __str__(self):
+        return f"Perfil de {self.usuario.nombre or self.usuario.correo}"
+
