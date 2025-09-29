@@ -6,7 +6,9 @@ from django.contrib.auth.models import (
     BaseUserManager
 )
 
-
+# ========================
+#  MANAGER DE USUARIO
+# ========================
 # ========================
 #  MANAGER DE USUARIO
 # ========================
