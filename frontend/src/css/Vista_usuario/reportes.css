@@ -60,3 +60,50 @@
 .mis-reportes.dark tr:hover {
   background-color: #475569;
 }
+/* BOTONES EXPORTAR */
+.btn-export {
+  padding: 8px 14px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Poppins", sans-serif;
+}
+
+.btn-export:first-of-type {
+  background-color: #ef4444; /* Rojo para PDF */
+  color: #fff;
+}
+
+.btn-export:first-of-type:hover {
+  background-color: #dc2626;
+}
+
+.btn-export:last-of-type {
+  background-color: #22c55e; /* Verde para Excel */
+  color: #fff;
+}
+
+.btn-export:last-of-type:hover {
+  background-color: #16a34a;
+}
+
+/* BOTONES EN MODO OSCURO */
+.mis-reportes.dark .btn-export:first-of-type {
+  background-color: #b91c1c;
+}
+
+.mis-reportes.dark .btn-export:first-of-type:hover {
+  background-color: #991b1b;
+}
+
+.mis-reportes.dark .btn-export:last-of-type {
+  background-color: #15803d;
+}
+
+.mis-reportes.dark .btn-export:last-of-type:hover {
+  background-color: #166534;
+}
