@@ -1,20 +1,37 @@
 {
   "dependencies": {
+<<<<<<< HEAD
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
-    "@fortawesome/free-brands-svg-icons": "^7.0.1",
-    "@fortawesome/free-regular-svg-icons": "^7.0.1",
-    "@fortawesome/free-solid-svg-icons": "^7.0.1",
-    "@fortawesome/react-fontawesome": "^3.0.2",
-    "axios": "^1.12.2",
-    "bootstrap-icons": "^1.13.1",
-    "jspdf": "^3.0.3",
-    "jspdf-autotable": "^5.0.2",
+=======
     "leaflet": "^1.9.4",
     "leaflet-routing-machine": "^3.2.12",
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.9.1"
+  },
+  "devDependencies": {
+>>>>>>> b2920933025e80d5bc1295b324f13c4c796fc59e
+    "@fortawesome/free-brands-svg-icons": "^7.0.1",
+    "@fortawesome/free-regular-svg-icons": "^7.0.1",
+    "@fortawesome/free-solid-svg-icons": "^7.0.1",
+    "@fortawesome/react-fontawesome": "^3.0.2",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.12.2",
+    "bootstrap-icons": "^1.13.1",
+<<<<<<< HEAD
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "leaflet": "^1.9.4",
+    "leaflet-routing-machine": "^3.2.12",
+=======
+    "postcss": "^8.5.6",
+>>>>>>> b2920933025e80d5bc1295b324f13c4c796fc59e
+    "react-icons": "^5.5.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.1",
     "recharts": "^3.2.1",
+<<<<<<< HEAD
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -23,6 +40,10 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
     "vite": "^5.4.20"
+=======
+    "tailwindcss": "^4.1.13",
+    "vite": "^5.0.0"
+>>>>>>> b2920933025e80d5bc1295b324f13c4c796fc59e
   },
   "scripts": {
     "dev": "vite",
