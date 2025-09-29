@@ -1,19 +1,5 @@
 {
   "dependencies": {
-<<<<<<< HEAD
-    "leaflet": "^1.9.4",
-    "leaflet-routing-machine": "^3.2.12",
-    "react-icons": "^5.5.0",
-    "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.9.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.2",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13",
-    "vite": "^5.0.0"
-=======
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
     "@fortawesome/free-brands-svg-icons": "^7.0.1",
     "@fortawesome/free-regular-svg-icons": "^7.0.1",
@@ -31,7 +17,6 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
     "vite": "^5.4.20"
->>>>>>> b86354eab796044d8e32222916b7ed19a3e1f163
   },
   "scripts": {
     "dev": "vite",
