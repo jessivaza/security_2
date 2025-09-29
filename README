@@ -71,7 +71,7 @@ Instalar estas dependencias para el mapa y iconos
                git add archivo_conflictivo
                git commit -m "Resolver conflictos al unir main en r_Jhayr"
 4️⃣ Subir tu rama actualizada
-      git push origin main
+      git push origin 
 ```
 
 9. **==========📘 Guía: Unir tu rama de trabajo con main===============**
