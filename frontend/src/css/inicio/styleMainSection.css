@@ -237,7 +237,7 @@
 
 .cta-card {
     width: 100%;
-    max-width: 980px;
+    max-width: 100%;
     background: linear-gradient(90deg, #062a78, #0b74ff);
     color: #fff;
     padding: 28px;
@@ -271,9 +271,12 @@
 }
 
 .tech-header h2 {
-    white-space: nowrap; /* fuerza a que todo esté en una sola línea */
-    overflow: hidden;    /* oculta cualquier exceso si es demasiado largo */
-    text-overflow: ellipsis; /* opcional, agrega "..." si se corta */
+    white-space: nowrap;
+    /* fuerza a que todo esté en una sola línea */
+    overflow: hidden;
+    /* oculta cualquier exceso si es demasiado largo */
+    text-overflow: ellipsis;
+    /* opcional, agrega "..." si se corta */
     text-align: center;
 }
 
@@ -296,8 +299,10 @@
 
 .tech-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 columnas */
-    grid-template-rows: repeat(2, auto);   /* 2 filas automáticas según contenido */
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 columnas */
+    grid-template-rows: repeat(2, auto);
+    /* 2 filas automáticas según contenido */
     gap: 24px;
     max-width: 1200px;
     margin: 0 auto;
@@ -339,8 +344,10 @@
 /* ================== Grid Servicios Especializados ================== */
 .services-grid-new {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 columnas en una fila */
-    grid-template-rows: auto; /* 1 fila automática según contenido */
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 columnas en una fila */
+    grid-template-rows: auto;
+    /* 1 fila automática según contenido */
     gap: 30px;
     max-width: 1200px;
     margin: 0 auto;
@@ -461,30 +468,20 @@
     .services-header h2 {
         font-size: 2rem;
     }
-    
+
     .services-grid-new {
         grid-template-columns: 1fr;
         gap: 20px;
     }
-    
+
     .service-card-new {
         padding: 20px;
     }
-    
+
     .service-item {
         margin-bottom: 15px;
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 /* ============ Responsive ============ */
 @media (max-width: 768px) {
@@ -492,17 +489,13 @@
         font-size: 2rem;
     }
 
-     .tech-grid {
+    .tech-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: auto; /* 2 filas se ajustan automáticamente */
+        grid-template-rows: auto;
+        /* 2 filas se ajustan automáticamente */
         gap: 20px;
     }
 
     .feature-card-new {
         padding: 20px;
-    }
-<<<<<<< HEAD
-}
-=======
-}
->>>>>>> 101a3111a2c9f9e5f3dbb57d827220a9f24a64b7
+    }}
