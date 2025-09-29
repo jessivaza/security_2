@@ -24,16 +24,28 @@ from .serializer import DetalleAlertaSerializer
 
 
 # 🔹 Registrar incidente
+# 🔹 Registrar incidente (SIN pedir idUsuario en el body)
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def registrar_incidente(request):
-    required_fields = ["idUsuario", "Descripcion", "NombreIncidente", "Ubicacion", "idEscalaIncidencia"]
+    # ✅ Obtener el usuario desde el token JWT
+    jwt_auth = JWTAuthentication()
+    header = jwt_auth.get_header(request)
+    raw_token = jwt_auth.get_raw_token(header)
+    validated_token = jwt_auth.get_validated_token(raw_token)
+
+    id_usuario = validated_token.get("user_id")  # o "idUsuario" si así se guarda
+
+    # ✅ Validar los demás campos requeridos
+    required_fields = ["Descripcion", "NombreIncidente", "Ubicacion", "idEscalaIncidencia"]
     for field in required_fields:
         if field not in request.data:
             return Response({"error": f"{field} es requerido"}, status=400)
 
     try:
+        # ✅ Crear el registro SIN enviar idUsuario desde el frontend
         detalle = DetalleAlerta.objects.create(
-            idUsuario_id=request.data["idUsuario"],
+            idUsuario_id=id_usuario,
             idEscalaIncidencia_id=request.data["idEscalaIncidencia"],
             Descripcion=request.data["Descripcion"],
             NombreIncidente=request.data["NombreIncidente"],
@@ -41,8 +53,6 @@ def registrar_incidente(request):
         )
         return Response({"message": "Incidente registrado correctamente", "id": detalle.idTipoIncidencia})
 
-    except Usuario.DoesNotExist:
-        return Response({"error": "Usuario no encontrado"}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
@@ -176,11 +186,13 @@ def resumen(request):
 
     # ✅ Estadísticas de incidencias por nivel
     niveles_incidencia = (
-        DetalleAlerta.objects
-        .filter(idUsuario=usuario)
-        .values("idEscalaIncidencia__Descripcion")
-        .annotate(total=Count("idEscalaIncidencia"))
-    )
+    DetalleAlerta.objects
+    .filter(idUsuario=usuario)
+    .values("idEscalaIncidencia__Descripcion")
+    .annotate(total=Count("idEscalaIncidencia"))
+    .filter(total__gt=0)  # ✅ Elimina niveles con total = 0
+)
+
 
     # ✅ Evolución de reportes últimos 7 días
     ultimos_dias = now().date() - timedelta(days=7)
@@ -250,4 +262,23 @@ def perfilUsuario(request):
         "activo": user.is_active
     })
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mis_reportes(request):
+    jwt_auth = JWTAuthentication()
+    header = jwt_auth.get_header(request)
+    raw_token = jwt_auth.get_raw_token(header)
+    validated_token = jwt_auth.get_validated_token(raw_token)
+
+    id_usuario = validated_token.get("user_id")
+    
+    reportes = DetalleAlerta.objects.filter(idUsuario_id=id_usuario).values(
+        "idTipoIncidencia",
+        "FechaHora",
+        "NombreIncidente",
+        "Descripcion",
+        "Ubicacion"
+    )
+
+    return Response(list(reportes))
 
