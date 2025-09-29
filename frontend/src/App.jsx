@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import Dashboard from "./pages/Dashboard";
 import DashUsuario from "./pages/Vista_usuario/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
-import Incidentes from "./pages/Incidentes";
+
 // Inicio moved to subfolder
 
 import Inicio from "./pages/inicio/inicio";
@@ -54,8 +54,7 @@ export default function App() {
         />
         
 
-        {/* Módulo de incidentes */}
-        <Route path="/incidentes" element={<Incidentes />} />
+
 
 
         {/* Redirigir por defecto */}

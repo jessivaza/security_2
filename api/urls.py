@@ -13,7 +13,6 @@ urlpatterns = [
     path('cambio-contrasena/<str:token>', views.Cambio_Contrasena, name='cambio_contrasena'),
     path('me', views.me, name='me'),
     path("resumen/", views.resumen, name="resumen"),
-    path('registrar-incidente/', views.registrar_incidente, name='registrar_incidente'),
     path('mis-reportes/', views.mis_reportes, name='mis_reportes'),
     path('perfilUsuario/', views.perfilUsuario, name='perfilUsuario'),
 ]

@@ -118,9 +118,6 @@ const Dashboard = () => {
         <h2>Seguridad</h2>
         <ul>
           <li className="active">Dashboard</li>
-          <li>
-            <Link to="/incidentes" className="sidebar-link">Incidentes</Link>
-          </li>
           <li onClick={() => toggleSidebar('elements')}>
             Alertas {sidebarExpanded.elements && '▼'}
             {sidebarExpanded.elements && (
@@ -234,7 +231,7 @@ const Dashboard = () => {
       </div>
 
       {/* Logout Button */}
-      <div className="logout-btn">
+      <div className="dashboard-logout-btn">
         <button onClick={logout}>Cerrar sesión</button>
       </div>
     </div>
