@@ -6,7 +6,7 @@ import { FaEdit, FaLock, FaPhoneAlt } from "react-icons/fa";
 
 const API = "http://127.0.0.1:8000/api";
 
-/* Helpers ------------------------------------------------- */
+/* ===================== Helpers de red ===================== */
 async function fetchJSON(path, token) {
   try {
     const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
@@ -24,10 +24,53 @@ async function fetchFirst(paths, token) {
   return null;
 }
 
-/* Sanitizador: solo dígitos y máximo 9 */
-const digits9 = (str) => String(str ?? "").replace(/\D/g, "").slice(0, 9);
+/* ===================== Helpers de formateo ===================== */
+const getIatMsFromJWT = (token) => {
+  try {
+    const payload = JSON.parse(atob(String(token).split(".")[1]));
+    const sec = payload?.iat || payload?.auth_time;
+    return sec ? sec * 1000 : null;
+  } catch {
+    return null;
+  }
+};
 
-/* Pequeños estilos inline para embellecer los modales sin romper tu CSS */
+const prettyLastAccess = (raw) => {
+  let ts = null;
+  if (raw && raw !== "No disponible") {
+    const d = new Date(raw);
+    if (!isNaN(d)) ts = d.getTime();
+  }
+  if (!ts) {
+    const tok = localStorage.getItem("access");
+    ts = getIatMsFromJWT(tok);
+  }
+  if (!ts) return "🕓 Sin registro";
+
+  const d = new Date(ts);
+  const now = Date.now();
+  const diffMs = now - ts;
+  const sec = Math.round(diffMs / 1000);
+  const min = Math.round(sec / 60);
+  const hr = Math.round(min / 60);
+
+  const timeStr = d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+  const dateStr = d.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" });
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (sec < 60) return "🟢 Ahora mismo";
+  if (min < 60) return `⏱️ hace ${min} min`;
+  if (hr < 24 && sameDay(d, today)) return `🕒 hoy a las ${timeStr}`;
+  if (sameDay(d, yesterday)) return `🗓️ ayer a las ${timeStr}`;
+  return `📅 ${dateStr} • ${timeStr}`;
+};
+
+/* ===================== Estilos inline suaves (modales) ===================== */
 const modalCard = {
   background: "#fff",
   borderRadius: 14,
@@ -62,6 +105,29 @@ const actions = {
   marginTop: 14,
 };
 
+/* ========= Estilos para el badge ACTIVO con brillo ========= */
+const statusWrap = {
+  marginTop: 8,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "#eaf7ee",
+  color: "#1e7d3a",
+  padding: "6px 10px",
+  borderRadius: 999,
+  fontWeight: 600,
+};
+const glowDot = {
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  background: "#4caf50",
+  boxShadow: "0 0 0 0 rgba(76, 175, 80, .7)",
+  animation: "pulseGlow 1.8s infinite",
+};
+const statusText = { letterSpacing: ".2px" };
+
+/* ===================== Componente ===================== */
 export default function Perfil({ darkMode, setDarkMode }) {
   const [usuario, setUsuario] = useState({
     nombre: "Usuario",
@@ -77,7 +143,6 @@ export default function Perfil({ darkMode, setDarkMode }) {
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
 
-  /* Editar perfil */
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
@@ -87,13 +152,11 @@ export default function Perfil({ darkMode, setDarkMode }) {
   });
   const [saving, setSaving] = useState(false);
 
-  /* Cambiar password */
   const [showPass, setShowPass] = useState(false);
   const [pwd, setPwd] = useState({ actual: "", nueva: "" });
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdMsg, setPwdMsg] = useState("");
 
-  /* Cerrar modal con ESC */
   const handleKey = useCallback((e) => {
     if (e.key === "Escape") {
       setShowEdit(false);
@@ -105,13 +168,11 @@ export default function Perfil({ darkMode, setDarkMode }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [showEdit, showPass, handleKey]);
 
-  /* Carga de datos del usuario logueado */
   useEffect(() => {
     (async () => {
       const token = localStorage.getItem("access");
       if (!token) { setLoading(false); return; }
 
-      // 1) Usuario autenticado
       const me = await fetchJSON(`${API}/me/`, token);
       if (me) {
         setUsuario(prev => ({
@@ -120,12 +181,10 @@ export default function Perfil({ darkMode, setDarkMode }) {
           email: me.email || prev.email,
         }));
       } else {
-        // respaldo por si el endpoint falla
         const lsName = localStorage.getItem("username");
         if (lsName) setUsuario(prev => ({ ...prev, nombre: lsName }));
       }
 
-      // 2) Perfil extendido
       const perfil = await fetchFirst(
         [`${API}/perfil-usuario/`, `${API}/perfilUsuario/`, `${API}/perfil/`],
         token
@@ -134,7 +193,7 @@ export default function Perfil({ darkMode, setDarkMode }) {
         setUsuario(prev => ({
           ...prev,
           telefono: perfil.telefono || prev.telefono,
-          activo: typeof perfil.activo === "boolean" ? perfil.activo : prev.activo,
+          activo: true, // <- mostramos "Activo" y listo
           ultimo_acceso: perfil.ultimo_acceso || perfil.last_login || prev.ultimo_acceso,
           contacto_emergencia: {
             nombre: perfil.contacto_emergencia_nombre
@@ -152,23 +211,28 @@ export default function Perfil({ darkMode, setDarkMode }) {
     })();
   }, []);
 
-  /* Abrir modal de edición con valores actuales */
+  const isNineDigits = (v) => /^\d{9}$/.test(String(v).trim());
+  const validar = () => {
+    const nombre = form.nombre.trim();
+    if (nombre.length < 2) return "El nombre debe tener al menos 2 caracteres";
+    if (form.telefono && !isNineDigits(form.telefono))
+      return "El teléfono debe tener exactamente 9 dígitos";
+    if (form.contacto_emergencia_telefono && !isNineDigits(form.contacto_emergencia_telefono))
+      return "El teléfono de emergencia debe tener exactamente 9 dígitos";
+    return "";
+  };
+
   const abrirEditar = () => {
     setForm({
       nombre: usuario.nombre || "",
-      telefono:
-        usuario.telefono && usuario.telefono !== "No hay número registrado"
-          ? digits9(usuario.telefono)
-          : "",
+      telefono: usuario.telefono && usuario.telefono !== "No hay número registrado" ? usuario.telefono : "",
       contacto_emergencia_nombre:
-        usuario.contacto_emergencia?.nombre &&
-        usuario.contacto_emergencia.nombre !== "No registrado"
+        usuario.contacto_emergencia?.nombre && usuario.contacto_emergencia.nombre !== "No registrado"
           ? usuario.contacto_emergencia.nombre
           : "",
       contacto_emergencia_telefono:
-        usuario.contacto_emergencia?.telefono &&
-        usuario.contacto_emergencia.telefono !== "No registrado"
-          ? digits9(usuario.contacto_emergencia.telefono)
+        usuario.contacto_emergencia?.telefono && usuario.contacto_emergencia.telefono !== "No registrado"
+          ? usuario.contacto_emergencia.telefono
           : "",
     });
     setError("");
@@ -176,21 +240,6 @@ export default function Perfil({ darkMode, setDarkMode }) {
     setShowEdit(true);
   };
 
-  /* Validación suave (exactamente 9 dígitos si se informa) */
-  const validar = () => {
-    const nombre = form.nombre.trim();
-    if (nombre.length < 2) return "El nombre debe tener al menos 2 caracteres";
-
-    const tel = digits9(form.telefono);
-    if (tel && !/^\d{9}$/.test(tel)) return "El teléfono debe tener exactamente 9 dígitos";
-
-    const telEmer = digits9(form.contacto_emergencia_telefono);
-    if (telEmer && !/^\d{9}$/.test(telEmer)) return "El teléfono de emergencia debe tener 9 dígitos";
-
-    return "";
-  };
-
-  /* Guardar edición */
   const guardarPerfil = async (e) => {
     e?.preventDefault?.();
     const token = localStorage.getItem("access");
@@ -203,18 +252,8 @@ export default function Perfil({ darkMode, setDarkMode }) {
     setGuardado(false);
 
     try {
-      // Normaliza teléfonos antes de enviar
-      const payload = {
-        nombre: form.nombre.trim(),
-        telefono: digits9(form.telefono),
-        contacto_emergencia_nombre: form.contacto_emergencia_nombre.trim(),
-        contacto_emergencia_telefono: digits9(form.contacto_emergencia_telefono),
-      };
-
-      // Quita vacíos para no pisar con string vacío
-      Object.keys(payload).forEach((k) => {
-        if (payload[k] === "" || payload[k] == null) delete payload[k];
-      });
+      const payload = {};
+      for (const [k, v] of Object.entries(form)) if (String(v).trim() !== "") payload[k] = v.trim();
 
       const res = await fetch(`${API}/perfil-usuario/`, {
         method: "PATCH",
@@ -230,7 +269,6 @@ export default function Perfil({ darkMode, setDarkMode }) {
         throw new Error(j.error || "No se pudo actualizar");
       }
 
-      // Reflejar en UI
       setUsuario(prev => ({
         ...prev,
         nombre: payload.nombre ?? prev.nombre,
@@ -240,7 +278,6 @@ export default function Perfil({ darkMode, setDarkMode }) {
           telefono: payload.contacto_emergencia_telefono ?? prev.contacto_emergencia.telefono ?? "No registrado",
         },
       }));
-
       if (payload.nombre) localStorage.setItem("username", payload.nombre);
 
       setGuardado(true);
@@ -253,7 +290,6 @@ export default function Perfil({ darkMode, setDarkMode }) {
     }
   };
 
-  /* Cambiar contraseña */
   const cambiarPassword = async (e) => {
     e?.preventDefault?.();
     const token = localStorage.getItem("access");
@@ -294,19 +330,33 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
   return (
     <section className={`perfil ${darkMode ? "dark" : "light"}`}>
+      {/* keyframes para el brillo */}
+      <style>
+        {`
+          @keyframes pulseGlow {
+            0%   { box-shadow: 0 0 0 0 rgba(76, 175, 80, .6); }
+            70%  { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+          }
+        `}
+      </style>
+
       <div className="perfil-grid">
-        {/* Foto y estado */}
+        {/* --------- Perfil principal --------- */}
         <div className="card perfil-foto">
           <img src={usuarioImg} alt="Usuario" className="profile-avatar" />
           <h2>{usuario.nombre}</h2>
           <p><FaPhoneAlt /> Teléfono: {usuario.telefono}</p>
           <p>Email: {usuario.email}</p>
-          <span className={`profile-status ${usuario.activo ? "activo" : "desactivado"}`}>
-            {usuario.activo ? "Activo" : "Desactivado"}
-          </span>
+
+          {/* SOLO mostrar ACTIVO con icono que brilla */}
+          <div style={statusWrap}>
+            <span style={glowDot} />
+            <span style={statusText}>Activo</span>
+          </div>
         </div>
 
-        {/* Información de contacto */}
+        {/* --------- Contacto / edición --------- */}
         <div className="card perfil-info">
           <h3>Información de Contacto <FaEdit /></h3>
           <div className="contacto">
@@ -331,17 +381,17 @@ export default function Perfil({ darkMode, setDarkMode }) {
           </button>
         </div>
 
-        {/* Seguridad */}
+        {/* --------- Seguridad --------- */}
         <div className="card perfil-seguridad">
           <h3>Seguridad</h3>
-          <p>Último acceso: {usuario.ultimo_acceso}</p>
+          <p>Último acceso: {prettyLastAccess(usuario.ultimo_acceso)}</p>
           <button className="btn-change-pass" onClick={() => setShowPass(true)}>
             <FaLock /> Cambiar Contraseña
           </button>
           {!!pwdMsg && <p style={{ marginTop: 8 }}>{pwdMsg}</p>}
         </div>
 
-        {/* Preferencias */}
+        {/* --------- Preferencias --------- */}
         <div className="card perfil-preferencias">
           <h3>Preferencias</h3>
           <label className="toggle">
@@ -356,7 +406,7 @@ export default function Perfil({ darkMode, setDarkMode }) {
         </div>
       </div>
 
-      {/* MODAL Editar información */}
+      {/* ====== Modales (se mantienen tal cual) ====== */}
       {showEdit && (
         <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setShowEdit(false)}>
           <form
@@ -385,11 +435,12 @@ export default function Perfil({ darkMode, setDarkMode }) {
               <label>Teléfono (9 dígitos)</label>
               <input
                 style={input}
-                type="text"
-                value={form.telefono}
-                onChange={(e) => setForm({ ...form, telefono: digits9(e.target.value) })}
-                placeholder="Ej: 987654321"
+                type="tel"
                 inputMode="numeric"
+                pattern="\d{9}"
+                value={form.telefono}
+                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                placeholder="Tu teléfono"
               />
             </div>
 
@@ -410,13 +461,14 @@ export default function Perfil({ darkMode, setDarkMode }) {
               <label>Contacto de emergencia - Teléfono (9 dígitos)</label>
               <input
                 style={input}
-                type="text"
+                type="tel"
+                inputMode="numeric"
+                pattern="\d{9}"
                 value={form.contacto_emergencia_telefono}
                 onChange={(e) =>
-                  setForm({ ...form, contacto_emergencia_telefono: digits9(e.target.value) })
+                  setForm({ ...form, contacto_emergencia_telefono: e.target.value })
                 }
-                placeholder="Ej: 912345678"
-                inputMode="numeric"
+                placeholder="Teléfono del contacto"
               />
             </div>
 
@@ -432,7 +484,6 @@ export default function Perfil({ darkMode, setDarkMode }) {
         </div>
       )}
 
-      {/* MODAL Cambiar contraseña */}
       {showPass && (
         <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setShowPass(false)}>
           <form
