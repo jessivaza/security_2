@@ -6,6 +6,8 @@ import logo from "../../img/inicio/policia.png";
 import "../../css/Vista_usuario/reportes.css";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const API = "http://127.0.0.1:8000/api";
 
@@ -122,21 +124,109 @@ async function toDataURL(url) {
     doc.save("mis_reportes.pdf");
   };
 
-  // Excel
-  const exportarExcel = () => {
-    const datos = reportes.map((r) => ({
-      ID: r.idTipoIncidencia,
-      Fecha: new Date(r.FechaHora).toLocaleString("es-ES"),
-      Ubicacion: r.Ubicacion,
-      Incidente: r.NombreIncidente,
-      Descripcion: r.Descripcion,
-      Escala: r.Escala || "",
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, "Reportes");
-    XLSX.writeFile(libro, "mis_reportes.xlsx");
+//  Excel
+// Reemplaza tu exportarExcel por este:
+const exportarExcel = async () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Reportes");
+
+  // --- Encabezado: Logo mediano + Título ---
+  try {
+    const imgData = await toDataURL(logo); // tu helper existente
+    const imgId = wb.addImage({ base64: imgData, extension: "png" });
+    ws.addImage(imgId, {
+      tl: { col: 0, row: 0 },        // esquina superior izquierda (A1)
+      ext: { width: 50, height: 50 } // tamaño mediano aprox.
+    });
+  } catch (e) {
+    console.warn("No se pudo cargar el logo para Excel:", e);
+  }
+
+  ws.mergeCells("B1:F2");
+  const title = ws.getCell("B1");
+  title.value = "Mis Reportes";
+  title.font = { name: "Calibri", size: 22, bold: true };
+  title.alignment = { vertical: "middle", horizontal: "left" };
+
+  // Fila separadora
+  ws.getRow(3).height = 8;
+
+  // --- Datos para la tabla ---
+  const rows = (reportes || []).map((r) => [
+    r.idTipoIncidencia,
+    new Date(r.FechaHora).toLocaleString("es-PE"),
+    r.Ubicacion || "",
+    r.NombreIncidente || "",
+    r.Descripcion || "",
+    r.Escala || "", // Debe venir "Bajo" | "Medio" | "Alto"
+  ]);
+
+  // Anchos de columnas
+  ws.columns = [
+    { key: "ID", width: 8 },
+    { key: "Fecha", width: 22 },
+    { key: "Ubicacion", width: 28 },
+    { key: "Incidente", width: 26 },
+    { key: "Descripcion", width: 48 },
+    { key: "Escala", width: 12 },
+  ];
+
+  // --- Tabla con estilo ---
+  const startRow = 4; // tabla desde A4
+  ws.addTable({
+    name: "TablaReportes",
+    ref: `A${startRow}`,
+    headerRow: true,
+    style: {
+      theme: "TableStyleMedium9",
+      showRowStripes: true,
+    },
+    columns: [
+      { name: "ID" },
+      { name: "Fecha" },
+      { name: "Ubicación" },
+      { name: "Incidente" },
+      { name: "Descripción" },
+      { name: "Escala" },
+    ],
+    rows: rows,
+  });
+
+  // Alineaciones / wrap
+  ws.getColumn(1).alignment = { vertical: "middle", horizontal: "center" }; // ID
+  ws.getColumn(5).alignment = { wrapText: true, vertical: "top" };          // Descripción
+  for (let r = startRow; r <= startRow + rows.length; r++) {
+    ws.getRow(r).height = 20;
+  }
+
+  // --- Colorear columna "Escala" (F) ---
+  const colorMap = {
+    bajo:  "FF4CAF50", // verde
+    medio: "FFFF9800", // naranja
+    alto:  "FFF44336", // rojo
   };
+
+  // Header está en F{startRow}; datos empiezan en la siguiente fila
+  for (let i = 0; i < rows.length; i++) {
+    const excelRow = startRow + 1 + i;         // +1 por cabecera
+    const cell = ws.getCell(`F${excelRow}`);   // Columna Escala
+    const val = String(cell.value ?? "").toLowerCase().trim();
+    const fg = colorMap[val];
+    if (fg) {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fg } };
+      cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+    }
+  }
+
+  // --- Descargar ---
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, "mis_reportes.xlsx");
+};
+
 
   return (
     <div className={`mis-reportes ${darkMode ? "dark" : "light"}`}>

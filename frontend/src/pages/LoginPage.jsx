@@ -6,11 +6,10 @@ import axios from "axios";
 import "../css/index.css";
 import logo from "../img/logo.jpg";
 
-// FontAwesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faLock, faEye, faEyeSlash, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
-const BASE_URL = "http://127.0.0.1:8000/api"; // usa tu host/puerto
+const BASE_URL = "http://127.0.0.1:8000/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -19,9 +18,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const changeTab = (newTab) => {
     setTab(newTab);
@@ -30,34 +27,33 @@ export default function LoginPage() {
     setShowPassword(false);
   };
 
-  // ---------- LOGIN ----------
+  // ----- API calls -----
   const handleLogin = async () => {
-  setError("");
-  try {
-    const res = await axios.post(`${BASE_URL}/login`, {
-      username: form.username,   // <- tu "nombre" en DB
-      password: form.password,
-    });
+    setError("");
+    try {
+      const res = await axios.post(`${BASE_URL}/login`, {
+        username: form.username,
+        password: form.password,
+      });
 
-    localStorage.setItem("access", res.data.access);
-    localStorage.setItem("refresh", res.data.refresh);
-    localStorage.setItem("idUsuario", res.data.idUsuario);
-    if (res.data.username) localStorage.setItem("username", res.data.username);
-    if (res.data.email) localStorage.setItem("email", res.data.email);
+      localStorage.setItem("access", res.data.access);
+      localStorage.setItem("refresh", res.data.refresh);
+      localStorage.setItem("idUsuario", res.data.idUsuario);
+      if (res.data.username) localStorage.setItem("username", res.data.username);
+      if (res.data.email) localStorage.setItem("email", res.data.email);
 
-    const role =
-      res.data?.role ??
-      (res.data?.email?.toLowerCase().endsWith("@admin.com") ? "admin" : "user");
-    localStorage.setItem("role", role);
+      const role =
+        res.data?.role ??
+        (res.data?.email?.toLowerCase().endsWith("@admin.com") ? "admin" : "user");
+      localStorage.setItem("role", role);
 
-    navigate(role === "admin" ? "/dashboard" : "/dashUsuario");
-  } catch (err) {
-    console.error(err);
-    setError(err.response?.data?.error || "Error al iniciar sesión");
-  }
-};
+      navigate(role === "admin" ? "/dashboard" : "/dashUsuario");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "Error al iniciar sesión");
+    }
+  };
 
-  // ---------- REGISTRO ----------
   const handleRegister = async () => {
     setError("");
     try {
@@ -73,7 +69,6 @@ export default function LoginPage() {
     }
   };
 
-  // ---------- RESET ----------
   const handleReset = async () => {
     setError("");
     try {
@@ -83,6 +78,14 @@ export default function LoginPage() {
       console.error(err);
       setError(err.response?.data?.error || err.response?.data?.detail || "Error al enviar correo");
     }
+  };
+
+  // ----- Submit UNIFICADO (Enter envía lo correcto) -----
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (tab === "login") await handleLogin();
+    if (tab === "registro") await handleRegister();
+    if (tab === "reset") await handleReset();
   };
 
   return (
@@ -103,16 +106,24 @@ export default function LoginPage() {
 
           {/* Tabs */}
           <div className="tab-header">
-            <button className={`tab-btn ${tab === "login" ? "active" : ""}`} onClick={() => changeTab("login")}>
+            <button
+              type="button"
+              className={`tab-btn ${tab === "login" ? "active" : ""}`}
+              onClick={() => changeTab("login")}
+            >
               Iniciar Sesión
             </button>
-            <button className={`tab-btn ${tab === "registro" ? "active" : ""}`} onClick={() => changeTab("registro")}>
+            <button
+              type="button"
+              className={`tab-btn ${tab === "registro" ? "active" : ""}`}
+              onClick={() => changeTab("registro")}
+            >
               Regístrate
             </button>
           </div>
 
           {/* Formulario */}
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit}>
             {(tab === "login" || tab === "registro") && (
               <div className="input-group">
                 <label>Usuario</label>
@@ -163,9 +174,18 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     required
                   />
-                  <div className="icon-box eye-icon" onClick={() => setShowPassword(!showPassword)}>
+                  {/* 👇 Ojito sin cuadro (ya NO usa .icon-box) */}
+                  <span
+                    className="eye-icon"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setShowPassword(!showPassword)}
+                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-                  </div>
+                  </span>
                 </div>
               </div>
             )}
@@ -176,20 +196,21 @@ export default function LoginPage() {
               <label className="remember-me">
                 <input type="checkbox" /> Recordar sesión
               </label>
-              <button className="link-btn" onClick={() => changeTab("reset")}>
+              {/* ¡IMPORTANTE! NO es submit */}
+              <button type="button" className="link-btn" onClick={() => changeTab("reset")}>
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
 
             <div className="btn-group">
               {tab === "login" && (
-                <button className="btn login-btn" onClick={handleLogin}>Ingresar</button>
+                <button type="submit" className="btn login-btn">Ingresar</button>
               )}
               {tab === "registro" && (
-                <button className="btn register-btn" onClick={handleRegister}>Registrar</button>
+                <button type="submit" className="btn register-btn">Registrar</button>
               )}
               {tab === "reset" && (
-                <button className="btn reset-btn" onClick={handleReset}>Enviar Correo</button>
+                <button type="submit" className="btn reset-btn">Enviar Correo</button>
               )}
             </div>
           </form>
