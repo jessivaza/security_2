@@ -755,6 +755,53 @@ body {
   box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
 }
 
+
+
+
+
+/* === Fix overflow del mapa en layout flex === */
+.dashboard-container { overflow-x: hidden; }    /* evita scroll horizontal global */
+.main-content { min-width: 0; overflow-x: hidden; }  /* <— CLAVE: permitir que el contenido encoja */
+.section { max-width: 100%; }                   /* por si algún card intenta crecer más del contenedor */
+
+/* Card del mapa al ras */
+.section.section--map { padding: 0; overflow: hidden; border-radius: 12px; }
+.section.section--map > h3 { margin: 0; padding: 14px 18px; border-bottom: 1px solid #eef2f6; }
+
+/* Wrapper del mapa sin borde extra y recorte activo */
+.section.section--map .map-wrapper {
+  width: 100%;
+  border: 0;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Neutraliza los wrappers internos que trae tu MapCalor (minHeight/height) */
+.section.section--map .map-wrapper > div { min-height: 0 !important; width: 100%; }
+
+/* El mapa ocupa exactamente el card */
+.section.section--map .map-wrapper .leaflet-container {
+  width: 100% !important;
+  height: 72vh !important;   /* ajusta 60–85vh si quieres */
+  display: block;
+  border-radius: 0;
+}
+
+/* Tiles y controles bien contenidos */
+.section.section--map .leaflet-container img { max-width: none !important; }
+.section.section--map .leaflet-top, 
+.section.section--map .leaflet-bottom { margin: 8px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .section.section--map .map-wrapper .leaflet-container { height: 60vh !important; }
+}
+
+
+
+
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .sidebar {
@@ -799,4 +846,8 @@ body {
   .main-content {
     padding: 1rem;
   }
+
+
+
+  
 }

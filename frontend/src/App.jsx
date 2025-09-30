@@ -1,14 +1,13 @@
 
 // src/App.jsx
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import DashUsuario from "./pages/Vista_usuario/DashUsuario";
 import Inicio from "./pages/inicio/inicio";
 import Login from "./pages/LoginPage";
 import ResetPassword from "./pages/ResetPassword";
 
+import MapCalor from "./pages/Vista_Administrador/maps/MapaDeCalor/mapCalor";
+import DashUsuario from "./pages/Vista_usuario/DashUsuario";
 const isAuthenticated = () => !!localStorage.getItem("access");
 
 const ProtectedRoute = ({ children }) =>
@@ -29,7 +28,8 @@ export default function App() {
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-
+        <Route path="/mapCalor" element={<MapCalor />} />
+        
         <Route
           path="/dashboard"
           element={
@@ -47,14 +47,8 @@ export default function App() {
           }
         />
         
-
-
-
-
         {/* Redirigir por defecto */}
-
         {/* Redirigir por defecto a la página principal */}
-
         <Route path="*" element={<Navigate to="/inicio" replace />} />
       </Routes>
     </Router>

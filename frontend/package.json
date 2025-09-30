@@ -22,6 +22,7 @@
     "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "leaflet-routing-machine": "^3.2.12",
+    "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
