@@ -1,3 +1,4 @@
+# api/models.py
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import (
@@ -6,9 +7,6 @@ from django.contrib.auth.models import (
     BaseUserManager
 )
 
-# ========================
-#  MANAGER DE USUARIO
-# ========================
 # ========================
 #  MANAGER DE USUARIO
 # ========================
@@ -45,7 +43,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     password = models.CharField(db_column="contra", max_length=250)
     fecha_creacion = models.DateTimeField(default=timezone.now)
 
-    # Requeridos por Django
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -64,7 +61,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 # ========================
 #  DEMÁS TABLAS
 # ========================
-
 class RolUsuario(models.Model):
     idRolUsuario = models.AutoField(primary_key=True)
     NombreRol = models.CharField(max_length=100)
@@ -212,22 +208,22 @@ class Alerta(models.Model):
         return f"Alerta {self.idAlerta} - Cliente {self.idCliente_id}"
 
 
-class EscalaAlerta(models.Model):
-    idEscalaIncidencia = models.AutoField(primary_key=True)
-    Descripcion = models.CharField(max_length=45)
-
-    class Meta:
-        db_table = 'EscalaAlerta'
-
-    def __str__(self):
-        return self.Descripcion
+# --- Tabla EscalaAlerta ya NO es necesaria, la puedes dejar o borrar más adelante ---
 
 
 class DetalleAlerta(models.Model):
+    ESCALA_CHOICES = (
+        (1, "Bajo"),
+        (2, "Medio"),
+        (3, "Alto"),
+    )
+
     idTipoIncidencia = models.AutoField(primary_key=True)
     Ubicacion = models.CharField(max_length=250)
     Descripcion = models.CharField(max_length=500, null=True, blank=True)
     FechaHora = models.DateTimeField(default=timezone.now)
+
+    # Ya no usamos este FK para nada; lo dejamos por compatibilidad (es NULLABLE)
     idAlerta = models.ForeignKey(
         Alerta,
         on_delete=models.CASCADE,
@@ -237,13 +233,17 @@ class DetalleAlerta(models.Model):
         blank=True
     )
     idEscalaIncidencia = models.ForeignKey(
-        EscalaAlerta,
+        'EscalaAlerta',
         on_delete=models.CASCADE,
         related_name='detalles_escala',
         db_column='idEscalaIncidencia',
         null=True,
         blank=True
     )
+
+    # >>> NUEVO: escala como enum (sin BD extra)
+    Escala = models.PositiveSmallIntegerField(choices=ESCALA_CHOICES, default=1)
+
     NombreIncidente = models.CharField(max_length=250)
 
     idUsuario = models.ForeignKey(
@@ -260,6 +260,21 @@ class DetalleAlerta(models.Model):
 
     def __str__(self):
         return f"{self.Ubicacion} - {self.idTipoIncidencia}"
+
+    def escala_label(self):
+        return dict(self.ESCALA_CHOICES).get(self.Escala, "")
+    
+
+class EscalaAlerta(models.Model):
+    # (Puedes eliminarla cuando migres los datos, por ahora la dejamos por si usas datos viejos)
+    idEscalaIncidencia = models.AutoField(primary_key=True)
+    Descripcion = models.CharField(max_length=45)
+
+    class Meta:
+        db_table = 'EscalaAlerta'
+
+    def __str__(self):
+        return self.Descripcion
 
 
 class EstadoAtencionReporte(models.Model):
@@ -369,11 +384,10 @@ class PerfilUsuario(models.Model):
     telefono = models.CharField(max_length=20, null=True, blank=True)
     contacto_emergencia_nombre = models.CharField(max_length=200, null=True, blank=True)
     contacto_emergencia_telefono = models.CharField(max_length=20, null=True, blank=True)
-    preferencias = models.JSONField(default=dict, blank=True)  
+    preferencias = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "PerfilUsuario"
 
     def __str__(self):
         return f"Perfil de {self.usuario.nombre or self.usuario.correo}"
-

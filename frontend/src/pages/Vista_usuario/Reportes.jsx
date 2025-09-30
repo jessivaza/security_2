@@ -1,35 +1,51 @@
+// frontend/src/pages/Vista_usuario/Reportes.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import logo from "../../img/inicio/policia.png";
 import "../../css/Vista_usuario/reportes.css";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-export default function MisReportes({ darkMode }) {
+const API = "http://127.0.0.1:8000/api";
+
+// Opciones locales (sin BD)
+const ESCALAS = [
+  { id: 1, nombre: "Bajo" },
+  { id: 2, nombre: "Medio" },
+  { id: 3, nombre: "Alto" },
+];
+
+export default function Reportes({ darkMode }) {
   const [reportes, setReportes] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [nuevoReporte, setNuevoReporte] = useState({
     Ubicacion: "",
     Descripcion: "",
     NombreIncidente: "",
-    idEscalaIncidencia: "",
+    escala: "", // 1,2,3
   });
 
   const token = localStorage.getItem("access");
 
-  // ✅ Cargar reportes del backend
-  useEffect(() => {
+  const axiosAuth = axios.create({
+    baseURL: API,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const cargarReportes = () => {
     if (!token) return;
-    axios
-      .get("http://127.0.0.1:8000/api/mis-reportes/", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    axiosAuth
+      .get("/mis-reportes")
       .then((res) => setReportes(res.data))
       .catch((err) => console.error("Error cargando reportes:", err));
+  };
+
+  useEffect(() => {
+    cargarReportes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Abrir y cerrar modal
   const abrirModal = () => setMostrarModal(true);
   const cerrarModal = () => {
     setMostrarModal(false);
@@ -37,51 +53,84 @@ export default function MisReportes({ darkMode }) {
       Ubicacion: "",
       Descripcion: "",
       NombreIncidente: "",
-      idEscalaIncidencia: "",
+      escala: "",
     });
   };
 
-  // ✅ Registrar nuevo incidente (POST correcto)
-  const registrarIncidente = () => {
-    axios
-      .post(
-        "http://127.0.0.1:8000/registrar-incidente/",
-        nuevoReporte,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-      .then(() => {
-        cerrarModal();
-        window.location.reload();
-      })
-      .catch((err) => console.error("Error al registrar:", err));
+  const registrarIncidente = async () => {
+    try {
+      await axiosAuth.post("/registrar-incidente", {
+        Ubicacion: nuevoReporte.Ubicacion,
+        Descripcion: nuevoReporte.Descripcion,
+        NombreIncidente: nuevoReporte.NombreIncidente,
+        escala: Number(nuevoReporte.escala),
+      });
+      cerrarModal();
+      cargarReportes();
+    } catch (err) {
+      const msg = err?.response?.data?.error || "Error al registrar";
+      alert(`No se pudo registrar:\n${JSON.stringify({ error: msg }, null, 2)}`);
+      console.error("Error al registrar:", err);
+    }
   };
 
-  // ✅ Exportar a PDF
-  const exportarPDF = () => {
-    const doc = new jsPDF();
-    doc.addImage(logo, "PNG", 14, 10, 20, 20);
+  // PDF
+// Helper robusto: URL/asset -> DataURL (base64)
+async function toDataURL(url) {
+  const res = await fetch(url);            // funciona con assets importados en Vite
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+  const exportarPDF = async () => {
+  const doc = new jsPDF();
+
+  try {
+    const imgData = await toDataURL(logo);     // <- convierte el asset en base64
+    doc.addImage(imgData, "PNG", 14, 10, 20, 20);
+  } catch (e) {
+    console.warn("No se pudo cargar el logo:", e);
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("Mis Reportes", 40, 22);
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.text("Mis Reportes", 40, 22);
 
-    const datos = reportes.map((r) => [r.id, r.fecha, r.tipo, r.detalle]);
+    const body = reportes.map((r) => [
+      r.idTipoIncidencia,
+      new Date(r.FechaHora).toLocaleString("es-ES"),
+      r.Ubicacion,
+      r.NombreIncidente,
+      r.Descripcion,
+      r.Escala || "",
+    ]);
+
     autoTable(doc, {
-      head: [["ID", "Fecha", "Tipo", "Detalle"]],
-      body: datos,
+      head: [["ID", "Fecha", "Ubicación", "Incidente", "Descripción", "Escala"]],
+      body,
       startY: 50,
     });
+
     doc.save("mis_reportes.pdf");
   };
 
-  // ✅ Exportar a Excel
+  // Excel
   const exportarExcel = () => {
     const datos = reportes.map((r) => ({
-      ID: r.id,
-      Fecha: r.fecha,
-      Tipo: r.tipo,
-      Detalle: r.detalle,
+      ID: r.idTipoIncidencia,
+      Fecha: new Date(r.FechaHora).toLocaleString("es-ES"),
+      Ubicacion: r.Ubicacion,
+      Incidente: r.NombreIncidente,
+      Descripcion: r.Descripcion,
+      Escala: r.Escala || "",
     }));
     const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
@@ -93,24 +142,21 @@ export default function MisReportes({ darkMode }) {
     <div className={`mis-reportes ${darkMode ? "dark" : "light"}`}>
       <h2>Mis Reportes</h2>
 
-      {/* ✅ Botón Nuevo + Exportaciones */}
       <div style={{ marginBottom: "10px" }}>
         <button onClick={abrirModal} className="btn-export">➕ Nuevo</button>
         <button onClick={exportarPDF} className="btn-export">📄 PDF</button>
         <button onClick={exportarExcel} className="btn-export">📊 Excel</button>
       </div>
 
-      {/* ✅ Tabla */}
       <table>
         <thead>
           <tr>
             <th>ID</th>
             <th>Fecha</th>
-            <th>Ubicacion</th>
-            <th>Tipo</th>
-            <th>Descripcion</th>
-            <th>Estado</th>
-
+            <th>Ubicación</th>
+            <th>Incidente</th>
+            <th>Descripción</th>
+            <th>Escala</th>
           </tr>
         </thead>
         <tbody>
@@ -127,21 +173,20 @@ export default function MisReportes({ darkMode }) {
                   hour12: true,
                 })}
               </td>
-
               <td>{r.Ubicacion}</td>
               <td>{r.NombreIncidente}</td>
               <td>{r.Descripcion}</td>
-              <td>{index % 2 === 0 ? "En proceso" : "Completado"}</td>
+              <td>{r.Escala || "—"}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* ✅ Modal de Registro */}
       {mostrarModal && (
         <div className="modal-backdrop">
           <div className="modal">
             <h3>Registrar Incidente</h3>
+
             <input
               type="text"
               placeholder="Ubicación"
@@ -150,6 +195,7 @@ export default function MisReportes({ darkMode }) {
                 setNuevoReporte({ ...nuevoReporte, Ubicacion: e.target.value })
               }
             />
+
             <input
               type="text"
               placeholder="Descripción"
@@ -158,6 +204,7 @@ export default function MisReportes({ darkMode }) {
                 setNuevoReporte({ ...nuevoReporte, Descripcion: e.target.value })
               }
             />
+
             <input
               type="text"
               placeholder="Nombre del Incidente"
@@ -169,17 +216,18 @@ export default function MisReportes({ darkMode }) {
                 })
               }
             />
-            <input
-              type="number"
-              placeholder="ID Escala Incidencia"
-              value={nuevoReporte.idEscalaIncidencia}
+
+            <select
+              value={nuevoReporte.escala}
               onChange={(e) =>
-                setNuevoReporte({
-                  ...nuevoReporte,
-                  idEscalaIncidencia: e.target.value,
-                })
+                setNuevoReporte({ ...nuevoReporte, escala: e.target.value })
               }
-            />
+            >
+              <option value="">Selecciona la escala</option>
+              {ESCALAS.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.nombre}</option>
+              ))}
+            </select>
 
             <div className="modal-buttons">
               <button onClick={registrarIncidente} className="btn-guardar">
