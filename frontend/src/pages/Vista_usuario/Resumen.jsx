@@ -18,30 +18,39 @@ export default function Resumen() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-  const token = localStorage.getItem("access");
-  if (!token) {
-    setError("No hay token disponible. Inicia sesión.");
-    return;
-  }
+    const token = localStorage.getItem("access");
+    if (!token) {
+      setError("No hay token disponible. Inicia sesión.");
+      return;
+    }
 
-  fetch("http://127.0.0.1:8000/api/resumen/", {
-    headers: {
-      "Authorization": `Bearer ${token}`, // ✅ SimpleJWT
-    },
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error("Error al cargar resumen");
-      return res.json();
+    fetch("http://127.0.0.1:8000/api/resumen/", {
+      headers: {
+        "Authorization": `Bearer ${token}`, // ✅ SimpleJWT
+      },
     })
-    .then((data) => setData(data))
-    .catch((err) => setError(err.message));
-}, []);
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar resumen");
+        return res.json();
+      })
+      .then((data) => setData(data))
+      .catch((err) => setError(err.message));
+  }, []);
 
 
   if (error) return <p style={{ color: "red" }}>⚠️ {error}</p>;
   if (!data) return <p>Cargando resumen...</p>;
 
-  const COLORS = ["#4caf50", "#ff9800", "#f44336"];
+  // ✅ Mapeo de colores por nombre
+  const getColorByNivel = (nombre) => {
+    if (!nombre) return "#999";
+    const nivel = nombre.toLowerCase();
+    if (nivel.includes("alto")) return "#f44336"; // rojo
+    if (nivel.includes("medio")) return "#ff9800"; // naranja
+    if (nivel.includes("bajo")) return "#4caf50"; // verde
+    return "#999";
+  };
+
 
   const incidentesData =
     data?.niveles_incidencia?.map((nivel) => ({
@@ -74,8 +83,9 @@ export default function Resumen() {
                   {incidentesData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      fill={getColorByNivel(entry.name)}
                     />
+
                   ))}
                 </Pie>
                 <Tooltip />
