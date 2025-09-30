@@ -42,9 +42,9 @@ export default function LoginPage() {
       if (res.data.username) localStorage.setItem("username", res.data.username);
       if (res.data.email) localStorage.setItem("email", res.data.email);
 
-      const role =
-        res.data?.role ??
-        (res.data?.email?.toLowerCase().endsWith("@admin.com") ? "admin" : "user");
+      // 🚀 Lógica corregida para redirigir según email
+      const email = res.data?.email?.toLowerCase() || "";
+      const role = email.endsWith("@admin.com") ? "admin" : "user";
       localStorage.setItem("role", role);
 
       navigate(role === "admin" ? "/dashboard" : "/dashUsuario");
@@ -174,7 +174,6 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     required
                   />
-                  {/* 👇 Ojito sin cuadro (ya NO usa .icon-box) */}
                   <span
                     className="eye-icon"
                     role="button"
@@ -196,7 +195,6 @@ export default function LoginPage() {
               <label className="remember-me">
                 <input type="checkbox" /> Recordar sesión
               </label>
-              {/* ¡IMPORTANTE! NO es submit */}
               <button type="button" className="link-btn" onClick={() => changeTab("reset")}>
                 ¿Olvidaste tu contraseña?
               </button>
