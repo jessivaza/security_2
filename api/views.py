@@ -1,284 +1,301 @@
-from django.contrib.auth.models import User
-from django.contrib.auth.hashers import make_password, check_password
+# api/views.py
 from django.core.mail import send_mail
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework import status, serializers
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.conf import settings
-from django.db.models import Count
-from django.db.models.functions import TruncDate
-import jwt
-from rest_framework.permissions import AllowAny
-from rest_framework import status
 from django.utils.timezone import now, timedelta
-from .models import DetalleAlerta, PerfilUsuario
+from django.db.models import Count
+from django.db import transaction
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework import serializers
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Usuario, DetalleAlerta
-from .serializer import DetalleAlertaSerializer
+from django.contrib.auth.hashers import check_password
+import jwt
+import logging
 
+from .models import (
+    Usuario,
+    DetalleAlerta,
+    RolUsuario,
+    Administrador,
+)
 
-# 🔹 Registrar incidente
-# 🔹 Registrar incidente (SIN pedir idUsuario en el body)
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def registrar_incidente(request):
-    # ✅ Obtener el usuario desde el token JWT
+log = logging.getLogger(__name__)
+
+# ============ Helpers ============
+
+def _get_validated_token(request):
     jwt_auth = JWTAuthentication()
     header = jwt_auth.get_header(request)
-    raw_token = jwt_auth.get_raw_token(header)
-    validated_token = jwt_auth.get_validated_token(raw_token)
+    raw = jwt_auth.get_raw_token(header)
+    return jwt_auth.get_validated_token(raw)
 
-    id_usuario = validated_token.get("user_id")  # o "idUsuario" si así se guarda
+def _email_domain(email: str) -> str:
+    return (email or "").split("@")[-1].lower()
 
-    # ✅ Validar los demás campos requeridos
-    required_fields = ["Descripcion", "NombreIncidente", "Ubicacion", "idEscalaIncidencia"]
-    for field in required_fields:
-        if field not in request.data:
-            return Response({"error": f"{field} es requerido"}, status=400)
+def _role_from_email(email: str) -> str:
+    return "admin" if _email_domain(email) == "admin.com" else "user"
 
+def _password_field_name() -> str:
+    # Tu modelo usa atributo 'password' (columna DB 'contra'), pero mantenemos robusto:
+    names = {f.name.lower() for f in Usuario._meta.fields}
+    for cand in ("password", "contra", "contrasena"):
+        if cand in names:
+            return cand
+    return "password"
+
+# ============ Registrar incidente ============
+
+@api_view(['POST'])
+def registrar_incidente(request):
+    required = ["idUsuario", "Descripcion", "NombreIncidente", "Ubicacion", "idEscalaIncidencia"]
+    for f in required:
+        if f not in request.data:
+            return Response({"error": f"{f} es requerido"}, status=400)
     try:
-        # ✅ Crear el registro SIN enviar idUsuario desde el frontend
         detalle = DetalleAlerta.objects.create(
-            idUsuario_id=id_usuario,
+            idUsuario_id=request.data["idUsuario"],
             idEscalaIncidencia_id=request.data["idEscalaIncidencia"],
             Descripcion=request.data["Descripcion"],
             NombreIncidente=request.data["NombreIncidente"],
-            Ubicacion=request.data["Ubicacion"]
+            Ubicacion=request.data["Ubicacion"],
         )
-        return Response({"message": "Incidente registrado correctamente", "id": detalle.idTipoIncidencia})
-
+        return Response({"message": "Incidente registrado correctamente", "id": detalle.pk})
+    except Usuario.DoesNotExist:
+        return Response({"error": "Usuario no encontrado"}, status=404)
     except Exception as e:
+        log.exception("registrar_incidente error")
         return Response({"error": str(e)}, status=500)
 
+# ============ Registro (crea RolUsuario/Administrador si @admin.com) ============
 
-# 🔹 Registrar usuario
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def registro(request):
+    """
+    Crea Usuario con create_user(correo, contra, nombre=...).
+    Si correo termina en @admin.com:
+      - Crea RolUsuario (NombreRol='Administrador') enlazado al Usuario
+      - Crea Administrador enlazado a ese RolUsuario
+    Si no:
+      - Crea RolUsuario (NombreRol='Usuario')
+    """
     try:
-        nombre = request.data.get('username', '').strip()
-        correo = request.data.get('email', '').strip()
-        contra = request.data.get('password', '').strip()
+        nombre = (request.data.get('username') or '').strip()
+        correo = (request.data.get('email') or '').strip().lower()
+        contra = (request.data.get('password') or '').strip()
+
+        if not nombre or not correo or not contra:
+            return Response({"error": "username, email y password son requeridos"}, status=400)
 
         if Usuario.objects.filter(nombre__iexact=nombre).exists():
             return Response({"error": "El usuario ya existe"}, status=400)
         if Usuario.objects.filter(correo__iexact=correo).exists():
             return Response({"error": "El correo ya está registrado"}, status=400)
 
-        usuario = Usuario.objects.create_user(
-            correo=correo,
-            contra=contra,
-            nombre=nombre
-        )
+        with transaction.atomic():
+            # Usa tu Manager: setea hash en 'password' (columna DB 'contra')
+            usuario = Usuario.objects.create_user(
+                correo=correo,
+                contra=contra,
+                nombre=nombre,
+            )
 
-        # Crear perfil asociado automáticamente
-        PerfilUsuario.objects.create(usuario=usuario)
+            if _email_domain(correo) == "admin.com":
+                rol = RolUsuario.objects.create(
+                    idUsuario=usuario,
+                    NombreRol="Administrador",
+                    Descripcion="Rol asignado automáticamente por dominio @admin.com",
+                )
+                Administrador.objects.get_or_create(
+                    idRolUsuario=rol,
+                    defaults={"Nombre": nombre, "Apellido": ""},
+                )
+            else:
+                RolUsuario.objects.create(
+                    idUsuario=usuario,
+                    NombreRol="Usuario",
+                    Descripcion="Rol asignado automáticamente",
+                )
 
-        return Response({"message": "Usuario registrado correctamente", "id": usuario.idUsuario})
-
+        return Response({"message": "Usuario registrado correctamente", "id": usuario.idUsuario}, status=201)
     except Exception as e:
+        log.exception("registro error")
         return Response({"error": str(e)}, status=500)
 
+# ============ Reset password (tu modelo Usuario) ============
 
-
-
-# 🔹 Enviar correo de restablecimiento
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def enviar_correo(request):
     try:
-        email = request.data.get('email')
-        user = User.objects.filter(email=email).first()
-        if not user:
+        email = (request.data.get('email') or '').strip().lower()
+        usuario = Usuario.objects.filter(correo__iexact=email).first()
+        if not usuario:
             return JsonResponse({"error": "El correo no está registrado"}, status=400)
 
-        token = jwt.encode({"user_id": user.id}, settings.SECRET_KEY, algorithm="HS256")
+        token = jwt.encode({"idUsuario": usuario.idUsuario}, settings.SECRET_KEY, algorithm="HS256")
         reset_url = f"http://localhost:5173/reset-password/{token}"
 
         send_mail(
             'Restablecer contraseña',
-            f'Haz clic en el siguiente enlace para restablecer tu contraseña: {reset_url}',
-            'tu_correo@gmail.com',
+            f'Haz clic en el siguiente enlace para restablecer tu contraseña:\n{reset_url}',
+            getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@tuapp.com"),
             [email],
             fail_silently=False,
         )
         return JsonResponse({"message": "Correo enviado correctamente"})
     except Exception as e:
+        log.exception("enviar_correo error")
         return JsonResponse({"error": str(e)}, status=500)
 
-
-# 🔹 Cambiar contraseña con token
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def Cambio_Contrasena(request, token):
     try:
         data = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user = User.objects.get(id=data["user_id"])
-        new_password = request.data.get("password")
-        user.password = make_password(new_password)
-        user.save()
+        id_usuario = data.get("idUsuario")
+        usuario = Usuario.objects.get(idUsuario=id_usuario)
+
+        new_password = (request.data.get("password") or '').strip()
+        if not new_password:
+            return JsonResponse({"error": "Nueva contraseña requerida"}, status=400)
+
+        # AbstractBaseUser → usa set_password
+        usuario.set_password(new_password)
+        usuario.save()
         return JsonResponse({"message": "Contraseña cambiada con éxito"})
+    except Usuario.DoesNotExist:
+        return JsonResponse({"error": "Usuario no encontrado"}, status=404)
     except Exception as e:
+        log.exception("Cambio_Contrasena error")
         return JsonResponse({"error": str(e)}, status=500)
 
+# ============ Perfil / Dash ============
 
-# 🔹 Información del usuario logueado
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
-    jwt_auth = JWTAuthentication()
-    header = jwt_auth.get_header(request)
-    raw_token = jwt_auth.get_raw_token(header)
-    validated_token = jwt_auth.get_validated_token(raw_token)
+    try:
+        vt = _get_validated_token(request)
+        return JsonResponse({
+            "idUsuario": vt.get("idUsuario"),
+            "username": vt.get("username"),
+            "email": vt.get("email"),
+            "role": vt.get("role", "user"),
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=401)
 
-    id_usuario = validated_token.get("idUsuario")
-    usuario = Usuario.objects.get(idUsuario=id_usuario)
-
-    return JsonResponse({
-        "id": usuario.idUsuario,
-        "username": usuario.nombre,
-        "email": usuario.correo
-    })
-
-
-# 🔹 Dashboard de usuario
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashUsuario(request):
-    jwt_auth = JWTAuthentication()
-    header = jwt_auth.get_header(request)
-    raw_token = jwt_auth.get_raw_token(header)
-    validated_token = jwt_auth.get_validated_token(raw_token)
+    try:
+        vt = _get_validated_token(request)
+        id_usuario = vt.get("idUsuario")
+        usuario = Usuario.objects.get(idUsuario=id_usuario)
+        return JsonResponse({
+            "message": "Bienvenido al Dashboard de Usuario",
+            "user": {
+                "id": usuario.idUsuario,
+                "username": usuario.nombre,
+                "email": usuario.correo,
+            }
+        })
+    except Usuario.DoesNotExist:
+        return JsonResponse({"error": "Usuario no encontrado"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=401)
 
-    id_usuario = validated_token.get("idUsuario")
-    usuario = Usuario.objects.get(idUsuario=id_usuario)
-
-    return JsonResponse({
-        "message": "Bienvenido al Dashboard de Usuario",
-        "user": {
-            "id": usuario.idUsuario,
-            "username": usuario.nombre,
-            "email": usuario.correo
-        }
-    })
-
-
-# 🔹 Resumen con estadísticas, últimas alertas y evolución
+# ============ Resumen (ejemplo) ============
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def resumen(request):
-    # ✅ Extraer el usuario desde el token JWT
-    jwt_auth = JWTAuthentication()
-    header = jwt_auth.get_header(request)
-    raw_token = jwt_auth.get_raw_token(header)
-    validated_token = jwt_auth.get_validated_token(raw_token)
+    try:
+        vt = _get_validated_token(request)
+        id_usuario = vt.get("idUsuario")
 
-    id_usuario = validated_token.get("user_id")  # <- este nombre sí existe en tu token
-    usuario = Usuario.objects.filter(idUsuario=id_usuario).first()
+        niveles_incidencia = (
+            DetalleAlerta.objects
+            .filter(idUsuario_id=id_usuario)
+            .values("idEscalaIncidencia__Descripcion")
+            .annotate(total=Count("idEscalaIncidencia"))
+        )
 
-    if not usuario:
-        return Response({"error": "Usuario no encontrado"}, status=404)
+        desde = now().date() - timedelta(days=7)
+        evolucion_reportes = (
+            DetalleAlerta.objects
+            .filter(idUsuario_id=id_usuario, FechaHora__date__gte=desde)
+            .values("FechaHora__date")
+            .annotate(cantidad=Count("idAlerta"))
+            .order_by("FechaHora__date")
+        )
 
-    # ✅ Estadísticas de incidencias por nivel
-    niveles_incidencia = (
-    DetalleAlerta.objects
-    .filter(idUsuario=usuario)
-    .values("idEscalaIncidencia__Descripcion")
-    .annotate(total=Count("idEscalaIncidencia"))
-    .filter(total__gt=0)  # ✅ Elimina niveles con total = 0
-)
+        return Response({
+            "niveles_incidencia": list(niveles_incidencia),
+            "evolucion_reportes": [
+                {"fecha": r["FechaHora__date"], "cantidad": r["cantidad"]}
+                for r in evolucion_reportes
+            ]
+        })
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
 
-
-    # ✅ Evolución de reportes últimos 7 días
-    ultimos_dias = now().date() - timedelta(days=7)
-    evolucion_reportes = (
-        DetalleAlerta.objects
-        .filter(idUsuario=usuario, FechaHora__date__gte=ultimos_dias)
-        .values("FechaHora__date")
-        .annotate(cantidad=Count("idTipoIncidencia"))  # Ajusta este campo si tu PK se llama distinto
-        .order_by("FechaHora__date")
-    )
-
-    return Response({
-        "niveles_incidencia": list(niveles_incidencia),
-        "evolucion_reportes": [
-            {"fecha": r["FechaHora__date"], "cantidad": r["cantidad"]}
-            for r in evolucion_reportes
-        ]
-    })
-
+# ============ LOGIN: rol según tabla Administrador ============
 
 class MyTokenObtainPairSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        username = attrs.get("username")
-        password = attrs.get("password")
+        try:
+            username = attrs.get("username")
+            password = attrs.get("password")
 
-        usuario = Usuario.objects.filter(nombre=username).first()
-        if not usuario or not check_password(password, usuario.password):
-            raise serializers.ValidationError("Usuario o contraseña incorrectos")
+            # Autenticación por "nombre" (tu front envía username=nombre)
+            usuario = Usuario.objects.filter(nombre=username).first()
+            if not usuario:
+                raise serializers.ValidationError("Usuario o contraseña incorrectos")
 
-        # Generar tokens JWT sin depender del modelo User
-        refresh = RefreshToken()
-        refresh["user_id"] = usuario.idUsuario
-        refresh["username"] = usuario.nombre
-        refresh["email"] = usuario.correo
+            # Valida password (hashed en atributo 'password' → columna contra)
+            pwd_attr = _password_field_name()
+            hashed = getattr(usuario, pwd_attr, "") or ""
+            if not check_password(password, hashed):
+                raise serializers.ValidationError("Usuario o contraseña incorrectos")
 
-        return {
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "idUsuario": usuario.idUsuario,
-            "username": usuario.nombre,
-            "email": usuario.correo,
-        }
+            # Rol: si tiene registro en Administrador (vía su RolUsuario) ⇒ admin
+            es_admin = Administrador.objects.filter(idRolUsuario__idUsuario=usuario).exists()
+            role = "admin" if es_admin else _role_from_email(usuario.correo)
 
+            # Crea tokens con claims útiles para el front
+            refresh = RefreshToken()
+            refresh["idUsuario"] = usuario.idUsuario
+            refresh["username"] = usuario.nombre
+            refresh["email"] = usuario.correo
+            refresh["role"] = role
+
+            access = refresh.access_token
+
+            return {
+                "refresh": str(refresh),
+                "access": str(access),
+                "idUsuario": usuario.idUsuario,
+                "username": usuario.nombre,
+                "email": usuario.correo,
+                "role": role,
+            }
+        except serializers.ValidationError:
+            raise
+        except Exception as e:
+            log.exception("login error")
+            raise serializers.ValidationError("No se pudo procesar el inicio de sesión")
 
 class MyTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
     serializer_class = MyTokenObtainPairSerializer
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def perfilUsuario(request):
-    user = request.user  # DRF automáticamente obtiene el usuario desde el token
-    perfil = getattr(user, "perfil", None)
-
-    return JsonResponse({
-        "nombre": user.nombre,
-        "email": user.correo,
-        "telefono": perfil.telefono if perfil else "No hay número registrado",
-        "ultimo_acceso": user.fecha_creacion.isoformat(),
-        "contacto_emergencia": {
-            "nombre": perfil.contacto_emergencia_nombre if perfil else "No registrado",
-            "telefono": perfil.contacto_emergencia_telefono if perfil else "No registrado",
-        },
-        "preferencias": perfil.preferencias if perfil else {},
-        "activo": user.is_active
-    })
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def mis_reportes(request):
-    jwt_auth = JWTAuthentication()
-    header = jwt_auth.get_header(request)
-    raw_token = jwt_auth.get_raw_token(header)
-    validated_token = jwt_auth.get_validated_token(raw_token)
-
-    id_usuario = validated_token.get("user_id")
-    
-    reportes = DetalleAlerta.objects.filter(idUsuario_id=id_usuario).values(
-        "idTipoIncidencia",
-        "FechaHora",
-        "NombreIncidente",
-        "Descripcion",
-        "Ubicacion"
-    )
-
-    return Response(list(reportes))
-
