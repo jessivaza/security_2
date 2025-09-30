@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from "react-router-dom";
 import "../css/dashboard.css";
+import Historial from "./Vista_Administrador/Historial"; // Importar el componente Historial
 
 const Dashboard = () => {
   const [user, setUser] = useState({ username: "Admin", email: "admin@security.com" });
+  const [activeSection, setActiveSection] = useState("dashboard"); // Estado para sección activa
   const [sidebarExpanded, setSidebarExpanded] = useState({
     elements: false,
     components: false,
@@ -117,13 +119,23 @@ const Dashboard = () => {
       <div className="sidebar">
         <h2>Seguridad</h2>
         <ul>
-          <li className="active">Dashboard</li>
+          <li 
+            className={activeSection === "dashboard" ? "active" : ""} 
+            onClick={() => setActiveSection("dashboard")}
+          >
+            Dashboard
+          </li>
           <li onClick={() => toggleSidebar('elements')}>
             Alertas {sidebarExpanded.elements && '▼'}
             {sidebarExpanded.elements && (
               <ul className="submenu">
                 <li>Alertas Activas</li>
-                <li>Historial</li>
+                <li 
+                  onClick={() => setActiveSection("historial")}
+                  className={activeSection === "historial" ? "active" : ""}
+                >
+                  Historial
+                </li>
                 <li>Configuración</li>
               </ul>
             )}
@@ -173,61 +185,71 @@ const Dashboard = () => {
             <button className="profile-btn">Perfil</button>
           </div>
         </div>
-        <div className="statistics">
-          <div className="stat-box">
-            <h3>Total Incidentes</h3>
-            <p>2,847</p>
+        
+        {/* Mostrar estadísticas solo en dashboard */}
+        {activeSection === "dashboard" && (
+          <div className="statistics">
+            <div className="stat-box">
+              <h3>Total Incidentes</h3>
+              <p>2,847</p>
+            </div>
+            <div className="stat-box">
+              <h3>Casos Resueltos</h3>
+              <p>1,963</p>
+            </div>
+            <div className="stat-box">
+              <h3>Alertas Activas</h3>
+              <p>284</p>
+            </div>
           </div>
-          <div className="stat-box">
-            <h3>Casos Resueltos</h3>
-            <p>1,963</p>
-          </div>
-          <div className="stat-box">
-            <h3>Alertas Activas</h3>
-            <p>284</p>
-          </div>
-        </div>
+        )}
 
-        <div className="dashboard-content">
-          <h4>Panel de Control - Los Olivos</h4>
-          <p>Sistema de gestión y monitoreo de seguridad ciudadana</p>
-          
-          {/* Contenido adicional del dashboard */}
-          <div className="dashboard-sections">
-            {/* Personal de Emergencia */}
-            <div className="section">
-              <h3>Personal de Emergencia Activo</h3>
-              <div className="agents-grid">
-                {agentsData.map((agent, index) => (
-                  <div key={index} className="agent-card">
-                    <div className="agent-avatar">{agent.avatar}</div>
-                    <div className="agent-info">
-                      <h4>{agent.name}</h4>
-                      <p>{agent.company}</p>
-                      <span className={`agent-status ${agent.statusColor}`}>
-                        {agent.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Contenido del dashboard principal */}
+        {activeSection === "dashboard" && (
+          <div className="dashboard-content">
+            <h4>Panel de Control - Los Olivos</h4>
+            <p>Sistema de gestión y monitoreo de seguridad ciudadana</p>
             
-            {/* Actividades Recientes */}
-            <div className="section">
-              <h3>Actividades Recientes</h3>
-              <div className="timeline-simple">
-                {timelineEvents.slice(0, 5).map((event, index) => (
-                  <div key={index} className="timeline-event">
-                    <span className={`event-dot ${event.status}`}></span>
-                    <span>{event.text}</span>
-                    {event.status === 'new' && <span className="event-badge">NUEVO</span>}
-                  </div>
-                ))}
+            {/* Contenido adicional del dashboard */}
+            <div className="dashboard-sections">
+              {/* Personal de Emergencia */}
+              <div className="section">
+                <h3>Personal de Emergencia Activo</h3>
+                <div className="agents-grid">
+                  {agentsData.map((agent, index) => (
+                    <div key={index} className="agent-card">
+                      <div className="agent-avatar">{agent.avatar}</div>
+                      <div className="agent-info">
+                        <h4>{agent.name}</h4>
+                        <p>{agent.company}</p>
+                        <span className={`agent-status ${agent.statusColor}`}>
+                          {agent.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Actividades Recientes */}
+              <div className="section">
+                <h3>Actividades Recientes</h3>
+                <div className="timeline-simple">
+                  {timelineEvents.slice(0, 5).map((event, index) => (
+                    <div key={index} className="timeline-event">
+                      <span className={`event-dot ${event.status}`}></span>
+                      <span>{event.text}</span>
+                      {event.status === 'new' && <span className="event-badge">NUEVO</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Componente Historial */}
+        {activeSection === "historial" && <Historial />}
       </div>
 
       {/* Logout Button */}
