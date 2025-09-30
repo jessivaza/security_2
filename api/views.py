@@ -18,6 +18,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 from django.db.models.functions import TruncDate
 from django.db.models import Count, Max
+
+from django.db import transaction
+from django.contrib.auth.hashers import check_password
+from .models import PerfilUsuario
 import jwt
 
 from .models import (
@@ -287,3 +291,64 @@ def Cambio_Contrasena(request, token):
         return JsonResponse({"error": "Usuario no encontrado"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+# --- PERFIL: GET y PATCH (actualizar nombre/telefono/contacto) ---
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def perfil_usuario(request):
+    u = request.user
+    perfil, _ = PerfilUsuario.objects.get_or_create(usuario=u)
+
+    if request.method == 'GET':
+        return Response({
+            "idUsuario": getattr(u, "idUsuario", None),
+            "nombre": u.nombre,
+            "email": u.correo,
+            "telefono": perfil.telefono,
+            "activo": u.is_active,
+            "ultimo_acceso": getattr(u, "last_login", None),
+            "contacto_emergencia": {
+                "nombre": perfil.contacto_emergencia_nombre,
+                "telefono": perfil.contacto_emergencia_telefono
+            },
+            "preferencias": perfil.preferencias or {},
+        })
+
+    # PATCH
+    data = request.data
+    nombre = data.get("nombre")
+    telefono = data.get("telefono")
+    ce_nom = data.get("contacto_emergencia_nombre")
+    ce_tel = data.get("contacto_emergencia_telefono")
+
+    with transaction.atomic():
+        if nombre is not None:
+            u.nombre = str(nombre).strip()
+            u.save(update_fields=["nombre"])
+        if telefono is not None:
+            perfil.telefono = str(telefono).strip()
+        if ce_nom is not None:
+            perfil.contacto_emergencia_nombre = str(ce_nom).strip()
+        if ce_tel is not None:
+            perfil.contacto_emergencia_telefono = str(ce_tel).strip()
+        perfil.save()
+
+    return Response({"message": "Perfil actualizado"})
+
+
+# --- CAMBIAR CONTRASEÑA del usuario autenticado ---
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cambiar_password(request):
+    u = request.user
+    actual = (request.data.get("actual") or "").strip()
+    nueva = (request.data.get("nueva") or "").strip()
+
+    if not check_password(actual, u.password):
+        return Response({"error": "Contraseña actual incorrecta"}, status=400)
+    if len(nueva) < 6:
+        return Response({"error": "La nueva contraseña debe tener al menos 6 caracteres"}, status=400)
+
+    u.set_password(nueva)
+    u.save()
+    return Response({"message": "Contraseña actualizada"})

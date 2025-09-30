@@ -1,5 +1,6 @@
 # api/urls.py
 from django.urls import path
+from django.db import transaction
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     MyTokenObtainPairView,
@@ -10,6 +11,8 @@ from .views import (
     registrar_incidente,     # 👈 actualizado
     enviar_correo,
     Cambio_Contrasena,
+    perfil_usuario,
+    cambiar_password
 )
 
 urlpatterns = [
@@ -17,7 +20,7 @@ urlpatterns = [
     path('refresh', TokenRefreshView.as_view(),       name='token_refresh'),
 
     path('registro', registro, name='registro'),
-
+    path('me/', me, name='me'),
     path('me', me, name='me'),
     path('resumen',  resumen, name='resumen'),
     path('resumen/', resumen, name='resumen_slash'),
@@ -30,4 +33,8 @@ urlpatterns = [
 
     path('enviar-correo', enviar_correo, name='enviar_correo'),
     path('reset-password/<str:token>', Cambio_Contrasena, name='cambio_contrasena'),
+
+    path('perfil-usuario/', perfil_usuario, name='perfil_usuario'),
+    path('cambiar-password/', cambiar_password, name='cambiar_password'),
+
 ]
