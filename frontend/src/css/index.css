@@ -342,14 +342,14 @@ body, html {
 @media (max-width: 375px) {
   .hero-img {
     width: 100%;
-    max-width: 220px;
+    max-width: 90px;
     animation: shieldBounce 1s ease-out;
     display: block;
     margin: 0 auto; 
   }
   .card-hero {
     min-width: auto;
-    min-height: 120px;
+    min-height: 90px;
     padding: 0px;
   }
 }

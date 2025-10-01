@@ -111,7 +111,7 @@ export default function DasUsuario() {
           )}
         </div>
 
-        <ul>
+        <ul className="nav-dashusuario">
           <li onClick={() => setActiveSection("resumen")}>
             <FaChartBar size={25} /> {!isSlim && <span>Resumen</span>}
           </li>
@@ -143,7 +143,7 @@ export default function DasUsuario() {
 
       <main className="main-panel">
         <header className="header">
-          <h1>🛡️ Seguridad Ciudadana – Los Olivos</h1>
+          <h1 className="header-title">🛡️ Seguridad Ciudadana – Los Olivos</h1>
         </header>
 
         {activeSection === "resumen" && <Resumen />}

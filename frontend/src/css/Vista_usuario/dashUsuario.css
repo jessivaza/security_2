@@ -1,10 +1,31 @@
 /* ===========================
+   Reset CSS
+=========================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* ===========================
    Dashboard general
 =========================== */
+/*min..., max..., overflow ayudan a 
+Elimina el espacio blanco inferior
+Previene scroll horizontal no deseado
+Asegura que todo el contenido esté contenido dentro de los límites de la pantalla*/
 .dashboard {
   display: flex;
   font-family: "Poppins", sans-serif;
   height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   transition: background 0.3s, color 0.3s;
 }
 
@@ -27,6 +48,8 @@
   flex-direction: column;
   align-items: center;
   width: 240px;
+  min-height: 100vh;
+  max-height: 100vh;
   transition: width 0.3s ease, background 0.3s, color 0.3s;
   background-color: #137f83; /* azul oscuro modo claro */
   color: #fff;
@@ -137,6 +160,7 @@
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  max-height: calc(100vh - 0px);
   background-color: #fff;  /* Fondo blanco modo claro */
   color: #222;
   transition: background 0.3s, color 0.3s;
@@ -238,4 +262,54 @@
 .dashboard.dark .header {
   background-color: #1e1e2e; /* azul noche */
   color: #eee;
+}
+/* ================================
+   NUEVAS MODIFICACIONES PARA RESPONSIVE
+================================ */
+/* Reducir tamaño de cerrar al estar compacto vista pc*/
+.sidebar.slim .logout-item {
+    width: 30px; 
+    padding: 0px;
+  }
+/* Cuando la pantalla es menor a 1200px*/
+@media (max-width: 1200px) {
+  .header-title {
+    font-size: 30px;
+  }
+  .sidebar.slim .logout-item {
+    width: 30px; 
+    padding: 0px;
+  }
+}
+
+/* Cuando la pantalla es menor a 992px*/
+@media (max-width: 992px) {
+  .header-title {
+    font-size: 26px;
+  }
+  .sidebar.slim .logout-item {
+    width: 30px; 
+    padding: 0px;
+  }
+}
+
+/* Cuando la pantalla es menor a 576px*/
+@media (max-width: 576px) {
+  .header-title {
+    font-size: 20px;
+  }
+  .sidebar.slim .logout-item {
+    width: 30px; 
+    padding: 0px;
+  }
+}
+
+@media (max-width: 375px) {
+  .header-title {
+    font-size: 16px;
+  }
+  .sidebar.slim .logout-item {
+    width: 30px; 
+    padding: 0px;
+  }
 }
