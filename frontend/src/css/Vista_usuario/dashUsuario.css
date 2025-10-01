@@ -274,7 +274,7 @@ Asegura que todo el contenido esté contenido dentro de los límites de la panta
 /* Cuando la pantalla es menor a 1200px*/
 @media (max-width: 1200px) {
   .header-title {
-    font-size: 30px;
+    font-size: 18px;
   }
   .sidebar.slim .logout-item {
     width: 30px; 
@@ -285,7 +285,7 @@ Asegura que todo el contenido esté contenido dentro de los límites de la panta
 /* Cuando la pantalla es menor a 992px*/
 @media (max-width: 992px) {
   .header-title {
-    font-size: 26px;
+    font-size: 16px;
   }
   .sidebar.slim .logout-item {
     width: 30px; 
@@ -296,7 +296,7 @@ Asegura que todo el contenido esté contenido dentro de los límites de la panta
 /* Cuando la pantalla es menor a 576px*/
 @media (max-width: 576px) {
   .header-title {
-    font-size: 20px;
+    font-size: 14px;
   }
   .sidebar.slim .logout-item {
     width: 30px; 
@@ -305,11 +305,20 @@ Asegura que todo el contenido esté contenido dentro de los límites de la panta
 }
 
 @media (max-width: 375px) {
+  /*Titulo Seguridad... mas pequeño*/
   .header-title {
-    font-size: 16px;
+    font-size: 14px;
   }
+  /*boton salir mas chico al estar comprimido*/
   .sidebar.slim .logout-item {
     width: 30px; 
     padding: 0px;
+  }
+  /*Ajuste de tamaño de la sidebar y texto*/
+  .sidebar {
+    width: 158px;
+  }
+  .sidebar li {
+    font-size: 14px;
   }
 }

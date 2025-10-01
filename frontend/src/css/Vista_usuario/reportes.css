@@ -160,3 +160,103 @@ header {
   position: relative; /* o el que ya tenía */
   z-index: 1;         /* o simplemente elimínalo */
 }
+
+/* ========================= */
+/* RESPONSIVE MOBILE/TABLET  */
+/* ========================= */
+
+/* Cuando la pantalla es menor a 1200px*/
+@media (max-width: 1200px) {
+  /* Espacio izquierdo vacio de la tabla*/
+  .mis-reportes {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  h2 {
+    font-size: 16px;
+  }
+}
+
+/* Cuando la pantalla es menor a 992px*/
+@media (max-width: 992px) {
+  /* Espacio izquierdo vacio de la tabla*/
+  .mis-reportes {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  h2 {
+    font-size: 16px;
+  }
+}
+
+/* Cuando la pantalla es menor a 576px*/
+@media (max-width: 576px) {
+  /* Espacio izquierdo vacio de la tabla*/
+  .mis-reportes {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  h2 {
+    font-size: 14px;
+  }
+  /* Espacio entre los botones */
+  .mis-reportes > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+  }
+  /* Tamaño letra encabezados tabla*/
+  thead th {
+    font-size: 14px; 
+  }
+  /* Tamaño letra incidentes insertados en tabla movil*/
+  thead th, tbody td {
+    font-size: 14px; 
+  }
+  /* SCROLL HORIZONTAL PARA LA TABLA */
+  .mis-reportes table {
+    min-width: 600px;
+  }
+  
+  .table-wrapper {
+    width: 95%;
+    overflow-x: auto;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 375px) {
+  /* Espacio izquierdo vacio de la tabla*/
+  .mis-reportes {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños textos Mis Reportes */
+  h2 {
+    font-size: 14px;
+  }
+  /* Espacio entre los botones */
+  .mis-reportes > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+  }
+  /* Tamaño letra encabezados tabla*/
+  thead th {
+    font-size: 14px; 
+  }
+  /* Tamaño letra incidentes insertados en tabla movil*/
+  thead th, tbody td {
+    font-size: 14px; 
+  }
+  /* SCROLL HORIZONTAL PARA LA TABLA */
+  .mis-reportes table {
+    min-width: 600px;
+  }
+  
+  .table-wrapper {
+    width: 95%;
+    overflow-x: auto;
+    border-radius: 8px;
+  }
+}

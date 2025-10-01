@@ -101,3 +101,55 @@
   color: #ff4d4f;
   font-weight: 500;
 }
+
+/* ========================= */
+/* RESPONSIVE MOBILE/TABLET  */
+/* ========================= */
+
+/* Cuando la pantalla es menor a 1200px*/
+@media (max-width: 1200px) {
+  .resumen-section{
+    padding: 0px;
+  }
+  
+  /*h3 de resumen*/
+  .resumen-card h3 {
+    font-size: 14px;
+  }
+}
+
+/* Cuando la pantalla es menor a 992px*/
+@media (max-width: 992px) {
+  .resumen-section{
+    padding: 0px;
+  }
+  
+  /*h3 de resumen*/
+  .resumen-card h3 {
+    font-size: 14px;
+  }
+}
+
+/* Cuando la pantalla es menor a 576px*/
+@media (max-width: 576px) {
+  .resumen-section{
+    padding: 0px;
+  }
+  
+  /*h3 de resumen*/
+  .resumen-card h3 {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 375px) {
+  .resumen-section{
+    padding: 0px;
+  }
+  
+  /*h3 de resumen*/
+  .resumen-card h3 {
+    font-size: 14px;
+  }
+  
+}

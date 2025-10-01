@@ -178,7 +178,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         <button onClick={exportarPDF} className="btn-export">📄 PDF</button>
         <button onClick={exportarExcel} className="btn-export">📊 Excel</button>
       </div>
-
+      <div className="table-wrapper">
       <table>
         <thead>
           <tr>
@@ -214,7 +214,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
           ))}
         </tbody>
       </table>
-
+      </div>
       {mostrarModal && (
         <div className="modal-backdrop">
           <div className="modal">
