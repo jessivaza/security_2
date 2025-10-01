@@ -1,7 +1,7 @@
 import { FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import "../../../css/inicio/styleFooter.css";
-
+//PIE DE PÁGINA
 export default function Footer() {
   return (
     <footer className="footer">

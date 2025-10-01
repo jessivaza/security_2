@@ -4,7 +4,7 @@ import '../../../css/inicio/styleMainSection.css';
 import AutoridadesImg from '../../../img/inicio/autoridades.png';
 import CiudadanosImg from '../../../img/inicio/ciudadano.png';
 import EmpresasImg from '../../../img/inicio/empresas.png';
-
+//CONTENIDO
 // Card de estadísticas
 function StatCard({ label, value, accent }) {
     return (

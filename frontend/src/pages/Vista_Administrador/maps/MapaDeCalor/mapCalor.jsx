@@ -1,4 +1,4 @@
-// src/pages/Vista_Administrador/maps/MapaDeCalor/mapCalor.jsx
+
 import { useMemo } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import HeatmapLayerCustom from "./components/HeatmapLayerCustom"; // ajusta la ruta si no usas alias "@"

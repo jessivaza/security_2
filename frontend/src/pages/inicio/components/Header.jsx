@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../../css/inicio/styleHeader.css";
 import PoliciaImg from "../../../img/inicio/policia.png";
-
+//ENCABEZADO
 export default function Header() {
 	const navigate = useNavigate();
 	const [openMenu, setOpenMenu] = useState(false); // estado del drawer

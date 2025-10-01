@@ -1,6 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 import { useState } from 'react';
-// ❌ ya no usamos Link
+
 // import { Link } from "react-router-dom";
 import "../css/dashboard.css";
 import Historial from "./Vista_Administrador/Historial";

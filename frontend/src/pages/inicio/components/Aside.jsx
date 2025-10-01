@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import '../../../css/inicio/styleAside.css';
-
+//MAPA
 export default function Aside() {
   const [reportes, setReportes] = useState([
     { id: 1, tipo: 'Robo', ubicacion: 'Av. Principal', tiempo: '5 min', activo: true },
