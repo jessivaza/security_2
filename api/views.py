@@ -210,6 +210,9 @@ def registrar_incidente(request):
     Descripcion = (request.data.get("Descripcion") or "").strip()
     NombreIncidente = (request.data.get("NombreIncidente") or "").strip()
     escala = request.data.get("escala")
+    lat = request.data.get("Latitud")
+    lon = request.data.get("Longitud")
+
 
     faltantes = []
     if not Ubicacion: faltantes.append("Ubicacion")
@@ -220,8 +223,10 @@ def registrar_incidente(request):
 
     try:
         escala = int(escala)
+        lat = float(lat)  #------- Añado latitud y longitud
+        lon = float(lon)
     except ValueError:
-        return Response({"error": "escala debe ser 1, 2 o 3"}, status=400)
+        return Response({"error": "escala debe ser 1, 2 o 3 y lat/lon deben ser números"}, status=400)
 
     if escala not in ESCALAS:
         return Response({"error": "escala debe ser 1(Bajo), 2(Medio) o 3(Alto)"}, status=400)
@@ -233,6 +238,8 @@ def registrar_incidente(request):
             NombreIncidente=NombreIncidente,
             Escala=escala,      # <<<<<< usamos el enum (sin BD extra)
             idUsuario=u,
+            Latitud=lat,
+            Longitud=lon
         )
         return Response({
             "message": "Incidente registrado",
@@ -243,6 +250,8 @@ def registrar_incidente(request):
                 "NombreIncidente": det.NombreIncidente,
                 "Descripcion": det.Descripcion,
                 "Escala": ESCALAS.get(det.Escala, ""),
+                "Latitud": det.Latitud,
+                "Longitud": det.Longitud
             }
         }, status=201)
     except Exception as e:

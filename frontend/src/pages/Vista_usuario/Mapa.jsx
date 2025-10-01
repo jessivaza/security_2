@@ -1,72 +1,162 @@
-// Mapa.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-// Configurar los íconos de Leaflet sin usar require
+// Importar iconos de Leaflet
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-delete L.Icon.Default.prototype._getIconUrl;
+// Configuración de iconos predeterminados de Leaflet
+delete L.Icon.Default.prototype._getIconUrl; // Eliminar url de iconos default
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+  iconRetinaUrl: markerIcon2x, // Icono retina
+  iconUrl: markerIcon,          // Icono normal
+  shadowUrl: markerShadow,      // Sombra del icono
 });
 
-export default function Mapa() {
+// Componente principal del mapa
+export default function Mapa({ incidentes = [] }) {
+  // Estado para la búsqueda de direcciones
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [markerPosition, setMarkerPosition] = useState(null);
-  const [debounceTimeout, setDebounceTimeout] = useState(null);
+  const [suggestions, setSuggestions] = useState([]); // Sugerencias de Nominatim
+  const [selected, setSelected] = useState(null);     // Incidente seleccionado
+  const [center, setCenter] = useState([-11.95, -77.07]); // Centro inicial del mapa
+  const abortControllerRef = useRef(null); // Para cancelar peticiones fetch
+  const debounceRef = useRef(null);        // Para implementar debounce
 
-  const searchAddress = async (value) => {
-    if (!value || value.length < 3) {
-      setSuggestions([]);
-      return;
-    }
+  // Función para calcular distancia entre coordenadas en metros
+  const distanciaMetros = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000; // Radio de la Tierra en metros
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Función para buscar dirección con Nominatim y asociarla a incidentes cercanos
+  const buscarDireccion = async (text) => {
+    if (!text) return setSuggestions([]);
+    if (abortControllerRef.current) abortControllerRef.current.abort(); // Cancelar petición anterior
+    abortControllerRef.current = new AbortController();
+
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${value}&countrycodes=PE&limit=5`
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+          text
+        )}&countrycodes=PE&limit=5`,
+        {
+          signal: abortControllerRef.current.signal,
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "TuAppNombre/1.0 (tuemail@dominio.com)",
+          },
+        }
       );
-      const data = await response.json();
-      setSuggestions(data);
-    } catch (err) {
-      console.error("Error buscando dirección:", err);
+      const data = await res.json();
+
+      // Vincular resultados con incidentes cercanos
+      const resultados = data.map((item) => {
+        const lat = parseFloat(item.lat);
+        const lon = parseFloat(item.lon);
+
+        // Buscar un incidente dentro de 50 metros
+        const incidenteCercano = incidentes.find(
+          (inc) =>
+            inc.Latitud &&
+            inc.Longitud &&
+            !isNaN(inc.Latitud) &&
+            !isNaN(inc.Longitud) &&
+            distanciaMetros(parseFloat(inc.Latitud), parseFloat(inc.Longitud), lat, lon) < 50
+        );
+
+        return { ...item, incidenteCercano };
+      });
+
+      setSuggestions(resultados);
+    } catch (e) {
+      if (e.name !== "AbortError") console.error(e);
     }
   };
 
+  // Manejar cambio de texto en input de búsqueda
   const handleInputChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
+    const val = e.target.value;
+    setQuery(val);
+    setSelected(null); // Limpiar selección previa
 
-    if (debounceTimeout) clearTimeout(debounceTimeout);
-
-    const timeout = setTimeout(() => {
-      searchAddress(value);
-    }, 300); // espera 300ms antes de hacer la búsqueda
-
-    setDebounceTimeout(timeout);
+    // Debounce para no hacer muchas peticiones
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => buscarDireccion(val), 400);
   };
 
-  const handleSelect = (place) => {
-    setQuery(place.display_name);
-    setSuggestions([]);
-    setMarkerPosition([place.lat, place.lon]);
+  // Manejar selección de sugerencia
+  const handleSelectSuggestion = (item) => {
+    if (item.incidenteCercano) {
+      // Si hay un incidente cercano, seleccionar ese incidente
+      const inc = item.incidenteCercano;
+      setSelected({
+        Latitud: parseFloat(inc.Latitud),
+        Longitud: parseFloat(inc.Longitud),
+        Ubicacion: inc.Ubicacion,
+        NombreIncidente: inc.NombreIncidente,
+        Descripcion: inc.Descripcion,
+        Escala: inc.Escala,
+      });
+      setCenter([parseFloat(inc.Latitud), parseFloat(inc.Longitud)]);
+    } else {
+      // Si no hay incidente, solo mostrar la ubicación buscada
+      const lat = parseFloat(item.lat);
+      const lon = parseFloat(item.lon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        setSelected({
+          Latitud: lat,
+          Longitud: lon,
+          Ubicacion: item.display_name,
+          NombreIncidente: "",
+          Descripcion: "",
+        });
+        setCenter([lat, lon]);
+      }
+    }
+
+    setQuery(item.display_name); // Actualizar input
+    setSuggestions([]);           // Limpiar sugerencias
   };
+
+  // Centrar en el último incidente registrado al cargar el mapa
+  useEffect(() => {
+    if (incidentes.length > 0) {
+      const ultimo = incidentes[incidentes.length - 1];
+      if (
+        ultimo.Latitud &&
+        ultimo.Longitud &&
+        !isNaN(ultimo.Latitud) &&
+        !isNaN(ultimo.Longitud)
+      ) {
+        setCenter([parseFloat(ultimo.Latitud), parseFloat(ultimo.Longitud)]);
+      }
+    }
+  }, [incidentes]);
 
   return (
-    <div className="map-container" style={{ width: "100%", height: "500px" }}>
-      <div style={{ marginBottom: "10px", position: "relative" }}>
+    <div>
+      {/* Input de búsqueda */}
+      <div style={{ marginBottom: "10px", position: "relative", maxWidth: "400px" }}>
         <input
           type="text"
+          placeholder="Buscar dirección en Perú..."
           value={query}
           onChange={handleInputChange}
-          placeholder="Ingresa dirección en Perú..."
           style={{ width: "100%", padding: "8px" }}
         />
+        {/* Sugerencias de búsqueda */}
         {suggestions.length > 0 && (
           <ul
             style={{
@@ -74,48 +164,82 @@ export default function Mapa() {
               top: "36px",
               left: 0,
               right: 0,
-              background: "white",
+              background: "#fff",
               border: "1px solid #ccc",
               maxHeight: "150px",
               overflowY: "auto",
               zIndex: 1000,
               listStyle: "none",
-              padding: 0,
               margin: 0,
+              padding: 0,
             }}
           >
-            {suggestions.map((s) => (
+            {suggestions.map((item, i) => (
               <li
-                key={s.place_id}
-                onClick={() => handleSelect(s)}
-                style={{
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                  borderBottom: "1px solid #eee",
-                }}
+                key={i}
+                onClick={() => handleSelectSuggestion(item)}
+                style={{ padding: "8px", cursor: "pointer" }}
               >
-                {s.display_name}
+                {item.display_name}
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <MapContainer
-        center={markerPosition || [-11.95, -77.07]}
-        zoom={13}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        {markerPosition && (
-          <Marker position={markerPosition}>
-            <Popup>{query}</Popup>
-          </Marker>
-        )}
-      </MapContainer>
+      {/* Contenedor del mapa */}
+      <div style={{ width: "100%", height: "500px" }}>
+        <MapContainer center={center} zoom={13} style={{ width: "100%", height: "100%" }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+
+          {/* Marcadores de todos los incidentes */}
+          {incidentes
+            .filter(
+              (inc) =>
+                inc.Latitud &&
+                inc.Longitud &&
+                !isNaN(inc.Latitud) &&
+                !isNaN(inc.Longitud)
+            )
+            .map((inc, index) => (
+              <Marker
+                key={index}
+                position={[parseFloat(inc.Latitud), parseFloat(inc.Longitud)]}
+              >
+                <Popup>
+                  <strong>{inc.NombreIncidente}</strong>
+                  <br />
+                  {inc.Descripcion}
+                  <br />
+                  <em>{inc.Ubicacion}</em>
+                  {inc.Escala && <br />}
+                  {inc.Escala && <span>Escala: {inc.Escala}</span>}
+                </Popup>
+              </Marker>
+            ))}
+
+          {/* Marcador de la búsqueda seleccionada */}
+          {selected && selected.Latitud && selected.Longitud && (
+            <Marker
+              position={[selected.Latitud, selected.Longitud]}
+              opacity={0.8} // Marcador ligeramente transparente para diferenciarlo
+            >
+              <Popup>
+                <strong>{selected.NombreIncidente}</strong>
+                <br />
+                {selected.Descripcion}
+                <br />
+                <em>{selected.Ubicacion}</em>
+                {selected.Escala && <br />}
+                {selected.Escala && <span>Escala: {selected.Escala}</span>}
+              </Popup>
+            </Marker>
+          )}
+        </MapContainer>
+      </div>
     </div>
   );
 }

@@ -245,6 +245,9 @@ class DetalleAlerta(models.Model):
     Escala = models.PositiveSmallIntegerField(choices=ESCALA_CHOICES, default=1)
 
     NombreIncidente = models.CharField(max_length=250)
+    #--- Nuevos campos para latitud y longitud ---
+    Latitud = models.FloatField(null=True, blank=True)
+    Longitud = models.FloatField(null=True, blank=True)
 
     idUsuario = models.ForeignKey(
         Usuario,
