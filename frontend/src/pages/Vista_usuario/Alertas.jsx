@@ -56,7 +56,8 @@ export default function MisAlertas({ darkMode }) {
       {alertas.length === 0 ? (
         <p>No hay alertas aún</p>
       ) : (
-        <table>
+        <div className="table-wrapper">
+          <table>
           <thead>
             <tr>
               <th>Fecha</th>
@@ -76,6 +77,7 @@ export default function MisAlertas({ darkMode }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

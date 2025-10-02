@@ -127,3 +127,34 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================= */
+/* RESPONSIVE MOBILE/TABLET  */
+/* ========================= */
+
+/* Cuando la pantalla es menor a 1200px*/
+@media (max-width: 1200px) {
+    .perfil {
+    padding: 10px;
+  }
+}
+
+/* Cuando la pantalla es menor a 992px*/
+@media (max-width: 992px) {
+    .perfil {
+    padding: 10px;
+  }
+}
+
+/* Cuando la pantalla es menor a 576px*/
+@media (max-width: 576px) {
+    .perfil {
+    padding: 0px;
+  }
+}
+
+@media (max-width: 375px) {
+  .perfil {
+    padding: 0px;
+  }
+}

@@ -97,3 +97,69 @@
   background-color: #25d366;
   color: #fff;
 }
+
+/* ========================= */
+/* RESPONSIVE MOBILE/TABLET  */
+/* ========================= */
+
+/* Cuando la pantalla es menor a 1200px*/
+@media (max-width: 1200px) {
+    .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 18px;
+  }
+}
+
+/* Cuando la pantalla es menor a 992px*/
+@media (max-width: 992px) {
+    .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 14px;
+  }
+}
+
+/* Cuando la pantalla es menor a 576px*/
+@media (max-width: 576px) {
+    /* Espacio izquierdo vacio de la tabla*/
+  .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 14px;
+  }
+  /* Espacio entre los botones */
+  .mis-alertas > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+  }
+}
+
+@media (max-width: 375px) {
+  /* Espacio izquierdo vacio de la tabla*/
+  .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 14px;
+  }
+  /* Espacio entre los botones */
+  .mis-alertas > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+  }
+  
+}
