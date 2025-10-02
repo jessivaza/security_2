@@ -8,6 +8,7 @@ import DashUsuario from "./pages/Vista_usuario/DashUsuario";
 import Inicio from "./pages/inicio/inicio";
 import Login from "./pages/LoginPage";
 import ResetPassword from "./pages/ResetPassword";
+import MapCalor from "./pages/Vista_Administrador/maps/MapaDeCalor/mapCalor";
 
 const isAuthenticated = () => !!localStorage.getItem("access");
 
@@ -29,7 +30,7 @@ export default function App() {
         <Route path="/inicio" element={<Inicio />} />
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-
+        <Route path="/mapCalor" element={<MapCalor />} />
         <Route
           path="/dashboard"
           element={

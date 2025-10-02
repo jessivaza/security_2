@@ -31,6 +31,7 @@ Primero entra cd fronted y instalar estas dependencias
    npm install daisyui
    npm install --save @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons 
    npm install react-tsparticles
+   npm i exceljs file-saver
 
 6. **Dashboard del Usuario**
 
@@ -38,6 +39,7 @@ Instalar estas dependencias para el mapa y iconos
    npm install react-icons
    npm install react-leaflet leaflet
    npm install leaflet leaflet-routing-machine react-leaflet
+   npm i leaflet.heat
 
 7. **==========🌳TRABAJAR POR RAMAS(Git Bash)===============**
 ```
