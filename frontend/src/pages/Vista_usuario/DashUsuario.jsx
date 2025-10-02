@@ -17,6 +17,8 @@ import {
   FaBook,
   FaUser,
   FaDoorOpen,
+  FaBars,
+  FaTimes,
 } from "react-icons/fa";
 
 const API = "http://127.0.0.1:8000/api";
@@ -57,9 +59,8 @@ export default function DasUsuario() {
   const [activeSection, setActiveSection] = useState("resumen");
   const [darkMode, setDarkMode] = useState(false);
   const [isSlim, setIsSlim] = useState(false);
+  const [isMobileMenuUsuarioOpen, setIsMobileMenuUsuarioOpen] = useState(false);
   const [usuario, setUsuario] = useState({ nombre: "Usuario" });
-
-  // ✅ Estado para almacenar lo que se mostrará en el mapa
   const [incidentesMapa, setIncidentesMapa] = useState([]);
 
   // ✅ Callback que recibirá los reportes desde MisReportes.jsx
@@ -98,9 +99,22 @@ export default function DasUsuario() {
     navigate("/login");
   };
 
+  const handleNavClick = (section) => {
+    setActiveSection(section);
+    setIsMobileMenuUsuarioOpen(false); // Cerrar menú al seleccionar
+  };
+
   return (
     <div className={`dashboard ${darkMode ? "dark" : "light"}`}>
-      <aside className={`sidebar ${isSlim ? "slim" : "wide"}`}>
+      {/* Backdrop para cerrar al hacer click afuera - solo en móvil */}
+      {isMobileMenuUsuarioOpen && (
+        <div 
+          className="sidebar-backdrop-usuario" 
+          onClick={() => setIsMobileMenuUsuarioOpen(false)}
+        ></div>
+      )}
+
+      <aside className={`sidebar ${isSlim ? "slim" : "wide"} ${isMobileMenuUsuarioOpen ? "mobile-open-usuario" : ""}`}>
         <div className="user-profile" onClick={() => setIsSlim(!isSlim)}>
           <img src={usuarioImg} alt="Usuario" className="sidebar-avatar" />
           {!isSlim && (
@@ -112,22 +126,22 @@ export default function DasUsuario() {
         </div>
 
         <ul className="nav-dashusuario">
-          <li onClick={() => setActiveSection("resumen")}>
+          <li onClick={() => handleNavClick("resumen")}>
             <FaChartBar size={25} /> {!isSlim && <span>Resumen</span>}
           </li>
-          <li onClick={() => setActiveSection("mapa")}>
+          <li onClick={() => handleNavClick("mapa")}>
             <FaMapMarkedAlt size={25} /> {!isSlim && <span>Mapa</span>}
           </li>
-          <li onClick={() => setActiveSection("reportes")}>
+          <li onClick={() => handleNavClick("reportes")}>
             <FaFileAlt size={25} /> {!isSlim && <span>Mis Reportes</span>}
           </li>
-          <li onClick={() => setActiveSection("alertas")}>
+          <li onClick={() => handleNavClick("alertas")}>
             <FaBell size={25} /> {!isSlim && <span>Alertas</span>}
           </li>
-          <li onClick={() => setActiveSection("prevencion")}>
+          <li onClick={() => handleNavClick("prevencion")}>
             <FaBook size={25} /> {!isSlim && <span>Prevención</span>}
           </li>
-          <li onClick={() => setActiveSection("perfil")}>
+          <li onClick={() => handleNavClick("perfil")}>
             <FaUser size={25} /> {!isSlim && <span>Mi Perfil</span>}
           </li>
           <li className="logout-item" onClick={handleLogout}>
@@ -143,6 +157,12 @@ export default function DasUsuario() {
 
       <main className="main-panel">
         <header className="header">
+          <button 
+            className="mobile-hamburger-usuario" 
+            onClick={() => setIsMobileMenuUsuarioOpen(!isMobileMenuUsuarioOpen)}
+          >
+            {isMobileMenuUsuarioOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
+          </button>
           <h1 className="header-title">🛡️ Seguridad Ciudadana – Los Olivos</h1>
         </header>
 
