@@ -12,7 +12,11 @@ from .views import (
     enviar_correo,
     Cambio_Contrasena,
     perfil_usuario,
-    cambiar_password
+    cambiar_password,
+    # Dashboard views
+    dashboard_stats,
+    emergency_personnel,
+    recent_activities,      # 👈 función de test
 )
 
 urlpatterns = [
@@ -36,5 +40,11 @@ urlpatterns = [
 
     path('perfil-usuario/', perfil_usuario, name='perfil_usuario'),
     path('cambiar-password/', cambiar_password, name='cambiar_password'),
+
+    # Nuevas URLs para dashboard dinámico 
+    path('dashboard/stats/', dashboard_stats, name='dashboard_stats'),
+    path('dashboard/personnel/', emergency_personnel, name='emergency_personnel'),
+    path('dashboard/activities/', recent_activities, name='recent_activities'),
+    # path('dashboard/locations/', incidents_by_location, name='incidents_by_location'),  # Comentado - función no existe aún
 
 ]

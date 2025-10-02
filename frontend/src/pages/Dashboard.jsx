@@ -1,263 +1,424 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "../css/dashboard.css";
-import Historial from "./Vista_Administrador/Historial"; // Importar el componente Historial
 
-const Dashboard = () => {
-  const [user, setUser] = useState({ username: "Admin", email: "admin@security.com" });
-  const [activeSection, setActiveSection] = useState("dashboard"); // Estado para sección activa
-  const [sidebarExpanded, setSidebarExpanded] = useState({
-    elements: false,
-    components: false,
-    formElements: false,
-    tables: false,
-    chartBoxes: false,
-    charts: false
+
+export default function Dashboard() {
+  const [user, setUser] = useState({ username: "", email: "" });
+  const [darkMode, setDarkMode] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Estados para datos dinámicos (mantener igual)
+  const [stats, setStats] = useState({
+    total_incidentes: 0,
+    casos_resueltos: 0,
+    alertas_activas: 0
   });
+  const [personnel, setPersonnel] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const toggleSidebar = (section) => {
-    setSidebarExpanded(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+  // Funciones existentes (mantener igual)
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/dashboard/stats/');
+      const data = await response.json();
+      
+      if (data.success) {
+        setStats(data.stats);
+        console.log('✅ Estadísticas cargadas:', data.stats);
+      } else {
+        console.error('❌ Error en stats API:', data.error);
+        setError('Error al cargar estadísticas');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching stats:', error);
+      setError('Error de conexión con las estadísticas');
+    }
   };
 
-  const portfolioData = [
-    {
-      title: "Total Incidentes",
-      amount: "2,847",
-      change: "12% más que ayer",
-      icon: "🚨",
-      trend: "up",
-      color: "orange"
-    },
-    {
-      title: "Casos Resueltos", 
-      amount: "1,963",
-      change: "Tasa: 68.9%",
-      icon: "✅",
-      trend: "up",
-      color: "green"
-    },
-    {
-      title: "Alertas Activas",
-      amount: "284",
-      change: "Pendientes de atención",
-      icon: "🔔",
-      trend: "down",
-      color: "red"
+  const fetchPersonnel = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/dashboard/personnel/');
+      const data = await response.json();
+      
+      if (data.success) {
+        setPersonnel(data.personal);
+        console.log('✅ Personal cargado:', data.personal.length, 'miembros');
+      } else {
+        console.error('❌ Error en personnel API:', data.error);
+        setError('Error al cargar personal');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching personnel:', error);
+      setError('Error de conexión con el personal');
     }
-  ];
+  };
 
-  const agentsData = [
-    {
-      id: "#54",
-      avatar: "👮‍♂️",
-      name: "Carlos Mendoza",
-      company: "Comisaría Los Olivos",
-      status: "Activo",
-      statusColor: "green",
-      dueDate: "Hoy",
-      progress: 89,
-      progressColor: "green"
-    },
-    {
-      id: "#55",
-      avatar: "👮‍♀️",
-      name: "Ana Vargas",
-      company: "Serenazgo Municipal",
-      status: "En Patrulla",
-      statusColor: "blue",
-      dueDate: "Hoy",
-      progress: 72,
-      progressColor: "blue"
-    },
-    {
-      id: "#56",
-      avatar: "🚑",
-      name: "Dr. Luis Torres",
-      company: "Emergencias Médicas",
-      status: "Disponible",
-      statusColor: "green",
-      dueDate: "Guardia",
-      progress: 95,
-      progressColor: "green"
-    },
-    {
-      id: "#58",
-      avatar: "🚒",
-      name: "Bomberos Los Olivos",
-      company: "Estación Central",
-      status: "En Servicio",
-      statusColor: "orange",
-      dueDate: "24h",
-      progress: 78,
-      progressColor: "orange"
+  const fetchActivities = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/dashboard/activities/');
+      const data = await response.json();
+      
+      if (data.success) {
+        setActivities(data.activities);
+        console.log('✅ Actividades cargadas:', data.activities.length, 'items');
+      } else {
+        console.error('❌ Error en activities API:', data.error);
+        setError('Error al cargar actividades');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching activities:', error);
+      setError('Error de conexión con las actividades');
     }
-  ];
+  };
 
-  const timelineEvents = [
-    { text: "Reunión de seguridad diaria", status: "default" },
-    { text: "Reporte de incidente en Av. Universitaria", status: "new" },
-    { text: "Patrullaje nocturno programado", status: "default" },
-    { text: "Mantenimiento de equipos", status: "default" },
-    { text: "Capacitación de personal", status: "info" },
-    { text: "Simulacro de emergencia", status: "new" },
-    { text: "Revisión de protocolos", status: "dark" },
-    { text: "Coordinación interinstitucional", status: "default" }
-  ];
+  // UseEffects (mantener igual)
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      console.log('🔄 Cargando datos del dashboard...');
+      setLoading(true);
+      setError(null);
+      
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchPersonnel(),
+          fetchActivities()
+        ]);
+        console.log('✅ Todos los datos cargados exitosamente');
+      } catch (error) {
+        console.error('❌ Error general al cargar datos:', error);
+        setError('Error general al cargar el dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+    const interval = setInterval(() => {
+      console.log('🔄 Actualizando datos automáticamente...');
+      loadDashboardData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user"); 
+    localStorage.removeItem("user");
     window.location.href = "/login";
   };
 
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
   return (
-    <div className="dashboard-container">
-      {/* Sidebar */}
-      <div className="sidebar">
-        <h2>Seguridad</h2>
-        <ul>
-          <li 
-            className={activeSection === "dashboard" ? "active" : ""} 
-            onClick={() => setActiveSection("dashboard")}
-          >
-            Dashboard
-          </li>
-          <li onClick={() => toggleSidebar('elements')}>
-            Alertas {sidebarExpanded.elements && '▼'}
-            {sidebarExpanded.elements && (
-              <ul className="submenu">
-                <li>Alertas Activas</li>
-                <li 
-                  onClick={() => setActiveSection("historial")}
-                  className={activeSection === "historial" ? "active" : ""}
-                >
-                  Historial
-                </li>
-                <li>Configuración</li>
-              </ul>
+    <div className={`dashboard-container ${darkMode ? "dark-mode" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      {/* SIDEBAR REDISEÑADO */}
+      <div className={`sidebar ${sidebarCollapsed ? "collapsed" : ""} ${mobileMenuOpen ? "open" : ""}`}>
+        <div className="sidebar-header">
+          <h2 onClick={toggleSidebar} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img 
+              src="/src/img/logo_1.png" 
+              alt="Logo" 
+              className="sidebar-logo"
+              style={{ display: sidebarCollapsed ? 'none' : 'inline-block' }}
+            />
+            {sidebarCollapsed ? "🛡️" : "SEGURIDAD"}
+          </h2>
+        </div>
+
+        <nav className="sidebar-nav">
+          <ul className="nav-list">
+            <li className="nav-item active">
+              <Link to="/dashboard" className="nav-link">
+                <span className="nav-icon">📊</span>
+                <span className="nav-text">Dashboard</span>
+              </Link>
+            </li>
+
+            
+            <li className="nav-item">
+              <Link to="/alertas" className="nav-link">
+                <span className="nav-icon">🚨</span>
+                <span className="nav-text">Alertas</span>
+              </Link>
+            </li>
+            
+            <li className="nav-item">
+              <Link to="/personal" className="nav-link">
+                <span className="nav-icon">👥</span>
+                <span className="nav-text">Personal</span>
+              </Link>
+            </li>
+            
+            <li className="nav-item">
+              <Link to="/ubicaciones" className="nav-link">
+                <span className="nav-icon">📍</span>
+                <span className="nav-text">Ubicaciones</span>
+              </Link>
+            </li>
+            
+            <li className="nav-item">
+              <Link to="/reportes" className="nav-link">
+                <span className="nav-icon">📊</span>
+                <span className="nav-text">Reportes</span>
+              </Link>
+            </li>
+          </ul>
+        </nav>
+
+        {/* FOOTER CON BOTÓN LOGOUT ACTUALIZADO */}
+        <div className="sidebar-footer">
+          <button onClick={logout} className="logout-btn">
+            {sidebarCollapsed ? "✕" : (
+              <>
+                <span>🚪</span>
+                <span>Cerrar sesión</span>
+              </>
             )}
-          </li>
-          <li onClick={() => toggleSidebar('components')}>
-            Personal {sidebarExpanded.components && '▼'}
-            {sidebarExpanded.components && (
-              <ul className="submenu">
-                <li>Policías</li>
-                <li>Serenazgo</li>
-                <li>Emergencias</li>
-              </ul>
-            )}
-          </li>
-          <li onClick={() => toggleSidebar('formElements')}>
-            Ubicaciones {sidebarExpanded.formElements && '▼'}
-            {sidebarExpanded.formElements && (
-              <ul className="submenu">
-                <li>Mapa General</li>
-                <li>Zonas de Riesgo</li>
-                <li>Puntos de Control</li>
-              </ul>
-            )}
-          </li>
-          <li onClick={() => toggleSidebar('tables')}>
-            Reportes {sidebarExpanded.tables && '▼'}
-            {sidebarExpanded.tables && (
-              <ul className="submenu">
-                <li>Estadísticas</li>
-                <li>Análisis</li>
-              </ul>
-            )}
-          </li>
-        </ul>
+          </button>
+        </div>
       </div>
 
-      {/* Main content */}
+      {/* CONTENIDO PRINCIPAL */}
       <div className="main-content">
+        {/* HEADER REDISEÑADO - Mejor organización */}
         <div className="header">
-          <input
-            type="text"
-            className="search-bar"
-            placeholder="Buscar incidencias..."
-          />
-          <div className="user-info">
-            <p>Hola, {user.username}</p>
-            <button className="profile-btn">Perfil</button>
-          </div>
-        </div>
-        
-        {/* Mostrar estadísticas solo en dashboard */}
-        {activeSection === "dashboard" && (
-          <div className="statistics">
-            <div className="stat-box">
-              <h3>Total Incidentes</h3>
-              <p>2,847</p>
-            </div>
-            <div className="stat-box">
-              <h3>Casos Resueltos</h3>
-              <p>1,963</p>
-            </div>
-            <div className="stat-box">
-              <h3>Alertas Activas</h3>
-              <p>284</p>
+          <div className="header-left">
+            <div className="search-bar">
+              <span className="search-icon">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Buscar incidencias..." 
+                className="search-input"
+              />
             </div>
           </div>
-        )}
-
-        {/* Contenido del dashboard principal */}
-        {activeSection === "dashboard" && (
-          <div className="dashboard-content">
-            <h4>Panel de Control - Los Olivos</h4>
-            <p>Sistema de gestión y monitoreo de seguridad ciudadana</p>
-            
-            {/* Contenido adicional del dashboard */}
-            <div className="dashboard-sections">
-              {/* Personal de Emergencia */}
-              <div className="section">
-                <h3>Personal de Emergencia Activo</h3>
-                <div className="agents-grid">
-                  {agentsData.map((agent, index) => (
-                    <div key={index} className="agent-card">
-                      <div className="agent-avatar">{agent.avatar}</div>
-                      <div className="agent-info">
-                        <h4>{agent.name}</h4>
-                        <p>{agent.company}</p>
-                        <span className={`agent-status ${agent.statusColor}`}>
-                          {agent.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+          
+          <div className="header-right">
+            <div className="user-section">
+              <div className="user-info">
+                <p className="user-greeting">Hola,</p>
+                <p className="user-name">{user.username || "Admin"}</p>
+              </div>
+              
+              <div className="user-avatar">
+                <img 
+                  src="/public/img/Usuario/default-avatar.png" 
+                  alt="Avatar Usuario"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="avatar-icon" style={{ display: 'none' }}>
+                  👤
+                  <div className="status-indicator"></div>
                 </div>
               </div>
               
-              {/* Actividades Recientes */}
-              <div className="section">
-                <h3>Actividades Recientes</h3>
-                <div className="timeline-simple">
-                  {timelineEvents.slice(0, 5).map((event, index) => (
-                    <div key={index} className="timeline-event">
-                      <span className={`event-dot ${event.status}`}></span>
-                      <span>{event.text}</span>
-                      {event.status === 'new' && <span className="event-badge">NUEVO</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <button 
+                className="theme-toggle-btn" 
+                onClick={toggleDarkMode}
+                title={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              >
+                {darkMode ? "☀️" : "🌙"}
+              </button>
+              
+              <button className="profile-btn">
+                Perfil
+              </button>
             </div>
+          </div>
+        </div>
+
+        {/* Mostrar errores si los hay */}
+        {error && (
+          <div className="error-banner">
+            ⚠️ {error}
+            <button onClick={() => window.location.reload()}>Reintentar</button>
           </div>
         )}
 
-        {/* Componente Historial */}
-        {activeSection === "historial" && <Historial />}
-      </div>
+        {/* Estadísticas dinámicas */}
+        <div className="stats-section">
+          {loading ? (
+            <div className="loading">
+              <div className="loading-spinner">🔄</div>
+              Cargando estadísticas...
+            </div>
+          ) : (
+            <>
+              <div className="stat-card incidentes">
+                <h3>Total Incidentes</h3>
+                <div className="stat-number">{stats.total_incidentes.toLocaleString()}</div>
+                <div className="stat-subtitle">📈 Registrados en el sistema</div>
+              </div>
+              <div className="stat-card resueltos">
+                <h3>Casos Resueltos</h3>
+                <div className="stat-number">{stats.casos_resueltos.toLocaleString()}</div>
+                <div className="stat-subtitle">✅ Atendidos exitosamente</div>
+              </div>
+              <div className="stat-card alertas">
+                <h3>Alertas Activas</h3>
+                <div className="stat-number">{stats.alertas_activas}</div>
+                <div className="stat-subtitle">🚨 Requieren atención</div>
+              </div>
+            </>
+          )}
+        </div>
 
-      {/* Logout Button */}
-      <div className="dashboard-logout-btn">
-        <button onClick={logout}>Cerrar sesión</button>
+        <div className="dashboard-grid">
+          {/* Personal de Emergencia Rediseñado */}
+          <div className="dashboard-section">
+            <div className="section-header">
+              <h3>
+                <span className="section-icon">👥</span>
+                Personal de Emergencia Activo
+              </h3>
+              <div className="personnel-summary">
+                <span className="total-count">{personnel.length} activos</span>
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="loading">
+                <div className="loading-spinner">🔄</div>
+                Cargando personal...
+              </div>
+            ) : personnel.length === 0 ? (
+              <div className="empty-personnel">
+                <div className="empty-icon">👥</div>
+                <p>No hay personal activo disponible</p>
+              </div>
+            ) : (
+              <div className="personnel-container">
+                {personnel.slice(0, 4).map((person) => (
+                  <div key={person.id} className="personnel-card-modern">
+                    <div className="card-header">
+                      <div className={`personnel-avatar-modern ${person.tipo.toLowerCase()}`}>
+                        <img 
+                          src={`/src/img/inicio/${
+                            person.tipo === 'Policía' ? 'policia.png' : 
+                            person.tipo === 'Bombero' ? 'policia.png' : 
+                            person.tipo === 'Médico' ? 'policia.png' : 
+                            person.tipo === 'Serenazgo' ? 'policia.png' : 'policia.png'
+                          }`}
+                          alt={`${person.tipo} ${person.nombre}`}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="avatar-bg" style={{ display: 'none' }}>
+                          {person.tipo === 'Policía' ? '👮‍♂️' : 
+                          person.tipo === 'Bombero' ? '🚒' : 
+                          person.tipo === 'Médico' ? '👨‍⚕️' : 
+                          person.tipo === 'Serenazgo' ? '🚔' : '👤'}
+                        </div>
+                        <div className={`status-dot ${person.estado.toLowerCase().replace(/\s+/g, '-')}`}></div>
+                      </div>
+                      <div className="card-actions">
+                        <button className="action-btn call-btn" title="Llamar">📞</button>
+                        <button className="action-btn message-btn" title="Mensaje">💬</button>
+                      </div>
+                    </div>
+                    
+                    <div className="personnel-details">
+                      <div className="personnel-name-modern">{person.nombre}</div>
+                      <div className="personnel-role-modern">
+                        <span className="role-badge">
+                          {person.tipo === 'Policía' && <span className="role-icon">🚔</span>}
+                          {person.tipo === 'Bombero' && <span className="role-icon">🚒</span>}
+                          {person.tipo === 'Médico' && <span className="role-icon">🏥</span>}
+                          {person.tipo === 'Serenazgo' && <span className="role-icon">🛡️</span>}
+                          {person.tipo}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="personnel-footer">
+                      <div className={`status-badge-modern ${person.estado.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <span className="status-indicator"></span>
+                        {person.estado}
+                      </div>
+                      <div className="last-update">
+                        Actualizado hace 2 min
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Botón Ver Todos */}
+            <div className="section-footer">
+              <button className="view-all-btn">
+                Ver todo el personal
+                <span className="btn-arrow">→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Actividades Recientes Dinámicas */}
+          <div className="dashboard-section">
+            <h3>Actividades Recientes</h3>
+            {loading ? (
+              <div className="loading">
+                <div className="loading-spinner">🔄</div>
+                Cargando actividades...
+              </div>
+            ) : (
+              <div className="inbox-container">
+                {activities.slice(0, 5).map((activity) => (
+                  <div key={activity.id} className={`inbox-message ${activity.unread ? 'unread' : ''}`}>
+                    <div className="activity-avatar">
+                      <img 
+                        src="/src/img/inicio/ciudadano.png" 
+                        alt={activity.sender}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'inline';
+                        }}
+                      />
+                      <span style={{ display: 'none' }}>{activity.avatar}</span>
+                    </div>
+                    <div className="message-content">
+                      <div className="message-sender">{activity.sender}</div>
+                      <div className="message-body">{activity.message}</div>
+                    </div>
+                    <div className="message-meta">
+                      <div className="message-time">{activity.timestamp}</div>
+                      {activity.unread && <div className="notification-bell">🔔</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-};
+}
 
-export default Dashboard;
