@@ -133,12 +133,10 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
   const exportarPDF = async () => {
     const doc = new jsPDF();
+
     try {
-      const res = await fetch(logo);
-      const blob = await res.blob();
-      const reader = new FileReader();
-      reader.onload = () => doc.addImage(reader.result, "PNG", 14, 10, 20, 20);
-      reader.readAsDataURL(blob);
+      const imgData = await toDataURL(logo);
+      doc.addImage(imgData, "PNG", 14, 10, 20, 20);
     } catch (e) {
       console.warn("No se pudo cargar el logo:", e);
     }
@@ -148,12 +146,12 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     doc.text("Mis Reportes", 40, 22);
 
     const body = reportes.map((r) => [
-      r.idTipoIncidencia || "-",
-      r.FechaHora ? new Date(r.FechaHora).toLocaleString("es-ES") : "-",
+      r.idTipoIncidencia,
+      new Date(r.FechaHora).toLocaleString("es-ES"),
       r.Ubicacion,
       r.NombreIncidente,
       r.Descripcion,
-      r.Escala || "-",
+      r.Escala || "",
     ]);
 
     autoTable(doc, {
@@ -166,8 +164,97 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
   };
 
   const exportarExcel = async () => {
-    // Aquí podrías mantener tu lógica original de Excel
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Reportes");
+
+    try {
+      const imgData = await toDataURL(logo);
+      const imgId = wb.addImage({ base64: imgData, extension: "png" });
+      ws.addImage(imgId, {
+        tl: { col: 0, row: 0 },
+        ext: { width: 50, height: 50 },
+      });
+    } catch (e) {
+      console.warn("No se pudo cargar el logo para Excel:", e);
+    }
+
+    ws.mergeCells("B1:F2");
+    const title = ws.getCell("B1");
+    title.value = "Mis Reportes";
+    title.font = { name: "Calibri", size: 22, bold: true };
+    title.alignment = { vertical: "middle", horizontal: "left" };
+
+    ws.getRow(3).height = 8;
+
+    const rows = (reportes || []).map((r) => [
+      r.idTipoIncidencia,
+      new Date(r.FechaHora).toLocaleString("es-PE"),
+      r.Ubicacion || "",
+      r.NombreIncidente || "",
+      r.Descripcion || "",
+      r.Escala || "",
+    ]);
+
+    ws.columns = [
+      { key: "ID", width: 8 },
+      { key: "Fecha", width: 22 },
+      { key: "Ubicacion", width: 28 },
+      { key: "Incidente", width: 26 },
+      { key: "Descripcion", width: 48 },
+      { key: "Escala", width: 12 },
+    ];
+
+    const startRow = 4;
+    ws.addTable({
+      name: "TablaReportes",
+      ref: `A${startRow}`,
+      headerRow: true,
+      style: {
+        theme: "TableStyleMedium9",
+        showRowStripes: true,
+      },
+      columns: [
+        { name: "ID" },
+        { name: "Fecha" },
+        { name: "Ubicación" },
+        { name: "Incidente" },
+        { name: "Descripción" },
+        { name: "Escala" },
+      ],
+      rows: rows,
+    });
+
+    ws.getColumn(1).alignment = { vertical: "middle", horizontal: "center" };
+    ws.getColumn(5).alignment = { wrapText: true, vertical: "top" };
+    for (let r = startRow; r <= startRow + rows.length; r++) {
+      ws.getRow(r).height = 20;
+    }
+
+    const colorMap = {
+      bajo: "FF4CAF50",
+      medio: "FFFF9800",
+      alto: "FFF44336",
+    };
+
+    for (let i = 0; i < rows.length; i++) {
+      const excelRow = startRow + 1 + i;
+      const cell = ws.getCell(`F${excelRow}`);
+      const val = String(cell.value ?? "").toLowerCase().trim();
+      const fg = colorMap[val];
+      if (fg) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fg } };
+        cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+    }
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, "mis_reportes.xlsx");
   };
+
 
   return (
     <div className={`mis-reportes ${darkMode ? "dark" : "light"}`}>
