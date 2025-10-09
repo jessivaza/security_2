@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password, check_password
-from .models import Usuario, DetalleAlerta
+from .models import Usuario, DetalleAlerta, AtencionReporte
 
 
 # 🔹 Registro de usuario (se guarda en la tabla Usuario)
@@ -47,3 +47,50 @@ class DetalleAlertaSerializer(serializers.ModelSerializer):
     class Meta:
         model = DetalleAlerta
         fields = '__all__'
+
+
+# Inicio Serializador para Historial de Incidentes
+class HistorialIncidenteSerializer(serializers.ModelSerializer):
+    usuario = serializers.SerializerMethodField()
+    estado = serializers.SerializerMethodField()
+    Escala = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DetalleAlerta
+        fields = (
+            "idTipoIncidencia",
+            "FechaHora",
+            "usuario",
+            "Ubicacion",
+            "NombreIncidente",
+            "Descripcion",
+            "Escala",
+            "estado",
+        )
+
+    def get_usuario(self, obj):
+        # idUsuario es FK a Usuario (puede ser null)
+        return obj.idUsuario.nombre if getattr(obj, "idUsuario", None) else None
+
+    def get_estado(self, obj):
+        # tomar la última atención (si existe) y devolver su Estado (Tipo)
+        ar = (
+            AtencionReporte.objects
+            .filter(idTipoIncidencia=obj)
+            .select_related("idEstadoReporte")
+            .order_by("-FechaHoraAtencion")
+            .first()
+        )
+        if ar and getattr(ar, "idEstadoReporte", None):
+            return ar.idEstadoReporte.Tipo
+        return "Pendiente"
+
+    def get_Escala(self, obj):
+        # usa helper del modelo si existe
+        try:
+            return obj.escala_label()
+        except Exception:
+            # fallback: devolver el número
+            return getattr(obj, "Escala", None)
+
+# Fin Serializador para Historial de Incidentes

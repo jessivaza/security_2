@@ -7,8 +7,8 @@ from .views import (
     registro,
     me,
     resumen,
-    mis_reportes,            # 👈 nuevo
-    registrar_incidente,     # 👈 actualizado
+    mis_reportes,
+    registrar_incidente,
     enviar_correo,
     Cambio_Contrasena,
     perfil_usuario,
@@ -16,7 +16,8 @@ from .views import (
     # Dashboard views
     dashboard_stats,
     emergency_personnel,
-    recent_activities,      # 👈 función de test
+    recent_activities,
+    historial_incidentes,  # <-- nueva vista importada
 )
 
 urlpatterns = [
@@ -46,5 +47,6 @@ urlpatterns = [
     path('dashboard/personnel/', emergency_personnel, name='emergency_personnel'),
     path('dashboard/activities/', recent_activities, name='recent_activities'),
     # path('dashboard/locations/', incidents_by_location, name='incidents_by_location'),  # Comentado - función no existe aún
-
+    # Historial (ruta nueva y distinta, no colisiona con dashboard/* ni mis-reportes)
+    path('historial/incidentes/', historial_incidentes, name='historial_incidentes'),
 ]

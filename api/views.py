@@ -33,7 +33,8 @@ from .models import (
     RolAutoridad, DetalleAutoridad, AtencionReporte,
     EstadoAtencionReporte, EscalaAlerta
 )
-from .serializer import DetalleAlertaSerializer
+from .serializer import DetalleAlertaSerializer, HistorialIncidenteSerializer
+from .models import DetalleAlerta
 
 # ----------------------- LOGIN -----------------------
 class MyTokenObtainPairSerializer(serializers.Serializer):
@@ -719,3 +720,15 @@ def cambiar_password(request):
     u.set_password(nueva)
     u.save()
     return Response({"message": "Contraseña actualizada"})
+
+# --- Historial vista administrador ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def historial_incidentes(request):
+    """
+    Devuelve todos los DetalleAlerta con su estado actual (última AtencionReporte).
+    Ruta nueva y separada: /api/historial/incidentes/
+    """
+    qs = DetalleAlerta.objects.select_related("idUsuario").order_by("-FechaHora")
+    serializer = HistorialIncidenteSerializer(qs, many=True)
+    return Response(serializer.data)

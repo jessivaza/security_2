@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../css/dashboard.css";
 import MapCalor from "./Vista_Administrador/maps/MapaDeCalor/mapCalor";
+import Historial from "./Vista_Administrador/Historial";
 
 export default function Dashboard() {
   const [user, setUser] = useState({ username: "", email: "" });
@@ -219,10 +220,16 @@ export default function Dashboard() {
             </li>
 
             <li className="nav-item">
-              <Link to="/reportes" className="nav-link" onClick={closeMobileMenu}>
+              <button className="nav-link" type="button" 
+              onClick={() => {
+                  setActiveSection("/historial");
+                  closeMobileMenu();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
                 <span className="nav-icon">📊</span>
                 <span className="nav-text">Reportes</span>
-              </Link>
+              </button>
             </li>
           </ul>
         </nav>
@@ -310,16 +317,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Banner de error (oculto en vista de mapa) */}
-        {activeSection !== "/mapCalor" && error && (
+        {/* Banner de error (oculto en vista de mapa o historial) */}
+        {activeSection !== "/mapCalor" && activeSection !== "/historial" && error && (
           <div className="error-banner">
             ⚠️ {error}
             <button onClick={() => window.location.reload()}>Reintentar</button>
           </div>
         )}
 
-        {/* Estadísticas (ocultas en vista de mapa) */}
-        {activeSection !== "/mapCalor" && (
+        {/* Estadísticas (ocultas en vista de mapa o historial) */}
+        {activeSection !== "/mapCalor" && activeSection !== "/historial" && (
           <div className="stats-section">
             {loading ? (
               <div className="loading">
@@ -368,8 +375,24 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* GRID (oculto en vista de mapa) */}
-        {activeSection !== "/mapCalor" && (
+        {/* HISTORIAL / REPORTES */}
+        {activeSection === "/historial" && (
+          <div className="dashboard-section full-width">
+            <div className="section-header">
+              <h3>
+                <span className="section-icon">📋</span>
+                Reportes / Historial
+              </h3>
+            </div>
+
+            <div style={{ width: "100%" }}>
+              <Historial />
+            </div>
+          </div>
+        )}
+
+        {/* GRID (oculto en vista de mapa o historial) */}
+        {activeSection !== "/mapCalor" && activeSection !== "/historial" && (
           <div className="dashboard-grid">
             {/* Personal */}
             <div className="dashboard-section">
