@@ -1,13 +1,13 @@
 // src/pages/LoginPage.jsx
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "bootstrap-icons/font/bootstrap-icons.css";
 import axios from "axios";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../css/index.css";
 import logo from "../img/logo.jpg";
 
+import { faEnvelope, faEye, faEyeSlash, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser, faLock, faEye, faEyeSlash, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 const BASE_URL = "http://127.0.0.1:8000/api";
 

@@ -10,7 +10,7 @@ from django.db import IntegrityError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import serializers, status 
+from rest_framework import serializers, status
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -23,13 +23,22 @@ from django.utils.timezone import now, timedelta
 from django.views.decorators.csrf import csrf_exempt
 
 from django.db import transaction
-from django.contrib.auth.hashers import check_password, make_password 
-from django.contrib.auth.models import User    
+from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import User
 from .models import PerfilUsuario
+# Importación de la tabla de DetalleAlerta
+from .models import DetalleAlerta
 import jwt
+from datetime import datetime
+from django.utils.dateparse import parse_datetime
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
+
 
 from .models import (
-    Usuario, DetalleAlerta, Alerta, Administrador, RolUsuario, 
+    Usuario, DetalleAlerta, Alerta, Administrador, RolUsuario,
     RolAutoridad, DetalleAutoridad, AtencionReporte,
     EstadoAtencionReporte, EscalaAlerta
 )
@@ -37,6 +46,8 @@ from .serializer import DetalleAlertaSerializer, HistorialIncidenteSerializer
 from .models import DetalleAlerta
 
 # ----------------------- LOGIN -----------------------
+
+
 class MyTokenObtainPairSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
@@ -48,18 +59,20 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
         # Autenticación por NOMBRE en tu tabla Usuario
         user = Usuario.objects.filter(nombre=username).first()
         if not user or not user.check_password(password):
-            raise serializers.ValidationError("Usuario o contraseña incorrectos")
+            raise serializers.ValidationError(
+                "Usuario o contraseña incorrectos")
 
         # MUY IMPORTANTE: for_user -> agrega user_id al token (necesario para request.user)
         refresh = RefreshToken.for_user(user)
 
         # Claims extra que usa el front
         refresh["idUsuario"] = user.idUsuario
-        refresh["username"]  = user.nombre
-        refresh["email"]     = user.correo
+        refresh["username"] = user.nombre
+        refresh["email"] = user.correo
 
         # Deducimos rol: si el usuario está enlazado a un Administrador
-        es_admin = Administrador.objects.filter(idRolUsuario__idUsuario=user).exists()
+        es_admin = Administrador.objects.filter(
+            idRolUsuario__idUsuario=user).exists()
         refresh["role"] = "admin" if es_admin else "user"
 
         return {
@@ -70,6 +83,7 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
             "email":     user.correo,
             "role":      "admin" if es_admin else "user",
         }
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -94,11 +108,13 @@ def registro(request):
             return Response({"error": "El correo ya está registrado"}, status=400)
 
         # Tu manager create_user espera (correo, contra, **extra)
-        user = Usuario.objects.create_user(correo=correo, contra=contra, nombre=nombre)
+        user = Usuario.objects.create_user(
+            correo=correo, contra=contra, nombre=nombre)
 
         # (opcional) crear rol 'Usuario'
         if not RolUsuario.objects.filter(idUsuario=user, NombreRol="Usuario").exists():
-            RolUsuario.objects.create(idUsuario=user, NombreRol="Usuario", Descripcion="Rol por defecto")
+            RolUsuario.objects.create(
+                idUsuario=user, NombreRol="Usuario", Descripcion="Rol por defecto")
 
         return Response({"message": "Usuario registrado correctamente", "idUsuario": user.idUsuario}, status=201)
 
@@ -176,70 +192,74 @@ def resumen(request):
 # ========================
 
 # 🔹 API para estadísticas del dashboard
+
+
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def dashboard_stats(request):
     try:
         print("🔄 Iniciando cálculo de estadísticas del dashboard...")
-        
+
         # Estadísticas basadas en la tabla DetalleAlerta que tiene los datos reales
         total_incidentes = DetalleAlerta.objects.count()
         print(f"📊 Total incidentes encontrados: {total_incidentes}")
-        
+
         # Como no tenemos estados directos, vamos a simular basándonos en reportes de atención
         # Casos que tienen reportes de atención los consideramos "resueltos"
         casos_resueltos = DetalleAlerta.objects.filter(
             atenciones__isnull=False
         ).distinct().count()
-        
+
         # Si no hay reportes de atención, simulamos datos para demostración
         if casos_resueltos == 0 and total_incidentes > 0:
-            casos_resueltos = max(1, int(total_incidentes * 0.6))  # 60% simulado como resuelto
-        
+            # 60% simulado como resuelto
+            casos_resueltos = max(1, int(total_incidentes * 0.6))
+
         print(f"✅ Casos resueltos: {casos_resueltos}")
-        
+
         # Alertas activas: incidentes de los últimos 7 días
         fecha_limite = timezone.now() - timedelta(days=7)
         alertas_activas = DetalleAlerta.objects.filter(
             FechaHora__gte=fecha_limite
         ).count()
-        
+
         # Si no hay alertas recientes, tomamos una parte del total
         if alertas_activas == 0 and total_incidentes > 0:
-            alertas_activas = max(1, int(total_incidentes * 0.3))  # 30% como activas
-        
+            alertas_activas = max(
+                1, int(total_incidentes * 0.3))  # 30% como activas
+
         print(f"🚨 Alertas activas: {alertas_activas}")
-        
+
         # Estadísticas por escala (reemplazamos los estados por escalas)
         alertas_alta_escala = DetalleAlerta.objects.filter(Escala=3).count()
         alertas_media_escala = DetalleAlerta.objects.filter(Escala=2).count()
         alertas_baja_escala = DetalleAlerta.objects.filter(Escala=1).count()
-        
+
         # Incidentes por día (últimos 7 días) basado en DetalleAlerta
         today = timezone.now().date()
         week_data = []
-        
+
         for i in range(7):
             date = today - timedelta(days=6-i)
             count = DetalleAlerta.objects.filter(
                 FechaHora__date=date
             ).count()
-            
+
             # Contar por escala para ese día
             alta_dia = DetalleAlerta.objects.filter(
-                FechaHora__date=date, 
+                FechaHora__date=date,
                 Escala=3
             ).count()
             media_dia = DetalleAlerta.objects.filter(
-                FechaHora__date=date, 
+                FechaHora__date=date,
                 Escala=2
             ).count()
             baja_dia = DetalleAlerta.objects.filter(
-                FechaHora__date=date, 
+                FechaHora__date=date,
                 Escala=1
             ).count()
-            
+
             week_data.append({
                 'date': date.strftime('%Y-%m-%d'),
                 'day': date.strftime('%a'),
@@ -248,28 +268,32 @@ def dashboard_stats(request):
                 'media': media_dia,
                 'baja': baja_dia
             })
-        
+
         # Calcular porcentajes
         porcentaje_resolucion = 0
         porcentaje_activos = 0
         porcentaje_alta_escala = 0
-        
+
         if total_incidentes > 0:
-            porcentaje_resolucion = round((casos_resueltos / total_incidentes) * 100, 1)
-            porcentaje_activos = round((alertas_activas / total_incidentes) * 100, 1)
-            porcentaje_alta_escala = round((alertas_alta_escala / total_incidentes) * 100, 1)
-        
+            porcentaje_resolucion = round(
+                (casos_resueltos / total_incidentes) * 100, 1)
+            porcentaje_activos = round(
+                (alertas_activas / total_incidentes) * 100, 1)
+            porcentaje_alta_escala = round(
+                (alertas_alta_escala / total_incidentes) * 100, 1)
+
         # Calcular alertas resueltas hoy
         alertas_resueltas_hoy = DetalleAlerta.objects.filter(
             FechaHora__date=today,
             atenciones__isnull=False
         ).distinct().count()
-        
+
         # Si no hay datos, simulamos
         if alertas_resueltas_hoy == 0 and total_incidentes > 0:
-            alertas_hoy = DetalleAlerta.objects.filter(FechaHora__date=today).count()
+            alertas_hoy = DetalleAlerta.objects.filter(
+                FechaHora__date=today).count()
             alertas_resueltas_hoy = max(0, int(alertas_hoy * 0.5))
-        
+
         stats_response = {
             'total_incidentes': total_incidentes,
             'casos_resueltos': casos_resueltos,
@@ -282,21 +306,21 @@ def dashboard_stats(request):
             'porcentaje_alta_escala': porcentaje_alta_escala,
             'resueltas_hoy': alertas_resueltas_hoy
         }
-        
+
         print(f"✅ Estadísticas calculadas: {stats_response}")
-        
+
         return JsonResponse({
             'success': True,
             'stats': stats_response,
             'week_data': week_data,
             'last_updated': timezone.now().isoformat()
         })
-        
+
     except Exception as e:
         print(f"❌ Error en dashboard_stats: {str(e)}")
         import traceback
         print(f"📍 Traceback completo: {traceback.format_exc()}")
-        
+
         return JsonResponse({
             'success': False,
             'error': str(e),
@@ -312,14 +336,14 @@ def dashboard_stats(request):
 def emergency_personnel(request):
     try:
         personal = []
-        
+
         # Intentar obtener datos de autoridades si existen
         try:
             if RolAutoridad.objects.exists():
                 autoridades = RolAutoridad.objects.select_related(
                     'idRolUsuario'
                 )[:10]
-                
+
                 for autoridad in autoridades:
                     try:
                         # Intentar obtener información del usuario
@@ -327,11 +351,11 @@ def emergency_personnel(request):
                         if hasattr(autoridad, 'idRolUsuario') and autoridad.idRolUsuario:
                             # Aquí puedes ajustar según tu modelo de relaciones
                             nombre = f'Autoridad {autoridad.idRolAutoridad}'
-                        
+
                         tipo_autoridad = 'Autoridad'
                         if hasattr(autoridad, 'TipoAutoridad'):
                             tipo_autoridad = autoridad.TipoAutoridad
-                        
+
                         personal.append({
                             'id': autoridad.idRolAutoridad,
                             'nombre': nombre,
@@ -344,7 +368,7 @@ def emergency_personnel(request):
                         continue
         except:
             pass
-        
+
         # Si no hay autoridades o hay error, usar datos de ejemplo
         if not personal:
             personal = [
@@ -381,12 +405,12 @@ def emergency_personnel(request):
                     'estado': 'EN SERVICIO'
                 }
             ]
-        
+
         return JsonResponse({
             'success': True,
             'personal': personal
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -401,12 +425,13 @@ def emergency_personnel(request):
 def recent_activities(request):
     try:
         activities = []
-        
+
         # Intentar obtener alertas reales primero
         try:
             if Alerta.objects.exists():
-                alertas = Alerta.objects.select_related('idCliente').order_by('-FechaHora')[:10]
-                
+                alertas = Alerta.objects.select_related(
+                    'idCliente').order_by('-FechaHora')[:10]
+
                 for alerta in alertas:
                     try:
                         time_diff = timezone.now() - alerta.FechaHora
@@ -418,11 +443,11 @@ def recent_activities(request):
                         else:
                             minutes = max(1, time_diff.seconds // 60)
                             time_ago = f"{minutes} min ago"
-                        
+
                         sender_name = 'Usuario Desconocido'
                         if alerta.idCliente:
                             sender_name = f"{alerta.idCliente.Nombre} {alerta.idCliente.Apellido}"
-                        
+
                         activities.append({
                             'id': alerta.idAlerta,
                             'sender': sender_name,
@@ -435,7 +460,7 @@ def recent_activities(request):
                         continue
         except:
             pass
-        
+
         # Si no hay alertas o hay error, usar actividades de ejemplo basadas en DetalleAlerta
         if not activities:
             try:
@@ -452,11 +477,11 @@ def recent_activities(request):
                         else:
                             minutes = max(1, time_diff.seconds // 60)
                             time_ago = f"{minutes} min ago"
-                        
+
                         usuario_nombre = 'Usuario Sistema'
                         if incidente.idUsuario:
                             usuario_nombre = incidente.idUsuario.nombre
-                        
+
                         activities.append({
                             'id': incidente.idTipoIncidencia,
                             'sender': usuario_nombre,
@@ -469,7 +494,7 @@ def recent_activities(request):
                         continue
             except:
                 pass
-        
+
         # Si aún no hay actividades, usar datos de ejemplo
         if not activities:
             activities = [
@@ -514,12 +539,12 @@ def recent_activities(request):
                     'avatar': '💾'
                 }
             ]
-        
+
         return JsonResponse({
             'success': True,
             'activities': activities
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -550,10 +575,11 @@ def mis_reportes(request):
     return Response(data)
 
 
-
 # ---------- REGISTRAR INCIDENTE ----------
 # api/views.py (arriba del archivo)
 ESCALAS = {1: "Bajo", 2: "Medio", 3: "Alto"}
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def registrar_incidente(request):
@@ -572,17 +598,19 @@ def registrar_incidente(request):
     lat = request.data.get("Latitud")
     lon = request.data.get("Longitud")
 
-
     faltantes = []
-    if not Ubicacion: faltantes.append("Ubicacion")
-    if not NombreIncidente: faltantes.append("NombreIncidente")
-    if not escala: faltantes.append("escala")
+    if not Ubicacion:
+        faltantes.append("Ubicacion")
+    if not NombreIncidente:
+        faltantes.append("NombreIncidente")
+    if not escala:
+        faltantes.append("escala")
     if faltantes:
         return Response({"error": f"Faltan campos: {', '.join(faltantes)}"}, status=400)
 
     try:
         escala = int(escala)
-        lat = float(lat)  #------- Añado latitud y longitud
+        lat = float(lat)  # ------- Añado latitud y longitud
         lon = float(lon)
     except ValueError:
         return Response({"error": "escala debe ser 1, 2 o 3 y lat/lon deben ser números"}, status=400)
@@ -627,7 +655,8 @@ def enviar_correo(request):
         if not usuario:
             return JsonResponse({"error": "El correo no está registrado"}, status=400)
 
-        token = jwt.encode({"idUsuario": usuario.idUsuario}, settings.SECRET_KEY, algorithm="HS256")
+        token = jwt.encode({"idUsuario": usuario.idUsuario},
+                           settings.SECRET_KEY, algorithm="HS256")
         reset_url = f"http://localhost:5173/reset-password/{token}"
 
         send_mail(
@@ -661,6 +690,8 @@ def Cambio_Contrasena(request, token):
         return JsonResponse({"error": str(e)}, status=500)
 
 # --- PERFIL: GET y PATCH (actualizar nombre/telefono/contacto) ---
+
+
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def perfil_usuario(request):
@@ -722,6 +753,8 @@ def cambiar_password(request):
     return Response({"message": "Contraseña actualizada"})
 
 # --- Historial vista administrador ---
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def historial_incidentes(request):
@@ -729,6 +762,76 @@ def historial_incidentes(request):
     Devuelve todos los DetalleAlerta con su estado actual (última AtencionReporte).
     Ruta nueva y separada: /api/historial/incidentes/
     """
-    qs = DetalleAlerta.objects.select_related("idUsuario").order_by("-FechaHora")
+    qs = DetalleAlerta.objects.select_related(
+        "idUsuario").order_by("-FechaHora")
     serializer = HistorialIncidenteSerializer(qs, many=True)
     return Response(serializer.data)
+
+
+# --- MAPA DE CALOR DE INCIDENCIAS -- #
+
+def _parse_iso(dt_str):
+    if not dt_str:
+        return None
+    return parse_datetime(dt_str) or datetime.fromisoformat(dt_str)
+
+
+def _escala_to_intensity(escala: int | None) -> float:
+    # Mapea 1,2,3 -> intensidad en [0..1]
+    return {1: 0.33, 2: 0.66, 3: 1.0}.get(int(escala or 1), 0.33)
+
+
+class HeatmapAlertView(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    """
+    GET /api/alertas/heatmap?start=2025-10-01T00:00:00&end=2025-10-12T23:59:59
+                            &escala_min=1&escala_max=3
+                            &bbox=-12.1,-77.2,-11.8,-76.9   # south,west,north,east
+                            &limit=5000
+    Respuesta: {"points": [[lat, lng, intensity], ...]}
+    """
+
+    def get(self, request, *args, **kwargs):
+        qs = DetalleAlerta.objects.filter(
+            Latitud__isnull=False, Longitud__isnull=False)
+
+        # Filtros
+        dt_start = _parse_iso(request.query_params.get("start"))
+        dt_end = _parse_iso(request.query_params.get("end"))
+        if dt_start:
+            qs = qs.filter(FechaHora__gte=dt_start)
+        if dt_end:
+            qs = qs.filter(FechaHora__lte=dt_end)
+
+        escala_min = request.query_params.get("escala_min")
+        escala_max = request.query_params.get("escala_max")
+        if escala_min:
+            qs = qs.filter(Escala__gte=int(escala_min))
+        if escala_max:
+            qs = qs.filter(Escala__lte=int(escala_max))
+
+        bbox = request.query_params.get("bbox")  # "south,west,north,east"
+        if bbox:
+            try:
+                s, w, n, e = map(float, bbox.split(","))
+                qs = qs.filter(Latitud__gte=s, Latitud__lte=n,
+                            Longitud__gte=w, Longitud__lte=e)
+            except Exception:
+                pass
+
+        # Límite seguro por defecto
+        try:
+            limit = int(request.query_params.get("limit") or 2000)
+        except Exception:
+            limit = 2000
+
+        # Solo los campos necesarios, ordenado por fecha desc
+        rows = (
+            qs.order_by("-FechaHora")
+            .values_list("Latitud", "Longitud", "Escala")[:limit]
+        )
+
+        points = [[lat, lng, _escala_to_intensity(
+            esc)] for (lat, lng, esc) in rows]
+        return Response({"points": points})
