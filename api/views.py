@@ -768,7 +768,7 @@ def historial_incidentes(request):
     return Response(serializer.data)
 
 
-# --- MAPA DE CALOR DE INCIDENCIAS -- #
+# ==================================== VIEWS PARA EL MAPA DE CALOR EN TIEMPO REAL ==================================== #
 
 def _parse_iso(dt_str):
     if not dt_str:

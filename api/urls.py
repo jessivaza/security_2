@@ -50,6 +50,7 @@ urlpatterns = [
     # path('dashboard/locations/', incidents_by_location, name='incidents_by_location'),  # Comentado - función no existe aún
     # Historial (ruta nueva y distinta, no colisiona con dashboard/* ni mis-reportes)
     path('historial/incidentes/', historial_incidentes, name='historial_incidentes'),
-    #Path para el mapa de incidencias
+    
+    #========PATH PARA EL MAPA DE CALOR EN TIEMPO REAL==============================
     path("alertas/heatmap", HeatmapAlertView.as_view(), name="heatmap-alertas"),
 ]
