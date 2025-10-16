@@ -169,3 +169,11 @@ AUTH_USER_MODEL = "api.Usuario"
 
 
 CORS_ALLOW_ALL_ORIGINS = True  # Permitir todas las solicitudes CORS (útil para desarrollo)
+
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'archivos_alertas')

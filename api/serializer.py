@@ -44,10 +44,18 @@ class LoginSerializer(serializers.Serializer):
 
 # 🔹 Serializador para DetalleAlerta
 class DetalleAlertaSerializer(serializers.ModelSerializer):
+    Archivo = serializers.SerializerMethodField()
+
     class Meta:
         model = DetalleAlerta
         fields = '__all__'
 
+    def get_Archivo(self, obj):
+        request = self.context.get('request')
+        if obj.Archivo and hasattr(obj.Archivo, 'url'):
+            # Devuelve la URL completa del archivo
+            return request.build_absolute_uri(obj.Archivo.url)
+        return None
 
 # Inicio Serializador para Historial de Incidentes
 class HistorialIncidenteSerializer(serializers.ModelSerializer):
@@ -94,3 +102,11 @@ class HistorialIncidenteSerializer(serializers.ModelSerializer):
             return getattr(obj, "Escala", None)
 
 # Fin Serializador para Historial de Incidentes
+
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'archivos_alertas')

@@ -210,6 +210,8 @@ class Alerta(models.Model):
 
 # --- Tabla EscalaAlerta ya NO es necesaria, la puedes dejar o borrar más adelante ---
 
+from django.db import models
+from django.utils import timezone
 
 class DetalleAlerta(models.Model):
     ESCALA_CHOICES = (
@@ -223,9 +225,8 @@ class DetalleAlerta(models.Model):
     Descripcion = models.CharField(max_length=500, null=True, blank=True)
     FechaHora = models.DateTimeField(default=timezone.now)
 
-    # Ya no usamos este FK para nada; lo dejamos por compatibilidad (es NULLABLE)
     idAlerta = models.ForeignKey(
-        Alerta,
+        'Alerta',
         on_delete=models.CASCADE,
         related_name='detalles',
         db_column='idAlerta',
@@ -241,22 +242,21 @@ class DetalleAlerta(models.Model):
         blank=True
     )
 
-    # >>> NUEVO: escala como enum (sin BD extra)
     Escala = models.PositiveSmallIntegerField(choices=ESCALA_CHOICES, default=1)
-
     NombreIncidente = models.CharField(max_length=250)
-    #--- Nuevos campos para latitud y longitud ---
     Latitud = models.FloatField(null=True, blank=True)
     Longitud = models.FloatField(null=True, blank=True)
-
     idUsuario = models.ForeignKey(
-        Usuario,
+        'Usuario',
         on_delete=models.CASCADE,
         related_name="alertas",
         db_column="idUsuario",
         null=True,
         blank=True
     )
+
+    # >>> NUEVO CAMPO para foto o video
+    Archivo = models.FileField(upload_to='archivos_alertas/', blank=True, null=True)
 
     class Meta:
         db_table = 'DetalleAlerta'
@@ -266,7 +266,7 @@ class DetalleAlerta(models.Model):
 
     def escala_label(self):
         return dict(self.ESCALA_CHOICES).get(self.Escala, "")
-    
+
 
 class EscalaAlerta(models.Model):
     # (Puedes eliminarla cuando migres los datos, por ahora la dejamos por si usas datos viejos)
