@@ -529,7 +529,7 @@ def recent_activities(request):
 
 
 # ---------- LISTAR MIS REPORTES ----------
-# ---------- LISTAR MIS REPORTES ----------
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def mis_reportes(request):
@@ -570,7 +570,7 @@ def registrar_incidente(request):
     escala = request.data.get("escala")
     lat = request.data.get("Latitud")
     lon = request.data.get("Longitud")
-    archivo = request.FILES.get("Archivo")  # ✅ capturamos archivo del FormData
+    archivo = request.FILES.get("Archivo")  # capturamos archivo del FormData
 
     faltantes = []
     if not Ubicacion: faltantes.append("Ubicacion")
@@ -620,6 +620,9 @@ def registrar_incidente(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
+
+
 
 # ------------------ RESET PASSWORD (opcional) -------------
 @api_view(['POST'])

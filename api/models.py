@@ -268,10 +268,11 @@ class DetalleAlerta(models.Model):
         return dict(self.ESCALA_CHOICES).get(self.Escala, "")
 
 
+# --- ESCALA ALERTA ---
 class EscalaAlerta(models.Model):
-    # (Puedes eliminarla cuando migres los datos, por ahora la dejamos por si usas datos viejos)
     idEscalaIncidencia = models.AutoField(primary_key=True)
     Descripcion = models.CharField(max_length=45)
+    palabra_clave = models.CharField(max_length=100)
 
     class Meta:
         db_table = 'EscalaAlerta'

@@ -19,6 +19,7 @@ const ESCALAS = [
 export default function MisReportes({ darkMode, onReportesActualizados }) {
   const [reportes, setReportes] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [archivoPreview, setArchivoPreview] = useState(null);
   const [nuevoReporte, setNuevoReporte] = useState({
     Ubicacion: "",
     Descripcion: "",
@@ -94,6 +95,15 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     });
   };
 
+  // ---------- Vista previa de archivo ----------
+  const abrirPreview = (archivoUrl) => {
+    setArchivoPreview(archivoUrl);
+  };
+
+  const cerrarPreview = () => {
+    setArchivoPreview(null);
+  };
+
   // ---------- Registrar incidente ----------
   const registrarIncidente = async () => {
     if (!token) return alert("Debes iniciar sesión");
@@ -139,6 +149,16 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
   };
 
   // ---------- Exportar PDF ----------
+  const toDataURL = async (url) => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const exportarPDF = async () => {
     const doc = new jsPDF();
     try {
@@ -261,18 +281,21 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 <td>{r.Escala || "—"}</td>
                 <td style={{ textAlign: "center" }}>
                   {r.Archivo ? (
-                    <a
-                      href={r.Archivo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "#007BFF", fontSize: "18px" }}
+                    <button
+                      onClick={() => abrirPreview(r.Archivo)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#007BFF",
+                        fontSize: "18px",
+                        cursor: "pointer",
+                      }}
                     >
                       📎
-                    </a>
+                    </button>
                   ) : (
                     ""
                   )}
-
                 </td>
               </tr>
             ))}
@@ -280,6 +303,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         </table>
       </div>
 
+      {/* Modal Registrar */}
       {mostrarModal && (
         <div className="modal-backdrop">
           <div className="modal">
@@ -315,7 +339,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               }
             />
 
-            {/* Input para subir archivo */}
             <input
               type="file"
               accept="image/*,video/*,application/pdf"
@@ -324,7 +347,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               }
             />
 
-            {/* Icono visible solo cuando se selecciona un archivo */}
             {nuevoReporte.Archivo && (
               <div style={{ textAlign: "center", marginTop: "10px" }}>
                 <span style={{ color: "#007BFF", fontSize: "22px" }}>
@@ -332,6 +354,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 </span>
               </div>
             )}
+
             <select
               value={nuevoReporte.escala}
               onChange={(e) =>
@@ -346,7 +369,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               ))}
             </select>
 
-            <div className="modal-buttons">
+            <div style={{ textAlign: "center", marginTop: "15px" }}>
               <button onClick={registrarIncidente} className="btn-guardar">
                 Guardar
               </button>
@@ -357,6 +380,84 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
+
+      {/* Modal Vista previa (versión mejorada) */}
+      {archivoPreview && (
+        <div className="modal-backdrop" onClick={cerrarPreview}>
+          <div
+            className="modal"
+            style={{
+              position: "relative",
+              maxWidth: "600px",
+              maxHeight: "500px",
+              overflow: "auto",
+              backgroundColor: "#fff",
+              padding: "15px",
+              borderRadius: "10px",
+              boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón X de cierre */}
+            <button
+              onClick={cerrarPreview}
+              style={{
+                position: "absolute",
+                top: "8px",
+                right: "10px",
+                background: "none",
+                border: "none",
+                fontSize: "22px",
+                fontWeight: "bold",
+                color: "#555",
+                cursor: "pointer",
+              }}
+            >
+              ✖
+            </button>
+
+            <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
+              Vista previa del archivo
+            </h3>
+
+            {archivoPreview.endsWith(".pdf") ? (
+              <iframe
+                src={archivoPreview}
+                width="100%"
+                height="400px"
+                title="Vista PDF"
+                style={{ border: "1px solid #ccc", borderRadius: "6px" }}
+              ></iframe>
+            ) : archivoPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+              <img
+                src={archivoPreview}
+                alt="Vista previa"
+                style={{
+                  width: "100%",
+                  maxHeight: "400px",
+                  objectFit: "contain",
+                  borderRadius: "8px",
+                }}
+              />
+            ) : archivoPreview.match(/\.(mp4|webm|ogg)$/i) ? (
+              <video
+                src={archivoPreview}
+                controls
+                style={{
+                  width: "100%",
+                  maxHeight: "400px",
+                  borderRadius: "8px",
+                }}
+              />
+            ) : (
+              <p style={{ textAlign: "center" }}>
+                No se puede mostrar vista previa de este tipo de archivo.
+              </p>
+            )}
+            </div>
+  
+          </div>
+        )}
+      </div>
+    );
+  }
