@@ -17,7 +17,10 @@ from .views import (
     dashboard_stats,
     emergency_personnel,
     recent_activities,
-    historial_incidentes,  # <-- nueva vista importada
+    historial_incidentes,  # <-- ya existente
+    # Nuevas vistas de Gestión
+    gestion_list_incidentes,
+    gestion_update_incidente,
 )
 
 urlpatterns = [
@@ -47,6 +50,12 @@ urlpatterns = [
     path('dashboard/personnel/', emergency_personnel, name='emergency_personnel'),
     path('dashboard/activities/', recent_activities, name='recent_activities'),
     # path('dashboard/locations/', incidents_by_location, name='incidents_by_location'),  # Comentado - función no existe aún
-    # Historial (ruta nueva y distinta, no colisiona con dashboard/* ni mis-reportes)
+    # Historial (ya existente)
     path('historial/incidentes/', historial_incidentes, name='historial_incidentes'),
+
+    # ---------------- NUEVAS RUTAS PARA GESTIÓN ----------------
+    # GET listado para Gestión
+    path('gestion/incidentes/', gestion_list_incidentes, name='gestion_list_incidentes'),
+    # PATCH actualización de estado
+    path('gestion/incidentes/<int:id>/', gestion_update_incidente, name='gestion_update_incidente'),
 ]

@@ -258,6 +258,18 @@ class DetalleAlerta(models.Model):
     # >>> NUEVO CAMPO para foto o video
     Archivo = models.FileField(upload_to='archivos_alertas/', blank=True, null=True)
 
+    # >>> NUEVO CAMPO EstadoIncidente (sin FK) - Pendiente, En proceso, Resuelto
+    ESTADO_INCIDENTE_CHOICES = (
+        ('Pendiente', 'Pendiente'),
+        ('En proceso', 'En proceso'),
+        ('Resuelto', 'Resuelto'),
+    )
+    EstadoIncidente = models.CharField(
+        max_length=20,
+        choices=ESTADO_INCIDENTE_CHOICES,
+        default='Pendiente'
+    )
+
     class Meta:
         db_table = 'DetalleAlerta'
 

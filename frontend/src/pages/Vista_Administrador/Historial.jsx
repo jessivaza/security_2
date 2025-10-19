@@ -39,8 +39,10 @@ const Historial = () => {
           ubicacion: d.Ubicacion,
           incidente: d.NombreIncidente,
           descripcion: d.Descripcion,
-          escala: d.Escala || d.Escala, // puede venir ya como etiqueta
-          estado: d.estado,
+          // Escala ya puede venir como etiqueta desde el serializer (escala_label)
+          escala: d.Escala ?? "",
+          // Estado ahora viene desde EstadoIncidente (serializer lo entrega en d.estado)
+          estado: d.estado ?? "Pendiente",
         }));
         setIncidentes(mapped.length ? mapped : datosEjemplo);
       })

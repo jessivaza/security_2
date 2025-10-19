@@ -36,6 +36,8 @@ from .models import (
 )
 from .serializer import DetalleAlertaSerializer, HistorialIncidenteSerializer
 from .models import DetalleAlerta
+from django.shortcuts import get_object_or_404
+from .serializer import GestionIncidenteSerializer, IncidenteEstadoUpdateSerializer
 
 # ----------------------- LOGIN -----------------------
 class MyTokenObtainPairSerializer(serializers.Serializer):
@@ -739,3 +741,33 @@ def historial_incidentes(request):
     qs = DetalleAlerta.objects.select_related("idUsuario").order_by("-FechaHora")
     serializer = HistorialIncidenteSerializer(qs, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def gestion_list_incidentes(request):
+    """
+    Nuevo endpoint: lista incidencias con su EstadoIncidente para Gestión.
+    Ruta: /api/gestion/incidentes/
+    """
+    qs = DetalleAlerta.objects.select_related("idUsuario").order_by("-FechaHora")
+    data = GestionIncidenteSerializer(qs, many=True).data
+    return Response(data)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def gestion_update_incidente(request, id):
+    """
+    Nuevo endpoint: actualiza EstadoIncidente de DetalleAlerta.
+    Ruta: /api/gestion/incidentes/<int:id>/
+    Body: { "estado": "Pendiente" | "En proceso" | "Resuelto" }
+    """
+    obj = get_object_or_404(DetalleAlerta, pk=id)
+    ser = IncidenteEstadoUpdateSerializer(data=request.data)
+    if not ser.is_valid():
+        return Response(ser.errors, status=400)
+
+    obj.EstadoIncidente = ser.validated_data["estado"]
+    obj.save(update_fields=["EstadoIncidente"])
+
+    # Devolver el registro formateado para la tabla de gestión
+    return Response(GestionIncidenteSerializer(obj).data)
