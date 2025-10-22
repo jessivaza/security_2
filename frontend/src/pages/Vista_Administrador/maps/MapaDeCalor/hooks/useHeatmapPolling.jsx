@@ -19,7 +19,7 @@ export default function useHeatmapPolling({
             // Ventana [start, now]
             const now = new Date();
             const start = new Date(now.getTime() - daysWindow * 24 * 60 * 60 * 1000).toISOString();
-            const end = now.toISOString();
+            const end = now.toISOString();  
 
             // cancela cualquier request colgando
             if (abortRef.current) abortRef.current.abort();
