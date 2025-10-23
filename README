@@ -59,41 +59,44 @@ Instalar estas dependencias para el mapa y iconos
    git push -u origin nombre-rama
 ```
 
-8. **==========📘 Guía: Unir main con tu rama de trabajo (nombre_rama)===============**
+8. **==========📘 Guía: Traer main a la rama ===============**
 ```
-1️⃣ Cambiarte a tu rama
-      git checkout nombre_rama
-2️⃣ Actualizar main desde el remoto
-      git fetch origin
-3️⃣ Unir main en tu rama
-      git merge origin/main
-         3.1 👉 Aquí pueden pasar 2 cosas:
-            ✅Si no hay conflictos → se hace el merge directo.
-            ⚡Si hay conflictos → Git te avisará, los resuelves de esta manera: 
-               git add archivo_conflictivo
-               git commit -m "Resolver conflictos al unir main en r_Jhayr"
-4️⃣ Subir tu rama actualizada
-      git push origin 
+# 1. Estás en tu rama de trabajo
+git checkout r_NombreRama
+
+# 2. Descarga los cambios más recientes del remoto
+git fetch origin
+
+# 3. Combina los últimos cambios del main en tu rama
+git merge origin/main
+
+# 4. Si hay conflictos, resuélvelos:
+#    (a) Abre los archivos en conflicto y elige qué conservar
+#    (b) Luego:
+git add .
+git commit
+
+# 5. Finalmente, sube tu rama actualizada
+git push origin r_NombreRama
 ```
 
-9. **==========📘 Guía: Unir tu rama de trabajo con main===============**
+9. **==========📘 Guía: Traer cambios de la rama al main ===============**
 ```
-1️⃣Primero asegúrate de estar en la rama donde quieres integrar los cambios: 
-      git checkout main
-2️⃣Actualizar main desde el remoto
-   Trae la última versión de main que está en el repositorio remoto (GitHub, GitLab, etc.):
-      git fetch origin
-      git pull origin main
-3️⃣ Unir tu rama con main
-      git merge nombre_rama
-      
-      3.1 👉 Aquí pueden pasar 2 cosas:
-               ✅Si no hay conflictos → se hace el merge directo.
-               ⚡Si hay conflictos → Git te avisará, los resuelves de esta manera: 
-                  git add archivo_conflictivo
-                  git commit -m "Resolver conflictos al unir nombre_rama en main"
-4️⃣ Subir los cambios al remoto:
-      git push origin main
+# 1. Ve a tu rama principal
+git checkout main
+
+# 2. Asegúrate de tener todo actualizado
+git fetch origin
+
+# 3. Actualiza tu rama main con lo más reciente del remoto
+git pull origin main
+
+# 4. Trae los cambios de la rama r_nombrerama
+git merge origin/r_NombreRama
+
+# 5. Si hay conflictos, resuélvelos, luego:
+git add .
+git commit
 ```
 10. **======== PDF y EXCEL =============**
   npm install jspdf jspdf-autotable xlsx 
