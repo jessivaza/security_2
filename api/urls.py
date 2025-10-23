@@ -54,7 +54,7 @@ urlpatterns = [
     # Historial (ya existente)
     path('historial/incidentes/', historial_incidentes, name='historial_incidentes'),
     
-    #========PATH PARA EL MAPA DE CALOR EN TIEMPO REAL==============================
+    #================PATH PARA EL MAPA DE CALOR EN TIEMPO REAL==============================
     path("alertas/heatmap", HeatmapAlertView.as_view(), name="heatmap-alertas"),
 
     # ---------------- NUEVAS RUTAS PARA GESTIÓN ----------------

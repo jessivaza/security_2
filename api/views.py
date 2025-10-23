@@ -1,56 +1,46 @@
-# api/views.py
-from django.core.mail import send_mail
-from django.http import JsonResponse
-from django.conf import settings
-from django.utils.timezone import now
-from datetime import timedelta
-from django.db.models import Count
-from django.db import IntegrityError
+# api/views.py — imports depurados y organizados
 
+# ===== Standard library =====
+from datetime import datetime, timedelta
+import jwt
+
+# ===== Django (core & utils) =====
+from django.conf import settings
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
+from django.db.models import Count, Max
+from django.db.models.functions import TruncDate
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from django.views.decorators.csrf import csrf_exempt
+
+# ===== Django REST Framework & JWT =====
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework import serializers, status
-
+from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from django.utils import timezone
-from django.db.models.functions import TruncDate
-from django.db.models import Count, Max
-
-from django.utils.timezone import now, timedelta
-from django.views.decorators.csrf import csrf_exempt
-
-from django.db import transaction
-from django.contrib.auth.hashers import check_password, make_password
-from django.contrib.auth.models import User
-from .models import PerfilUsuario
-# Importación de la tabla de DetalleAlerta
-from .models import DetalleAlerta
-import jwt
-from datetime import datetime
-from django.utils.dateparse import parse_datetime
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-# --------FROM PARA EL MAPA DE CALOR ----------------
-from rest_framework import serializers, status
-from django.contrib.auth.hashers import check_password, make_password
-from django.contrib.auth.models import User
-from datetime import datetime
-
-
+# ===== App local =====
 from .models import (
     Usuario, DetalleAlerta, Alerta, Administrador, RolUsuario,
     RolAutoridad, DetalleAutoridad, AtencionReporte,
-    EstadoAtencionReporte, EscalaAlerta
+    EstadoAtencionReporte, EscalaAlerta, PerfilUsuario
 )
-from .serializer import DetalleAlertaSerializer, HistorialIncidenteSerializer
-from .models import DetalleAlerta
-from django.shortcuts import get_object_or_404
-from .serializer import GestionIncidenteSerializer, IncidenteEstadoUpdateSerializer
+from .serializer import (
+    DetalleAlertaSerializer,
+    HistorialIncidenteSerializer,
+    GestionIncidenteSerializer,
+    IncidenteEstadoUpdateSerializer,
+)
+
 
 # ----------------------- LOGIN -----------------------
 
