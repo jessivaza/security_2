@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.db.models import Count
 from django.db import IntegrityError
 
-from rest_framework.decorators import api_view, permission_classes , parser_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -40,9 +40,6 @@ from rest_framework import serializers, status
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
 from datetime import datetime
-
-
-
 
 
 from .models import (
@@ -580,15 +577,19 @@ def mis_reportes(request):
     )
 
     # Usa el serializer para incluir Archivo correctamente (con contexto request)
-    serializer = DetalleAlertaSerializer(reportes, many=True, context={'request': request})
+    serializer = DetalleAlertaSerializer(
+        reportes, many=True, context={'request': request})
 
     return Response(serializer.data)
 
+
 ESCALAS = {1: "Bajo", 2: "Medio", 3: "Alto"}
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser, FormParser])  # 🔹 Esto permite recibir archivos correctamente
+# 🔹 Esto permite recibir archivos correctamente
+@parser_classes([MultiPartParser, FormParser])
 def registrar_incidente(request):
     """
     Crea un DetalleAlerta para el usuario autenticado.
@@ -607,9 +608,12 @@ def registrar_incidente(request):
     archivo = request.FILES.get("Archivo")  # capturamos archivo del FormData
 
     faltantes = []
-    if not Ubicacion: faltantes.append("Ubicacion")
-    if not NombreIncidente: faltantes.append("NombreIncidente")
-    if not escala: faltantes.append("escala")
+    if not Ubicacion:
+        faltantes.append("Ubicacion")
+    if not NombreIncidente:
+        faltantes.append("NombreIncidente")
+    if not escala:
+        faltantes.append("escala")
 
     if faltantes:
         return Response({"error": f"Faltan campos: {', '.join(faltantes)}"}, status=400)
@@ -654,8 +658,6 @@ def registrar_incidente(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
-    
-
 
 
 # ------------------ RESET PASSWORD (opcional) -------------
@@ -848,6 +850,8 @@ class HeatmapAlertView(APIView):
         points = [[lat, lng, _escala_to_intensity(
             esc)] for (lat, lng, esc) in rows]
         return Response({"points": points})
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def gestion_list_incidentes(request):
@@ -855,9 +859,11 @@ def gestion_list_incidentes(request):
     Nuevo endpoint: lista incidencias con su EstadoIncidente para Gestión.
     Ruta: /api/gestion/incidentes/
     """
-    qs = DetalleAlerta.objects.select_related("idUsuario").order_by("-FechaHora")
+    qs = DetalleAlerta.objects.select_related(
+        "idUsuario").order_by("-FechaHora")
     data = GestionIncidenteSerializer(qs, many=True).data
     return Response(data)
+
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
