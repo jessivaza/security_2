@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import "../css/dashboard.css";
 import MapCalor from "./Vista_Administrador/maps/MapaDeCalor/mapCalor";
 import Historial from "./Vista_Administrador/Historial";
+import Gestion from "./Vista_Administrador/Gestion";
 
 export default function Dashboard() {
   const [user, setUser] = useState({ username: "", email: "" });
@@ -220,15 +221,32 @@ export default function Dashboard() {
             </li>
 
             <li className="nav-item">
-              <button className="nav-link" type="button" 
-              onClick={() => {
+              <button
+                className="nav-link"
+                type="button"
+                onClick={() => {
                   setActiveSection("/historial");
                   closeMobileMenu();
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
               >
                 <span className="nav-icon">📊</span>
-                <span className="nav-text">Reportes</span>
+                <span className="nav-text">Historial</span>
+              </button>
+            </li>
+
+            <li className="nav-item">
+              <button
+                className="nav-link"
+                type="button"
+                onClick={() => {
+                  setActiveSection("/gestion");
+                  closeMobileMenu();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                <span className="nav-icon">📝</span>
+                <span className="nav-text">Gestion</span>
               </button>
             </li>
           </ul>
@@ -317,16 +335,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Banner de error (oculto en vista de mapa o historial) */}
-        {activeSection !== "/mapCalor" && activeSection !== "/historial" && error && (
+        {/* Banner de error (oculto en vista de mapa, historial o gestion) */}
+        {activeSection !== "/mapCalor" && activeSection !== "/historial" && activeSection !== "/gestion" && error && (
           <div className="error-banner">
             ⚠️ {error}
             <button onClick={() => window.location.reload()}>Reintentar</button>
           </div>
         )}
 
-        {/* Estadísticas (ocultas en vista de mapa o historial) */}
-        {activeSection !== "/mapCalor" && activeSection !== "/historial" && (
+        {/* Estadísticas (ocultas en vista de mapa, historial o gestion) */}
+        {activeSection !== "/mapCalor" && activeSection !== "/historial" && activeSection !== "/gestion" && (
           <div className="stats-section">
             {loading ? (
               <div className="loading">
@@ -391,8 +409,24 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* GRID (oculto en vista de mapa o historial) */}
-        {activeSection !== "/mapCalor" && activeSection !== "/historial" && (
+        {/* GESTIÓN DE INCIDENTES */}
+        {activeSection === "/gestion" && (
+          <div className="dashboard-section full-width">
+            <div className="section-header">
+              <h3>
+                <span className="section-icon">📝</span>
+                Gestión de Incidentes
+              </h3>
+            </div>
+
+            <div style={{ width: "100%" }}>
+              <Gestion />
+            </div>
+          </div>
+        )}
+
+        {/* GRID (oculto en vista de mapa, historial o gestion) */}
+        {activeSection !== "/mapCalor" && activeSection !== "/historial" && activeSection !== "/gestion" && (
           <div className="dashboard-grid">
             {/* Personal */}
             <div className="dashboard-section">

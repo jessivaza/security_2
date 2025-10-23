@@ -7,7 +7,8 @@ from datetime import timedelta
 from django.db.models import Count
 from django.db import IntegrityError
 
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes , parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import serializers, status
@@ -34,6 +35,13 @@ from django.utils.dateparse import parse_datetime
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+# --------FROM PARA EL MAPA DE CALOR ----------------
+from rest_framework import serializers, status
+from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import User
+from datetime import datetime
+
+
 
 
 
@@ -44,6 +52,8 @@ from .models import (
 )
 from .serializer import DetalleAlertaSerializer, HistorialIncidenteSerializer
 from .models import DetalleAlerta
+from django.shortcuts import get_object_or_404
+from .serializer import GestionIncidenteSerializer, IncidenteEstadoUpdateSerializer
 
 # ----------------------- LOGIN -----------------------
 
@@ -553,41 +563,38 @@ def recent_activities(request):
 
 
 # ---------- LISTAR MIS REPORTES ----------
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def mis_reportes(request):
+    """
+    Devuelve los reportes del usuario autenticado con la URL completa del archivo (si existe).
+    """
     u = request.user
-    qs = (
+
+    # Recupera los reportes del usuario
+    reportes = (
         DetalleAlerta.objects
         .filter(idUsuario_id=u.idUsuario)
         .order_by('-FechaHora')
     )
-    data = []
-    for r in qs:
-        data.append({
-            "idTipoIncidencia": r.idTipoIncidencia,
-            "FechaHora": r.FechaHora,
-            "Ubicacion": r.Ubicacion,
-            "NombreIncidente": r.NombreIncidente,
-            "Descripcion": r.Descripcion,
-            "Escala": ESCALAS.get(r.Escala, ""),  # <<<<<< string directo
-        })
-    return Response(data)
 
+    # Usa el serializer para incluir Archivo correctamente (con contexto request)
+    serializer = DetalleAlertaSerializer(reportes, many=True, context={'request': request})
 
-# ---------- REGISTRAR INCIDENTE ----------
-# api/views.py (arriba del archivo)
+    return Response(serializer.data)
+
 ESCALAS = {1: "Bajo", 2: "Medio", 3: "Alto"}
-
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])  # 🔹 Esto permite recibir archivos correctamente
 def registrar_incidente(request):
     """
-    Crea DetalleAlerta para el usuario autenticado.
+    Crea un DetalleAlerta para el usuario autenticado.
     Body:
-      Ubicacion (str), Descripcion (str, opcional),
-      NombreIncidente (str), escala (1,2,3)
+    Ubicacion (str), Descripcion (str, opcional),
+    NombreIncidente (str), escala (1,2,3), Archivo (file, opcional)
     """
     u = request.user
 
@@ -597,21 +604,20 @@ def registrar_incidente(request):
     escala = request.data.get("escala")
     lat = request.data.get("Latitud")
     lon = request.data.get("Longitud")
+    archivo = request.FILES.get("Archivo")  # capturamos archivo del FormData
 
     faltantes = []
-    if not Ubicacion:
-        faltantes.append("Ubicacion")
-    if not NombreIncidente:
-        faltantes.append("NombreIncidente")
-    if not escala:
-        faltantes.append("escala")
+    if not Ubicacion: faltantes.append("Ubicacion")
+    if not NombreIncidente: faltantes.append("NombreIncidente")
+    if not escala: faltantes.append("escala")
+
     if faltantes:
         return Response({"error": f"Faltan campos: {', '.join(faltantes)}"}, status=400)
 
     try:
         escala = int(escala)
-        lat = float(lat)  # ------- Añado latitud y longitud
-        lon = float(lon)
+        lat = float(lat) if lat else None
+        lon = float(lon) if lon else None
     except ValueError:
         return Response({"error": "escala debe ser 1, 2 o 3 y lat/lon deben ser números"}, status=400)
 
@@ -623,13 +629,16 @@ def registrar_incidente(request):
             Ubicacion=Ubicacion,
             Descripcion=Descripcion,
             NombreIncidente=NombreIncidente,
-            Escala=escala,      # <<<<<< usamos el enum (sin BD extra)
+            Escala=escala,
             idUsuario=u,
             Latitud=lat,
-            Longitud=lon
+            Longitud=lon,
+            Archivo=archivo,
+            FechaHora=timezone.now(),
         )
+
         return Response({
-            "message": "Incidente registrado",
+            "message": "Incidente registrado correctamente",
             "registro": {
                 "idTipoIncidencia": det.idTipoIncidencia,
                 "FechaHora": det.FechaHora,
@@ -638,11 +647,15 @@ def registrar_incidente(request):
                 "Descripcion": det.Descripcion,
                 "Escala": ESCALAS.get(det.Escala, ""),
                 "Latitud": det.Latitud,
-                "Longitud": det.Longitud
+                "Longitud": det.Longitud,
+                "Archivo": "📎" if det.Archivo else ""
             }
         }, status=201)
+
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
+
 
 
 # ------------------ RESET PASSWORD (opcional) -------------
@@ -835,3 +848,32 @@ class HeatmapAlertView(APIView):
         points = [[lat, lng, _escala_to_intensity(
             esc)] for (lat, lng, esc) in rows]
         return Response({"points": points})
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def gestion_list_incidentes(request):
+    """
+    Nuevo endpoint: lista incidencias con su EstadoIncidente para Gestión.
+    Ruta: /api/gestion/incidentes/
+    """
+    qs = DetalleAlerta.objects.select_related("idUsuario").order_by("-FechaHora")
+    data = GestionIncidenteSerializer(qs, many=True).data
+    return Response(data)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def gestion_update_incidente(request, id):
+    """
+    Nuevo endpoint: actualiza EstadoIncidente de DetalleAlerta.
+    Ruta: /api/gestion/incidentes/<int:id>/
+    Body: { "estado": "Pendiente" | "En proceso" | "Resuelto" }
+    """
+    obj = get_object_or_404(DetalleAlerta, pk=id)
+    ser = IncidenteEstadoUpdateSerializer(data=request.data)
+    if not ser.is_valid():
+        return Response(ser.errors, status=400)
+
+    obj.EstadoIncidente = ser.validated_data["estado"]
+    obj.save(update_fields=["EstadoIncidente"])
+
+    # Devolver el registro formateado para la tabla de gestión
+    return Response(GestionIncidenteSerializer(obj).data)
