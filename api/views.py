@@ -778,30 +778,36 @@ def historial_incidentes(request):
 def _parse_iso(dt_str):
     if not dt_str:
         return None
-    return parse_datetime(dt_str) or datetime.fromisoformat(dt_str)
-
+    dt = parse_datetime(dt_str) or datetime.fromisoformat(dt_str)
+    # Normaliza a aware si viene naive
+    if dt and timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt
 
 def _escala_to_intensity(escala: int | None) -> float:
-    # Mapea 1,2,3 -> intensidad en [0..1]
     return {1: 0.33, 2: 0.66, 3: 1.0}.get(int(escala or 1), 0.33)
-
 
 class HeatmapAlertView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    """
-    GET /api/alertas/heatmap?start=2025-10-01T00:00:00&end=2025-10-12T23:59:59
-                            &escala_min=1&escala_max=3
-                            &bbox=-12.1,-77.2,-11.8,-76.9   # south,west,north,east
-                            &limit=5000
-    Respuesta: {"points": [[lat, lng, intensity], ...]}
-    """
-
     def get(self, request, *args, **kwargs):
         qs = DetalleAlerta.objects.filter(
-            Latitud__isnull=False, Longitud__isnull=False)
+            Latitud__isnull=False,
+            Longitud__isnull=False
+        )
 
-        # Filtros
+        # --- filtros de estado ---
+        incluir_resueltos = str(request.query_params.get("incluir_resueltos", "")).lower() in {"1","true","t","yes","y"}
+        if not incluir_resueltos:
+            qs = qs.exclude(EstadoIncidente="Resuelto")
+
+        estados_csv = request.query_params.get("estado")  # p.ej. "Pendiente,En proceso"
+        if estados_csv:
+            estados = [s.strip() for s in estados_csv.split(",") if s.strip()]
+            if estados:
+                qs = qs.filter(EstadoIncidente__in=estados)
+
+        # --- fechas ---
         dt_start = _parse_iso(request.query_params.get("start"))
         dt_end = _parse_iso(request.query_params.get("end"))
         if dt_start:
@@ -809,6 +815,7 @@ class HeatmapAlertView(APIView):
         if dt_end:
             qs = qs.filter(FechaHora__lte=dt_end)
 
+        # --- escala ---
         escala_min = request.query_params.get("escala_min")
         escala_max = request.query_params.get("escala_max")
         if escala_min:
@@ -816,31 +823,48 @@ class HeatmapAlertView(APIView):
         if escala_max:
             qs = qs.filter(Escala__lte=int(escala_max))
 
+        # --- bbox ---
         bbox = request.query_params.get("bbox")  # "south,west,north,east"
         if bbox:
             try:
                 s, w, n, e = map(float, bbox.split(","))
-                qs = qs.filter(Latitud__gte=s, Latitud__lte=n,
-                            Longitud__gte=w, Longitud__lte=e)
+                qs = qs.filter(
+                    Latitud__gte=s, Latitud__lte=n,
+                    Longitud__gte=w, Longitud__lte=e
+                )
             except Exception:
                 pass
 
-        # Límite seguro por defecto
+        # --- límite ---
         try:
             limit = int(request.query_params.get("limit") or 2000)
         except Exception:
             limit = 2000
 
-        # Solo los campos necesarios, ordenado por fecha desc
-        rows = (
-            qs.order_by("-FechaHora")
-            .values_list("Latitud", "Longitud", "Escala")[:limit]
-        )
+        # --- consulta principal ---
+        rows = qs.order_by("-FechaHora").values_list(
+            "Latitud", "Longitud", "Escala", "EstadoIncidente"
+        )[:limit]
 
-        points = [[lat, lng, _escala_to_intensity(
-            esc)] for (lat, lng, esc) in rows]
-        return Response({"points": points})
+        points = [[lat, lng, _escala_to_intensity(esc), estado]
+                  for (lat, lng, esc, estado) in rows]
 
+        # --- metadatos útiles para el front ---
+        # (si quieres ahorrar una query, puedes contarlo en python con 'rows')
+        by_status = {}
+        for _, _, _, est in rows:
+            by_status[est] = by_status.get(est, 0) + 1
+
+        return Response({
+            "points": points,
+            "meta": {
+                "count": len(points),
+                "by_status": by_status,
+            }
+        })
+
+
+# ============================================================================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
