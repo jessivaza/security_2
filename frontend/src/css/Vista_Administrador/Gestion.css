@@ -17,14 +17,16 @@
 .gestion-chevron { font-size: 12px; opacity: 0.8; }
 
 .gestion-estado-resuelto { background: #e6fff0; color: #008a3c; }
-.gestion-estado-pendiente { background: #fff7e6; color: #b86b00; }
+.gestion-estado-pendiente { background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb; }
 .gestion-estado-proceso { background: #e8f0ff; color: #1e55d4; }
 
 .gestion-dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
   left: 8px;
-  min-width: 160px;
+  min-width: 110px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.08);
