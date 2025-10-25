@@ -27,6 +27,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.mail import send_mail
+import threading
+from .models import DetalleAlerta
 
 # ===== App local =====
 from .models import (
@@ -575,17 +578,20 @@ def mis_reportes(request):
 
 ESCALAS = {1: "Bajo", 2: "Medio", 3: "Alto"}
 
+def enviar_correo_reporte(asunto, mensaje, destinatario):
+    """Envía el correo en segundo plano (sin demorar la respuesta del servidor)."""
+    try:
+        send_mail(asunto, mensaje, settings.DEFAULT_FROM_EMAIL, [destinatario], fail_silently=False)
+    except Exception as e:
+        print(f"⚠️ Error al enviar correo: {e}")
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-# 🔹 Esto permite recibir archivos correctamente
 @parser_classes([MultiPartParser, FormParser])
 def registrar_incidente(request):
     """
-    Crea un DetalleAlerta para el usuario autenticado.
-    Body:
-    Ubicacion (str), Descripcion (str, opcional),
-    NombreIncidente (str), escala (1,2,3), Archivo (file, opcional)
+    Crea un DetalleAlerta para el usuario autenticado y envía una notificación al correo del usuario.
     """
     u = request.user
 
@@ -595,7 +601,7 @@ def registrar_incidente(request):
     escala = request.data.get("escala")
     lat = request.data.get("Latitud")
     lon = request.data.get("Longitud")
-    archivo = request.FILES.get("Archivo")  # capturamos archivo del FormData
+    archivo = request.FILES.get("Archivo")
 
     faltantes = []
     if not Ubicacion:
@@ -619,6 +625,7 @@ def registrar_incidente(request):
         return Response({"error": "escala debe ser 1(Bajo), 2(Medio) o 3(Alto)"}, status=400)
 
     try:
+        # Crear el reporte
         det = DetalleAlerta.objects.create(
             Ubicacion=Ubicacion,
             Descripcion=Descripcion,
@@ -631,6 +638,25 @@ def registrar_incidente(request):
             FechaHora=timezone.now(),
         )
 
+        # 📩 Preparar mensaje completo con todos los detalles
+        asunto = "Confirmación de Reporte - Sistema de Seguridad Ciudadana"
+        mensaje = (
+            f"Hola {u.nombre},\n\n"
+            f"Tu reporte ha sido registrado exitosamente.\n\n"
+            f"📝 Detalles del Incidente:\n"
+            f"- Nombre del Incidente: {det.NombreIncidente}\n"
+            f"- Descripción: {det.Descripcion}\n"
+            f"- Ubicación: {det.Ubicacion}\n"
+            f"- Fecha: {det.FechaHora.strftime('%d/%m/%Y %H:%M')}\n\n"
+            "Gracias por contribuir con la seguridad ciudadana.\n\n"
+            "Atentamente,\n"
+            "👮 Equipo de Seguridad Ciudadana"
+        )
+
+        # Enviar correo en segundo plano (sin que el usuario espere)
+        threading.Thread(target=enviar_correo_reporte, args=(asunto, mensaje, u.correo)).start()
+
+        # Retornar respuesta normal
         return Response({
             "message": "Incidente registrado correctamente",
             "registro": {
@@ -640,8 +666,6 @@ def registrar_incidente(request):
                 "NombreIncidente": det.NombreIncidente,
                 "Descripcion": det.Descripcion,
                 "Escala": ESCALAS.get(det.Escala, ""),
-                "Latitud": det.Latitud,
-                "Longitud": det.Longitud,
                 "Archivo": "📎" if det.Archivo else ""
             }
         }, status=201)
