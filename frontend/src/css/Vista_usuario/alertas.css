@@ -1,0 +1,165 @@
+.mis-alertas {
+  padding: 20px;
+  max-width: 900px;
+  margin-left: 20px;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.3s ease;
+}
+
+.mis-alertas h3 {
+  margin-bottom: 20px;
+}
+
+/* BOTON WHATSAPP */
+.ultimo-robo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fef2f2;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.ultimo-robo button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #25d366;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ultimo-robo button:hover {
+  background-color: #1ebe57;
+}
+
+/* TABLA */
+.mis-alertas table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  color: #1e293b;
+}
+
+.mis-alertas th, .mis-alertas td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mis-alertas th {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+.mis-alertas tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* PRIORIDADES */
+.prioridad-alta { background-color: #fee2e2; }
+.prioridad-media { background-color: #fef3c7; }
+.prioridad-baja { background-color: #dcfce7; }
+
+/* MODO OSCURO */
+.mis-alertas.dark {
+  background-color: #1e293b;
+  color: #000; /* letra negra en modo oscuro */
+}
+
+.mis-alertas.dark table {
+  background-color: #334155;
+  color: #000;
+}
+
+.mis-alertas.dark th {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.mis-alertas.dark tr:hover {
+  background-color: #475569;
+}
+
+.mis-alertas.dark .ultimo-robo {
+  background-color: #4b5563;
+  color: #fff;
+}
+
+.mis-alertas.dark .ultimo-robo button {
+  background-color: #25d366;
+  color: #fff;
+}
+
+/* ========================= */
+/* RESPONSIVE MOBILE/TABLET  */
+/* ========================= */
+
+/* Cuando la pantalla es menor a 1200px*/
+@media (max-width: 1200px) {
+    .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 18px;
+  }
+}
+
+/* Cuando la pantalla es menor a 992px*/
+@media (max-width: 992px) {
+    .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 14px;
+  }
+}
+
+/* Cuando la pantalla es menor a 576px*/
+@media (max-width: 576px) {
+    /* Espacio izquierdo vacio de la tabla*/
+  .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 14px;
+  }
+  /* Espacio entre los botones */
+  .mis-alertas > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+  }
+}
+
+@media (max-width: 375px) {
+  /* Espacio izquierdo vacio de la tabla*/
+  .mis-alertas {
+    padding: 0px;
+    margin-left: 0px;
+  }
+  /* Tamaños texto Alerta de la comunidad */
+  h3 {
+    font-size: 14px;
+  }
+  /* Espacio entre los botones */
+  .mis-alertas > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+  }
+  
+}

@@ -1,0 +1,189 @@
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import "../../css/Vista_usuario/dashUsuario.css";
+import Resumen from "./Resumen";
+import Mapa from "./Mapa";
+import Alertas from "./Alertas";
+import Perfil from "./Perfil";
+import Prevencion from "./prevencion";
+import MisReportes from "./Reportes";
+import { FaMoon, FaSun } from "react-icons/fa";
+import usuarioImg from "../../img/usuario/img.png";
+import {
+  FaChartBar,
+  FaMapMarkedAlt,
+  FaFileAlt,
+  FaBell,
+  FaBook,
+  FaUser,
+  FaDoorOpen,
+  FaBars,
+  FaTimes,
+} from "react-icons/fa";
+
+const API = "http://127.0.0.1:8000/api";
+
+function AlertasComunidad() {
+  const [alertas, setAlertas] = useState([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const hora = new Date().toLocaleTimeString();
+      setAlertas((prev) => [
+        { id: Date.now(), mensaje: `Nueva alerta a las ${hora}` },
+        ...prev,
+      ]);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="alertas-comunidad">
+      <h3>Alertas minuto a minuto</h3>
+      {alertas.length === 0 ? (
+        <p>No hay alertas aún</p>
+      ) : (
+        <ul>
+          {alertas.map((a) => (
+            <li key={a.id}>{a.mensaje}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export default function DasUsuario() {
+  const navigate = useNavigate();
+  const [destination, setDestination] = useState("Plaza Norte, Lima");
+  const [activeSection, setActiveSection] = useState("resumen");
+  const [darkMode, setDarkMode] = useState(false);
+  const [isSlim, setIsSlim] = useState(false);
+  const [isMobileMenuUsuarioOpen, setIsMobileMenuUsuarioOpen] = useState(false);
+  const [usuario, setUsuario] = useState({ nombre: "Usuario" });
+  const [incidentesMapa, setIncidentesMapa] = useState([]);
+
+  // ✅ Callback que recibirá los reportes desde MisReportes.jsx
+  const recibirReportesParaMapa = (reportes) => {
+  console.log("✅ Reportes que llegan al mapa:", reportes);
+  setIncidentesMapa(reportes);
+};
+
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    fetch(`${API}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status} - ${text}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setUsuario((prev) => ({
+          ...prev,
+          nombre: data?.nombre || data?.username || prev.nombre,
+        }));
+      })
+      .catch((err) => console.error("Error /api/me:", err.message));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("role");
+    navigate("/login");
+  };
+
+  const handleNavClick = (section) => {
+    setActiveSection(section);
+    setIsMobileMenuUsuarioOpen(false); // Cerrar menú al seleccionar
+  };
+
+  return (
+    <div className={`dashboard ${darkMode ? "dark" : "light"}`}>
+      {/* Backdrop para cerrar al hacer click afuera - solo en móvil */}
+      {isMobileMenuUsuarioOpen && (
+        <div 
+          className="sidebar-backdrop-usuario" 
+          onClick={() => setIsMobileMenuUsuarioOpen(false)}
+        ></div>
+      )}
+
+      <aside className={`sidebar ${isSlim ? "slim" : "wide"} ${isMobileMenuUsuarioOpen ? "mobile-open-usuario" : ""}`}>
+        <div className="user-profile" onClick={() => setIsSlim(!isSlim)}>
+          <img src={usuarioImg} alt="Usuario" className="sidebar-avatar" />
+          {!isSlim && (
+            <>
+              <h3>{usuario.nombre}</h3>
+              <p>Los Olivos</p>
+            </>
+          )}
+        </div>
+
+        <ul className="nav-dashusuario">
+          <li onClick={() => handleNavClick("resumen")}>
+            <FaChartBar size={25} /> {!isSlim && <span>Resumen</span>}
+          </li>
+          <li onClick={() => handleNavClick("mapa")}>
+            <FaMapMarkedAlt size={25} /> {!isSlim && <span>Mapa</span>}
+          </li>
+          <li onClick={() => handleNavClick("reportes")}>
+            <FaFileAlt size={25} /> {!isSlim && <span>Mis Reportes</span>}
+          </li>
+          <li onClick={() => handleNavClick("alertas")}>
+            <FaBell size={25} /> {!isSlim && <span>Alertas</span>}
+          </li>
+          <li onClick={() => handleNavClick("prevencion")}>
+            <FaBook size={25} /> {!isSlim && <span>Prevención</span>}
+          </li>
+          <li onClick={() => handleNavClick("perfil")}>
+            <FaUser size={25} /> {!isSlim && <span>Mi Perfil</span>}
+          </li>
+          <li className="logout-item" onClick={handleLogout}>
+            <FaDoorOpen size={25} /> {!isSlim && <span>Cerrar Sesión</span>}
+          </li>
+        </ul>
+
+        <div className="mode-toggle" onClick={() => setDarkMode(!darkMode)}>
+          {darkMode ? <FaSun /> : <FaMoon />}
+          {!isSlim && <span>{darkMode ? "Modo Claro" : "Modo Oscuro"}</span>}
+        </div>
+      </aside>
+
+      <main className="main-panel">
+        <header className="header">
+          <button 
+            className="mobile-hamburger-usuario" 
+            onClick={() => setIsMobileMenuUsuarioOpen(!isMobileMenuUsuarioOpen)}
+          >
+            {isMobileMenuUsuarioOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
+          </button>
+          <h1 className="header-title">🛡️ Seguridad Ciudadana – Los Olivos</h1>
+        </header>
+
+        {activeSection === "resumen" && <Resumen />}
+        {activeSection === "mapa" && (
+          <Mapa incidentes={incidentesMapa} />
+        )}
+        {activeSection === "prevencion" && <Prevencion />}
+        {activeSection === "alertas" && <Alertas />}
+
+        {activeSection === "reportes" && (
+          <MisReportes
+            darkMode={darkMode}
+            onReportesActualizados={recibirReportesParaMapa}
+          />
+        )}
+
+        {activeSection === "perfil" && (
+          <Perfil darkMode={darkMode} setDarkMode={setDarkMode} />
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,46 +1,44 @@
-import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+
+// src/App.jsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
 import Dashboard from "./pages/Dashboard";
-import DashUsuario from "./pages/DashUsuario"; // 👈 Importa tu nuevo dashboard de usuario
-import Incidentes from "./pages/Incidentes";
-// Inicio moved to subfolder
+import DashUsuario from "./pages/Vista_usuario/DashUsuario";
 import Inicio from "./pages/inicio/inicio";
 import Login from "./pages/LoginPage";
 import ResetPassword from "./pages/ResetPassword";
+import MapCalor from "./pages/Vista_Administrador/maps/MapaDeCalor/mapCalor";
 
-// 🔹 Función para validar si hay token
-const isAuthenticated = () => {
-  return !!localStorage.getItem("token");
-};
+const isAuthenticated = () => !!localStorage.getItem("access");
 
-// 🔹 Ruta protegida
-const ProtectedRoute = ({ children }) => {
-  return isAuthenticated() ? children : <Navigate to="/login" replace />;
+const ProtectedRoute = ({ children }) =>
+  isAuthenticated() ? children : <Navigate to="/login" replace />;
+
+const AdminRoute = ({ children }) => {
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  return localStorage.getItem("role") === "admin"
+    ? children
+    : <Navigate to="/no-autorizado" replace />;
 };
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Página principal promocional */}
         <Route path="/" element={<Inicio />} />
         <Route path="/inicio" element={<Inicio />} />
-        {/* Login, Registro y Recuperar */}
         <Route path="/login" element={<Login />} />
-
-        {/* Restablecer contraseña con token */}
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-
-        {/* Dashboard protegido (Admin o general) */}
+        <Route path="/mapCalor" element={<MapCalor />} />
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Dashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
-
-        {/* Dashboard del usuario común */}
         <Route
           path="/dashUsuario"
           element={
@@ -49,11 +47,15 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        
 
-        {/* Módulo de incidentes */}
-        <Route path="/incidentes" element={<Incidentes />} />
+
+
+
+        {/* Redirigir por defecto */}
 
         {/* Redirigir por defecto a la página principal */}
+
         <Route path="*" element={<Navigate to="/inicio" replace />} />
       </Routes>
     </Router>

@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-bd=3xv8!b)du^a*ljxv5-qz)6!1w%!tqjzp&kx@!k97f^vzj1a
 DEBUG = True
 
 ALLOWED_HOSTS = []
+APPEND_SLASH = False
 
 
 # Application definition
@@ -96,6 +97,7 @@ DATABASES = {
 }
 
 
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -115,12 +117,13 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Lima'
 
 USE_I18N = True
 
@@ -146,10 +149,31 @@ EMAIL_HOST_PASSWORD = 'bfjldktstpnurzfd'       # ← contraseña de aplicación 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
-}
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=240),
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
+
+
+# JWT configuración personalizada para que use idUsuario en lugar de id
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=240),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "USER_ID_FIELD": "idUsuario",   # 👈 tu PK real en el modelo Usuario
+    "USER_ID_CLAIM": "user_id",
+}
+
+AUTH_USER_MODEL = "api.Usuario"
+
+
 CORS_ALLOW_ALL_ORIGINS = True  # Permitir todas las solicitudes CORS (útil para desarrollo)
+
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'archivos_alertas')

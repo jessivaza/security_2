@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import '../../../css/inicio/styleMainSection.css';
 import AutoridadesImg from '../../../img/inicio/autoridades.png';
 import CiudadanosImg from '../../../img/inicio/ciudadano.png';
@@ -51,19 +52,18 @@ function ServiceCardNew({ title, description, items, buttonText, image, bgColor 
                 <h4 className="service-card-title-new">{title}</h4>
                 <p className="service-card-desc-new">{description}</p>
             </div>
-            
+
             <div className="service-items-container">
                 {items.map((item, index) => (
                     <ServiceItem key={index} text={item.text} subtext={item.subtext} />
                 ))}
             </div>
-            
-            <button className="service-card-button">{buttonText}</button>
         </div>
     );
 }
 
 export default function MainSection({ onlyMainCard = false, onlyLower = false }) {
+    const navigate = useNavigate(); // <-- aquí obtienes navigate
     useEffect(() => {
         const link = document.createElement("link");
         link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap";
@@ -72,6 +72,7 @@ export default function MainSection({ onlyMainCard = false, onlyLower = false })
         return () => {
             document.head.removeChild(link);
         };
+
     }, []);
 
     // Datos para los servicios
@@ -121,20 +122,19 @@ export default function MainSection({ onlyMainCard = false, onlyLower = false })
                 {!onlyLower && (
                     <div className="main-card">
                         <div className="main-card-left">
-                            <h1 style={{fontSize:"60px",lineHeight: '1'  }}>
+                            <h1 style={{ fontSize: "60px", lineHeight: '1' }}>
                                 Seguridad en <span>Tiempo Real</span> para tu Ciudad
                             </h1>
                             <p>
                                 Plataforma inteligente que conecta ciudadanos, autoridades y servicios de emergencia para crear comunidades más seguras mediante datos y respuesta inmediata.
                             </p>
-
-                            <div style={{ fontSize: "24px", textAlign: "center", color:"black" }}>
-                                <span style={{fontWeight: "bold" }}>
-                                    Resultados que Hablan por Sí Solos  
+                            <div style={{ fontSize: "24px", textAlign: "center", color: "black" }}>
+                                <span style={{ fontWeight: "bold" }}>
+                                    Resultados que Hablan por Sí Solos
                                 </span>
-                                <p style={{color:"black"}}>
+                                <p style={{ color: "black" }}>
                                     Nuestra tecnología está transformando la seguridad ciudadana con resultados medibles
-                                </p>  
+                                </p>
                             </div>
 
                             <div className="stats-container">
@@ -158,41 +158,41 @@ export default function MainSection({ onlyMainCard = false, onlyLower = false })
                             </div>
 
                             <div className="tech-grid">
-                                <FeatureCard 
-                                    icon="🗺️" 
-                                    title="Mapa Interactivo en Tiempo Real" 
-                                    desc="Visualiza incidentes de seguridad en tu área con actualizaciones instantáneas, similar a Waze pero enfocado en seguridad ciudadana." 
-                                    bg="#0ea5e9" 
+                                <FeatureCard
+                                    icon="🗺️"
+                                    title="Mapa Interactivo en Tiempo Real"
+                                    desc="Visualiza incidentes de seguridad en tu área con actualizaciones instantáneas, similar a Waze pero enfocado en seguridad ciudadana."
+                                    bg="#0ea5e9"
                                 />
-                                <FeatureCard 
-                                    icon="🏛️" 
-                                    title="Acceso para Autoridades" 
-                                    desc="Policía, bomberos y hospitales tienen acceso privilegiado para coordinar respuestas rápidas y efectivas ante emergencias." 
-                                    bg="#6366f1" 
+                                <FeatureCard
+                                    icon="🏛️"
+                                    title="Acceso para Autoridades"
+                                    desc="Policía, bomberos y hospitales tienen acceso privilegiado para coordinar respuestas rápidas y efectivas ante emergencias."
+                                    bg="#6366f1"
                                 />
-                                <FeatureCard 
-                                    icon="📣" 
-                                    title="Sistema de Reportes Ciudadanos" 
-                                    desc="Reporta robos, asaltos y situaciones sospechosas de forma rápida y anónima. Tu reporte ayuda a proteger a toda la comunidad." 
-                                    bg="#fb7185" 
+                                <FeatureCard
+                                    icon="📣"
+                                    title="Sistema de Reportes Ciudadanos"
+                                    desc="Reporta robos, asaltos y situaciones sospechosas de forma rápida y anónima. Tu reporte ayuda a proteger a toda la comunidad."
+                                    bg="#fb7185"
                                 />
-                                <FeatureCard 
-                                    icon="🤖" 
-                                    title="Monitoreo Inteligente" 
-                                    desc="Algoritmos de IA analizan patrones de criminalidad para predecir y prevenir incidentes antes de que ocurran." 
-                                    bg="#f59e0b" 
+                                <FeatureCard
+                                    icon="🤖"
+                                    title="Monitoreo Inteligente"
+                                    desc="Algoritmos de IA analizan patrones de criminalidad para predecir y prevenir incidentes antes de que ocurran."
+                                    bg="#f59e0b"
                                 />
-                                <FeatureCard 
-                                    icon="🔒" 
-                                    title="Contratación de Seguridad Privada" 
-                                    desc="Conecta con empresas de seguridad certificadas para proteger tu hogar o negocio. Cotiza y contrata servicios de forma segura." 
-                                    bg="#10b981" 
+                                <FeatureCard
+                                    icon="🔒"
+                                    title="Contratación de Seguridad Privada"
+                                    desc="Conecta con empresas de seguridad certificadas para proteger tu hogar o negocio. Cotiza y contrata servicios de forma segura."
+                                    bg="#10b981"
                                 />
-                                <FeatureCard 
-                                    icon="⚡" 
-                                    title="Alertas Instantáneas" 
-                                    desc="Recibe notificaciones inmediatas sobre incidentes cerca de tu ubicación y rutas alternativas seguras." 
-                                    bg="#ef4444" 
+                                <FeatureCard
+                                    icon="⚡"
+                                    title="Alertas Instantáneas"
+                                    desc="Recibe notificaciones inmediatas sobre incidentes cerca de tu ubicación y rutas alternativas seguras."
+                                    bg="#ef4444"
                                 />
                             </div>
                         </div>
@@ -211,7 +211,6 @@ export default function MainSection({ onlyMainCard = false, onlyLower = false })
                                         title={servicio.title}
                                         description={servicio.description}
                                         items={servicio.items}
-                                        buttonText={servicio.buttonText}
                                         image={servicio.image}
                                         bgColor={servicio.bgColor}
                                     />
@@ -225,8 +224,7 @@ export default function MainSection({ onlyMainCard = false, onlyLower = false })
                                 <h2>¿Listo para hacer tu ciudad más segura?</h2>
                                 <p>Únete a miles de ciudadanos, empresas y autoridades que ya confían en nuestra plataforma.</p>
                                 <div className="cta-buttons">
-                                    <button className="cta-btn-main" onClick={() => alert("Comenzar Ahora")}>Comenzar Ahora</button>
-                                    <button className="cta-btn-secondary" onClick={() => alert("Solicitar Demo")}>Solicitar Demo</button>
+                                    <button className="cta-btn-main" onClick={() => navigate("/login")}>Comenzar Ahora</button>
                                 </div>
                             </div>
                         </div>
