@@ -146,7 +146,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'allisonvillalobospena@gmail.com'         # ← tu correo real
 EMAIL_HOST_PASSWORD = 'bfjldktstpnurzfd'       # ← contraseña de aplicación de Gmail
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER                 # ← agregado (para usarlo en send_mail)
-
+# xd
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
