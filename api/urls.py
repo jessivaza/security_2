@@ -1,8 +1,11 @@
-# api/urls.py
 from django.urls import path
 from django.db import transaction
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import HeatmapAlertView
+
+# 🔹 Importar views completo para poder usar views.todas_alertas
+from . import views
+
+# 🔹 Importaciones específicas (si prefieres tener claridad en las rutas)
 from .views import (
     MyTokenObtainPairView,
     registro,
@@ -18,10 +21,10 @@ from .views import (
     dashboard_stats,
     emergency_personnel,
     recent_activities,
-    historial_incidentes,  # <-- ya existente
-    # Nuevas vistas de Gestión
+    historial_incidentes,
     gestion_list_incidentes,
     gestion_update_incidente,
+    HeatmapAlertView,
 )
 
 urlpatterns = [
@@ -39,6 +42,8 @@ urlpatterns = [
 
     path('registrar-incidente',  registrar_incidente, name='registrar_incidente'),
     path('registrar-incidente/', registrar_incidente, name='registrar_incidente_slash'),
+    path('todas_alertas/', views.todas_alertas, name='todas_alertas'),
+
 
     path('enviar-correo', enviar_correo, name='enviar_correo'),
     path('reset-password/<str:token>', Cambio_Contrasena, name='cambio_contrasena'),

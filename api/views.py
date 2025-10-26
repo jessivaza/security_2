@@ -723,6 +723,46 @@ def registrar_incidente(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+# ------------------ ALERTAS  -------------
+def todas_alertas(request):
+    try:
+        # Obtenemos todos los registros de DetalleAlerta
+        alertas = DetalleAlerta.objects.all().order_by('-FechaHora')
+
+        # Convertimos los objetos en diccionarios (JSON serializable)
+        data = [
+            {
+                "id": a.idTipoIncidencia,
+                "ubicacion": a.Ubicacion,
+                "descripcion": a.Descripcion,
+                "fecha": a.FechaHora.strftime("%Y-%m-%d %H:%M:%S"),
+                "nombre_incidente": a.NombreIncidente,
+                "escala": a.idEscalaIncidencia_id if a.idEscalaIncidencia_id else None,
+                "estado": a.EstadoIncidente,
+                "latitud": a.Latitud,
+                "longitud": a.Longitud,
+                "usuario": a.idUsuario_id if a.idUsuario_id else None,
+            }
+            for a in alertas
+        ]
+
+        return JsonResponse(data, safe=False)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+# ---------- Determinar escala automáticamente ----------
+def determinar_escala(descripcion):
+    texto = descripcion.lower()
+    if any(palabra in texto for palabra in ["robo", "asalto", "hurto", "intento de asesinato", "asesinato", "homicidio"]):
+        return 3  # Alto
+    elif any(palabra in texto for palabra in ["accidente", "choque", "incendio", "explosión"]):
+        return 2  # Medio
+    elif any(palabra in texto for palabra in ["daño", "vandalismo", "desperfecto", "mascota perdida", "robo de mascota"]):
+        return 1  # Bajo
+    else:
+        return None  # No determinada
+
 # ------------------ RESET PASSWORD (opcional) -------------
 @api_view(['POST'])
 @permission_classes([AllowAny])

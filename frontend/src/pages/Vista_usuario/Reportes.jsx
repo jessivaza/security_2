@@ -11,9 +11,9 @@ import { saveAs } from "file-saver";
 const API = "http://127.0.0.1:8000/api";
 
 const ESCALAS = [
-  { id: 1, nombre: "Bajo" },
-  { id: 2, nombre: "Medio" },
-  { id: 3, nombre: "Alto" },
+  { id: "1", nombre: "Bajo" },
+  { id: "2", nombre: "Medio" },
+  { id: "3", nombre: "Alto" },
 ];
 
 export default function MisReportes({ darkMode, onReportesActualizados }) {
@@ -53,34 +53,136 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     cargarReportes();
   }, []);
 
-  // ---------- Abrir modal ----------
-  const abrirModal = async () => {
-    setMostrarModal(true);
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-        try {
-          const res = await fetch(url);
-          const data = await res.json();
-          const direccion = data.display_name || `${latitude}, ${longitude}`;
-          setNuevoReporte((prev) => ({
-            ...prev,
-            Ubicacion: direccion,
-            Latitud: latitude,
-            Longitud: longitude,
-          }));
-        } catch {
-          setNuevoReporte((prev) => ({
-            ...prev,
-            Ubicacion: `${latitude}, ${longitude}`,
-            Latitud: latitude,
-            Longitud: longitude,
-          }));
-        }
-      });
+  // ---------- Determinar escala automática ----------
+  const determinarEscala = (texto) => {
+    if (!texto) return "";
+    const t = texto.toLowerCase();
+
+    // Cuadro de palabras clave -> nivel de escala
+    const reglas = [
+      { palabras: ["robo", "asalto", "hurto", "intento de asesinato", "homicidio", "secuestro"], escala: "3" }, // Alto
+      { palabras: ["accidente", "choque", "incendio", "explosión", "pelea", "amenaza"], escala: "2" }, // Medio
+      { palabras: ["daño", "vandalismo", "desperfecto", "perida de mascota", "pérdida menor"], escala: "1" }, // Bajo
+    ];
+
+    // Buscar coincidencia dentro del texto
+    for (const regla of reglas) {
+      if (regla.palabras.some((p) => t.includes(p))) {
+        return regla.escala;
+      }
+    }
+
+    return "";
+  };
+
+  // ---------- Función para obtener ubicación por IP (Respaldo) ----------
+  const obtenerUbicacionPorIP = async () => {
+    try {
+      const ipRes = await axios.get('https://ipapi.co/json/');
+      const ipData = ipRes.data;
+      
+      const ubicacionIP = `${ipData.city || 'Ciudad'}, ${ipData.region || 'Región'}, ${ipData.country_name || 'País'} (Aprox. por IP)`;
+
+      setNuevoReporte((prev) => ({
+        ...prev,
+        Ubicacion: ubicacionIP,
+        Latitud: ipData.latitude || "",
+        Longitud: ipData.longitude || "",
+      }));
+
+      alert(`Ubicación aproximada obtenida por IP: ${ubicacionIP}. La ubicación exacta requiere permiso de GPS.`);
+
+    } catch (e) {
+      console.error("Error obteniendo ubicación por IP:", e);
+      alert("No se pudo obtener la ubicación automáticamente.");
     }
   };
+
+
+  // ---------- Obtener ubicación por GPS (Máxima Precisión) ----------
+  const obtenerUbicacionPorGPS = () => {
+    return new Promise((resolve, reject) => {
+      if (!("geolocation" in navigator)) {
+        reject("Tu navegador no soporta la geolocalización.");
+        return;
+      }
+
+      // Opciones para solicitar la máxima precisión (usando GPS)
+      const options = {
+        enableHighAccuracy: true, // Pide la máxima precisión
+        timeout: 10000,           // 10 segundos antes de fallar
+        maximumAge: 0             // No usar cache
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+
+          try {
+            // Convertir coordenadas a dirección legible
+            const res = await fetch(url);
+            const data = await res.json();
+            const direccion = data.display_name || `Lat: ${latitude}, Lon: ${longitude}`;
+            
+            // Establecer el estado con la dirección precisa
+            setNuevoReporte((prev) => ({
+              ...prev,
+              Ubicacion: direccion,
+              Latitud: latitude,
+              Longitud: longitude,
+            }));
+            resolve(true);
+          } catch (error) {
+            // Si Nominatim falla, usamos solo las coordenadas
+            setNuevoReporte((prev) => ({
+              ...prev,
+              Ubicacion: `Lat: ${latitude}, Lon: ${longitude} (Error al obtener calle)`,
+              Latitud: latitude,
+              Longitud: longitude,
+            }));
+            resolve(true); 
+          }
+        },
+        (error) => {
+          // Manejo de error de geolocalización
+          let mensaje = "";
+          switch (error.code) {
+            case 1:
+              mensaje = "Permiso de ubicación denegado por el usuario.";
+              break;
+            case 2:
+              mensaje = "Ubicación no disponible.";
+              break;
+            case 3:
+              mensaje = "Tiempo de espera agotado.";
+              break;
+            default:
+              mensaje = "Error desconocido de geolocalización.";
+          }
+          console.error("Error GPS:", mensaje);
+          reject(mensaje); 
+        },
+        options
+      );
+    });
+  };
+
+  const abrirModal = async () => {
+    setMostrarModal(true);
+    
+    try {
+        await obtenerUbicacionPorGPS();
+    } catch (errorMensaje) {
+        if (errorMensaje.includes("Permiso de ubicación denegado") || errorMensaje.includes("Ubicación no disponible") || errorMensaje.includes("Tiempo de espera agotado")) {
+            // Recurrir a la ubicación por IP si el GPS falla
+            await obtenerUbicacionPorIP();
+        } else {
+            alert(`Error crítico de ubicación: ${errorMensaje}`);
+        }
+    }
+  };
+
 
   const cerrarModal = () => {
     setMostrarModal(false);
@@ -95,14 +197,9 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     });
   };
 
-  // ---------- Vista previa de archivo ----------
-  const abrirPreview = (archivoUrl) => {
-    setArchivoPreview(archivoUrl);
-  };
-
-  const cerrarPreview = () => {
-    setArchivoPreview(null);
-  };
+  // ---------- Vista previa ----------
+  const abrirPreview = (archivoUrl) => setArchivoPreview(archivoUrl);
+  const cerrarPreview = () => setArchivoPreview(null);
 
   // ---------- Registrar incidente ----------
   const registrarIncidente = async () => {
@@ -142,9 +239,10 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       }
 
       cerrarModal();
+      alert("¡Incidente registrado con éxito!");
     } catch (err) {
       console.error("Error al registrar incidente:", err);
-      alert("Error al registrar el incidente");
+      alert("Error al registrar el incidente. Revisa la consola.");
     }
   };
 
@@ -174,7 +272,8 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
     const body = reportes.map((r) => [
       r.idTipoIncidencia,
-      new Date(r.FechaHora).toLocaleString("es-ES"),
+      // Usar la hora local de Perú para el PDF
+      new Date(r.FechaHora).toLocaleString("es-ES", { timeZone: 'America/Lima' }), 
       r.Ubicacion,
       r.NombreIncidente,
       r.Descripcion,
@@ -204,7 +303,8 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
     const rows = (reportes || []).map((r) => [
       r.idTipoIncidencia,
-      new Date(r.FechaHora).toLocaleString("es-PE"),
+      // Usar la hora local de Perú para el Excel
+      new Date(r.FechaHora).toLocaleString("es-PE", { timeZone: 'America/Lima' }),
       r.Ubicacion || "",
       r.NombreIncidente || "",
       r.Descripcion || "",
@@ -266,13 +366,15 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 <td>
                   {r.FechaHora
                     ? new Date(r.FechaHora).toLocaleString("es-ES", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                        // <<--- CORRECCIÓN CLAVE: Especificar el huso horario de Lima
+                        timeZone: 'America/Lima' 
+                      })
                     : "-"}
                 </td>
                 <td>{r.Ubicacion}</td>
@@ -322,22 +424,43 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               type="text"
               placeholder="Descripción"
               value={nuevoReporte.Descripcion}
-              onChange={(e) =>
-                setNuevoReporte({ ...nuevoReporte, Descripcion: e.target.value })
-              }
+              onChange={(e) => {
+                const valor = e.target.value;
+                const escalaDetectada = determinarEscala(valor);
+                setNuevoReporte({
+                  ...nuevoReporte,
+                  Descripcion: valor,
+                  escala: escalaDetectada,
+                });
+              }}
             />
 
             <input
               type="text"
               placeholder="Nombre del Incidente"
               value={nuevoReporte.NombreIncidente}
-              onChange={(e) =>
+              onChange={(e) => {
+                const valor = e.target.value;
+                const escalaDetectada = determinarEscala(valor);
                 setNuevoReporte({
                   ...nuevoReporte,
-                  NombreIncidente: e.target.value,
-                })
-              }
+                  NombreIncidente: valor,
+                  escala: escalaDetectada,
+                });
+              }}
             />
+
+            {/* Escala detectada automáticamente */}
+            <p style={{ color: "#007BFF", textAlign: "center", fontWeight: "bold" }}>
+              Escala detectada:{" "}
+              {nuevoReporte.escala === "3"
+                ? "Alto"
+                : nuevoReporte.escala === "2"
+                ? "Medio"
+                : nuevoReporte.escala === "1"
+                ? "Bajo"
+                : "No determinada"}
+            </p>
 
             <input
               type="file"
@@ -355,20 +478,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               </div>
             )}
 
-            <select
-              value={nuevoReporte.escala}
-              onChange={(e) =>
-                setNuevoReporte({ ...nuevoReporte, escala: e.target.value })
-              }
-            >
-              <option value="">Selecciona la escala</option>
-              {ESCALAS.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.nombre}
-                </option>
-              ))}
-            </select>
-
             <div style={{ textAlign: "center", marginTop: "15px" }}>
               <button onClick={registrarIncidente} className="btn-guardar">
                 Guardar
@@ -381,7 +490,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         </div>
       )}
 
-      {/* Modal Vista previa (versión mejorada) */}
+      {/* Modal Vista previa */}
       {archivoPreview && (
         <div className="modal-backdrop" onClick={cerrarPreview}>
           <div
@@ -398,7 +507,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Botón X de cierre */}
             <button
               onClick={cerrarPreview}
               style={{
@@ -445,19 +553,16 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 controls
                 style={{
                   width: "100%",
-                  maxHeight: "400px",
                   borderRadius: "8px",
+                  maxHeight: "400px",
                 }}
-              />
+              ></video>
             ) : (
-              <p style={{ textAlign: "center" }}>
-                No se puede mostrar vista previa de este tipo de archivo.
-              </p>
+              <p>Formato de archivo no compatible.</p>
             )}
-            </div>
-  
           </div>
-        )}
-      </div>
-    );
-  }
+        </div>
+      )}
+    </div>
+  );
+}
