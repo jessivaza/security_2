@@ -34,9 +34,9 @@ export default function MisAlertas({ darkMode }) {
       case "2":
         return "naranja";
       case "1":
-        return "amarillo";
+        return "verde";
       default:
-        return "amarillo";
+        return "verde";
     }
   };
 

@@ -161,6 +161,83 @@ header {
   z-index: 1;         /* o simplemente elimínalo */
 }
 
+
+.btn-preview-file {
+    /* Diseño principal del botón */
+    background-color: #5cb85c; /* Verde suave, un color común para "Ver" */
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 15px; /* Separación del texto "Archivo listo..." */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    display: inline-flex; /* Permite alinear el texto y el icono */
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Estado de Hover (al pasar el ratón) */
+.btn-preview-file:hover {
+    background-color: #4cae4c; /* Verde ligeramente más oscuro */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Estado de Active (al hacer clic) */
+.btn-preview-file:active {
+    background-color: #47a447;
+    transform: translateY(1px); /* Efecto de "presionado" */
+}
+
+/* Estilo para el icono */
+.btn-preview-file .icon {
+    font-size: 18px; /* Tamaño del icono (lupa) */
+    margin-right: 5px; /* Espacio entre el icono y el texto */
+    line-height: 1; /* Asegura que el icono no estire la altura del botón */
+}
+
+
+
+.file-upload-container {
+    text-align: center;
+    padding: 10px 0;
+    /* Usar flexbox para alinear el estado y el botón en el centro */
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    gap: 15px; /* Espacio entre el estado y el botón */
+}
+
+.file-upload-status {
+    /* Estilo del texto de notificación */
+    font-size: 1rem; /* Tamaño más limpio */
+    font-weight: 600;
+    color: #28a745; /* Color verde de éxito */
+    background-color: #e6ffed; /* Fondo muy claro */
+    border: 1px solid #c3e6cb; /* Borde verde sutil */
+    border-radius: 4px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Estilo para el icono (clip) dentro de la notificación */
+.file-upload-status .icon {
+    font-size: 1.2rem;
+    color: #28a745;
+    margin-right: 8px;
+    line-height: 1;
+}
+/* Dentro de frontend/src/css/Vista_usuario/Graficoresumen.css */
+
+.resumen-card.full-width {
+    /* Mantiene el ancho completo */
+    width: 100%; 
+    
+    margin-top: 30px; 
+}
 /* ========================= */
 /* RESPONSIVE MOBILE/TABLET  */
 /* ========================= */

@@ -113,7 +113,7 @@
 }
 
 .mis-alertas.dark .tabla-alertas thead th {
-    background-color: #2ecc71; /* Verde esmeralda */
+    background-color: #13ca60; /* Verde esmeralda */
     color: #2c3e50;
 }
 
@@ -134,50 +134,55 @@
 /* ESTILOS POR ESCALA (Colorear filas) */
 /* ========================================= */
 
-/* Rojo (Escala 3 - Alto) */
+/* Rojo Suave (Escala 3 - Alto) */
 .tabla-alertas .rojo {
-    background-color: #fcebeb; /* Rojo muy claro */
+    background-color: #fcebeb; /* Rojo muy claro (Ya estaba suave) */
     font-weight: 600;
 }
 .mis-alertas.dark .tabla-alertas .rojo {
     background-color: rgba(231, 76, 60, 0.2);
 }
 
-/* Naranja (Escala 2 - Medio) */
+/* Naranja Suave (Escala 2 - Medio) */
 .tabla-alertas .naranja {
-    background-color: #fff9e6; /* Naranja muy claro */
+    background-color: #fff4e6; /* Naranja muy claro (Ya estaba suave) */
 }
 .mis-alertas.dark .tabla-alertas .naranja {
     background-color: rgba(243, 156, 18, 0.2);
 }
 
-/* Amarillo (Escala 1 - Bajo) */
-.tabla-alertas .amarillo {
-    background-color: #f7f7e8; /* Amarillo/verde muy claro */
+/* Verde Suave (Escala 1 - Bajo) */
+.tabla-alertas .verde {
+    background-color: #e6ffe6; /* 🟢 Verde muy claro (Suavizado) */
+    /* El texto debe ser oscuro para contrastar con el fondo claro */
+    color: #333333; 
 }
-.mis-alertas.dark .tabla-alertas .amarillo {
-    background-color: rgba(241, 196, 15, 0.1);
+.mis-alertas.dark .tabla-alertas .verde {
+    background-color: rgba(46, 204, 113, 0.2); /* Verde semi-transparente para Modo Oscuro */
+    color: #ecf0f1; 
 }
 
-/* Color de texto dentro de las filas de color para mejor contraste en modo claro */
+/* Color de texto dentro de las filas de color para mejor contraste */
+
+/* Para todas las filas claras (Rojo, Naranja, Verde en modo claro), usamos texto oscuro. */
 .tabla-alertas .rojo td,
 .tabla-alertas .naranja td,
-.tabla-alertas .amarillo td {
-    color: #333333;
+.tabla-alertas .verde td {
+    color: #333333; /* Texto oscuro para fondos claros */
 }
+
 /* Asegura la legibilidad en modo oscuro */
 .mis-alertas.dark .tabla-alertas .rojo td,
 .mis-alertas.dark .tabla-alertas .naranja td,
-.mis-alertas.dark .tabla-alertas .amarillo td {
-    color: #ecf0f1;
+.mis-alertas.dark .tabla-alertas .verde td {
+    /* En modo oscuro, el texto debe ser claro (ecf0f1) */
+    color: #ecf0f1; 
 }
 
-/* ========================================= */
-/* TEXTO DE NO ALERTAS */
-/* ========================================= */
+/* Resto de estilos... */
 .mis-alertas > p {
     text-align: center;
     padding: 40px;
     font-size: 1.1rem;
-    color: #95a5a6; /* Gris neutro */
+    color: #95a5a6;
 }

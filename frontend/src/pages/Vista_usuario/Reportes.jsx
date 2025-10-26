@@ -19,7 +19,9 @@ const ESCALAS = [
 export default function MisReportes({ darkMode, onReportesActualizados }) {
   const [reportes, setReportes] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
+  // 🔄 archivoPreview ahora almacena el OBJETO { url, type } o null
   const [archivoPreview, setArchivoPreview] = useState(null);
+  const [tempPreviewUrl, setTempPreviewUrl] = useState(null);
   const [nuevoReporte, setNuevoReporte] = useState({
     Ubicacion: "",
     Descripcion: "",
@@ -53,7 +55,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     cargarReportes();
   }, []);
 
-  // ---------- Determinar escala automática ----------
+  // ---------- Determinar escala automática (SOLO por NombreIncidente) ----------
   const determinarEscala = (texto) => {
     if (!texto) return "";
     const t = texto.toLowerCase();
@@ -75,12 +77,14 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     return "";
   };
 
+  // ... (Funciones de Ubicación sin cambios) ...
+
   // ---------- Función para obtener ubicación por IP (Respaldo) ----------
   const obtenerUbicacionPorIP = async () => {
     try {
       const ipRes = await axios.get('https://ipapi.co/json/');
       const ipData = ipRes.data;
-      
+
       const ubicacionIP = `${ipData.city || 'Ciudad'}, ${ipData.region || 'Región'}, ${ipData.country_name || 'País'} (Aprox. por IP)`;
 
       setNuevoReporte((prev) => ({
@@ -110,8 +114,8 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       // Opciones para solicitar la máxima precisión (usando GPS)
       const options = {
         enableHighAccuracy: true, // Pide la máxima precisión
-        timeout: 10000,           // 10 segundos antes de fallar
-        maximumAge: 0             // No usar cache
+        timeout: 10000,           // 10 segundos antes de fallar
+        maximumAge: 0             // No usar cache
       };
 
       navigator.geolocation.getCurrentPosition(
@@ -124,7 +128,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
             const res = await fetch(url);
             const data = await res.json();
             const direccion = data.display_name || `Lat: ${latitude}, Lon: ${longitude}`;
-            
+
             // Establecer el estado con la dirección precisa
             setNuevoReporte((prev) => ({
               ...prev,
@@ -141,7 +145,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               Latitud: latitude,
               Longitud: longitude,
             }));
-            resolve(true); 
+            resolve(true);
           }
         },
         (error) => {
@@ -161,7 +165,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               mensaje = "Error desconocido de geolocalización.";
           }
           console.error("Error GPS:", mensaje);
-          reject(mensaje); 
+          reject(mensaje);
         },
         options
       );
@@ -170,22 +174,26 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
   const abrirModal = async () => {
     setMostrarModal(true);
-    
+
     try {
-        await obtenerUbicacionPorGPS();
+      await obtenerUbicacionPorGPS();
     } catch (errorMensaje) {
-        if (errorMensaje.includes("Permiso de ubicación denegado") || errorMensaje.includes("Ubicación no disponible") || errorMensaje.includes("Tiempo de espera agotado")) {
-            // Recurrir a la ubicación por IP si el GPS falla
-            await obtenerUbicacionPorIP();
-        } else {
-            alert(`Error crítico de ubicación: ${errorMensaje}`);
-        }
+      if (errorMensaje.includes("Permiso de ubicación denegado") || errorMensaje.includes("Ubicación no disponible") || errorMensaje.includes("Tiempo de espera agotado")) {
+        // Recurrir a la ubicación por IP si el GPS falla
+        await obtenerUbicacionPorIP();
+      } else {
+        alert(`Error crítico de ubicación: ${errorMensaje}`);
+      }
     }
   };
 
-
   const cerrarModal = () => {
     setMostrarModal(false);
+    //  Limpiar la URL temporal de previsualización para liberar memoria
+    if (tempPreviewUrl) {
+      URL.revokeObjectURL(tempPreviewUrl);
+    }
+    setTempPreviewUrl(null);
     setNuevoReporte({
       Ubicacion: "",
       Descripcion: "",
@@ -198,10 +206,32 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
   };
 
   // ---------- Vista previa ----------
-  const abrirPreview = (archivoUrl) => setArchivoPreview(archivoUrl);
-  const cerrarPreview = () => setArchivoPreview(null);
+  //  MODIFICADA para manejar objeto { url, type } o string (para URLs del backend)
+  const abrirPreview = (data) => {
+    if (typeof data === 'string') {
+      // Es una URL del backend. Intentamos adivinar el tipo por la extensión.
+      const url = data;
+      let type = 'application/octet-stream'; // Default
+      if (url.endsWith('.pdf')) type = 'application/pdf';
+      else if (url.match(/\.(jpg|jpeg|png|gif)$/i)) type = 'image';
+      else if (url.match(/\.(mp4|webm|ogg)$/i)) type = 'video';
+      setArchivoPreview({ url, type });
+    } else {
+      // Es el objeto { url, type } del archivo local (tempPreviewUrl)
+      setArchivoPreview(data);
+    }
+  };
 
-  // ---------- Registrar incidente ----------
+  const cerrarPreview = () => {
+    // Si la URL es la temporal, la limpiamos al cerrar.
+    if (archivoPreview && archivoPreview.url === tempPreviewUrl) {
+      URL.revokeObjectURL(tempPreviewUrl);
+      setTempPreviewUrl(null);
+    }
+    setArchivoPreview(null);
+  };
+
+  // ---------- Registrar incidente (Sin cambios) ----------
   const registrarIncidente = async () => {
     if (!token) return alert("Debes iniciar sesión");
 
@@ -239,14 +269,16 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       }
 
       cerrarModal();
-      alert("¡Incidente registrado con éxito!");
+      //alert("¡Incidente registrado con éxito!");
     } catch (err) {
       console.error("Error al registrar incidente:", err);
       alert("Error al registrar el incidente. Revisa la consola.");
     }
   };
 
-  // ---------- Exportar PDF ----------
+  // ... (Funciones de Exportación sin cambios) ...
+
+  // ---------- Exportar PDF (Sin cambios) ----------
   const toDataURL = async (url) => {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -273,7 +305,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     const body = reportes.map((r) => [
       r.idTipoIncidencia,
       // Usar la hora local de Perú para el PDF
-      new Date(r.FechaHora).toLocaleString("es-ES", { timeZone: 'America/Lima' }), 
+      new Date(r.FechaHora).toLocaleString("es-ES", { timeZone: 'America/Lima' }),
       r.Ubicacion,
       r.NombreIncidente,
       r.Descripcion,
@@ -290,7 +322,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     doc.save("mis_reportes.pdf");
   };
 
-  // ---------- Exportar Excel ----------
+  // ---------- Exportar Excel (Sin cambios) ----------
   const exportarExcel = async () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Reportes");
@@ -366,15 +398,15 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 <td>
                   {r.FechaHora
                     ? new Date(r.FechaHora).toLocaleString("es-ES", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                        // <<--- CORRECCIÓN CLAVE: Especificar el huso horario de Lima
-                        timeZone: 'America/Lima' 
-                      })
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                      // <<--- CORRECCIÓN CLAVE: Especificar el huso horario de Lima
+                      timeZone: 'America/Lima'
+                    })
                     : "-"}
                 </td>
                 <td>{r.Ubicacion}</td>
@@ -384,6 +416,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 <td style={{ textAlign: "center" }}>
                   {r.Archivo ? (
                     <button
+                      // 🔄 Pasar solo la URL para los archivos del backend (se infiere el tipo)
                       onClick={() => abrirPreview(r.Archivo)}
                       style={{
                         background: "none",
@@ -420,20 +453,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               }
             />
 
-            <input
-              type="text"
-              placeholder="Descripción"
-              value={nuevoReporte.Descripcion}
-              onChange={(e) => {
-                const valor = e.target.value;
-                const escalaDetectada = determinarEscala(valor);
-                setNuevoReporte({
-                  ...nuevoReporte,
-                  Descripcion: valor,
-                  escala: escalaDetectada,
-                });
-              }}
-            />
 
             <input
               type="text"
@@ -449,6 +468,18 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 });
               }}
             />
+            <input
+              type="text"
+              placeholder="Descripción"
+              value={nuevoReporte.Descripcion}
+              onChange={(e) => {
+                setNuevoReporte({
+                  ...nuevoReporte,
+                  Descripcion: e.target.value,
+                });
+              }}
+            />
+
 
             {/* Escala detectada automáticamente */}
             <p style={{ color: "#007BFF", textAlign: "center", fontWeight: "bold" }}>
@@ -456,25 +487,51 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               {nuevoReporte.escala === "3"
                 ? "Alto"
                 : nuevoReporte.escala === "2"
-                ? "Medio"
-                : nuevoReporte.escala === "1"
-                ? "Bajo"
-                : "No determinada"}
+                  ? "Medio"
+                  : nuevoReporte.escala === "1"
+                    ? "Bajo"
+                    : "No determinada"}
             </p>
 
+            {/* Visualizacion de archivo */}
             <input
               type="file"
               accept="image/*,video/*,application/pdf"
-              onChange={(e) =>
-                setNuevoReporte({ ...nuevoReporte, Archivo: e.target.files[0] })
-              }
+              onChange={(e) => {
+                const file = e.target.files[0];
+
+                // Limpiar la URL anterior si existe
+                if (tempPreviewUrl) {
+                  URL.revokeObjectURL(tempPreviewUrl);
+                }
+
+                if (file) {
+                  const newUrl = URL.createObjectURL(file);
+                  setTempPreviewUrl(newUrl);
+                  setNuevoReporte({ ...nuevoReporte, Archivo: file });
+                } else {
+                  setTempPreviewUrl(null);
+                  setNuevoReporte({ ...nuevoReporte, Archivo: null });
+                }
+              }}
             />
 
             {nuevoReporte.Archivo && (
-              <div style={{ textAlign: "center", marginTop: "10px" }}>
-                <span style={{ color: "#007BFF", fontSize: "22px" }}>
-                  📎 Archivo listo para subir
+
+              <div className="file-upload-container" style={{ marginTop: "15px" }}>
+
+                <span className="file-upload-status">
+                  <span className="icon">📎</span> Archivo listo para subir
                 </span>
+
+                {tempPreviewUrl && nuevoReporte.Archivo.type && (
+                  <button
+                    onClick={() => abrirPreview({ url: tempPreviewUrl, type: nuevoReporte.Archivo.type })}
+                    className="btn-preview-file"
+                  >
+                    <span className="icon">🔍</span> Ver Contenido
+                  </button>
+                )}
               </div>
             )}
 
@@ -490,7 +547,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         </div>
       )}
 
-      {/* Modal Vista previa */}
+      {/* Modal Vista previa - LÓGICA DE DETECCIÓN CORREGIDA */}
       {archivoPreview && (
         <div className="modal-backdrop" onClick={cerrarPreview}>
           <div
@@ -528,17 +585,18 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               Vista previa del archivo
             </h3>
 
-            {archivoPreview.endsWith(".pdf") ? (
+            {/* 🔄 DETECCIÓN BASADA EN EL TIPO MIME */}
+            {archivoPreview.type.includes("pdf") ? (
               <iframe
-                src={archivoPreview}
+                src={archivoPreview.url}
                 width="100%"
                 height="400px"
                 title="Vista PDF"
                 style={{ border: "1px solid #ccc", borderRadius: "6px" }}
               ></iframe>
-            ) : archivoPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+            ) : archivoPreview.type.includes("image") ? (
               <img
-                src={archivoPreview}
+                src={archivoPreview.url}
                 alt="Vista previa"
                 style={{
                   width: "100%",
@@ -547,9 +605,9 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                   borderRadius: "8px",
                 }}
               />
-            ) : archivoPreview.match(/\.(mp4|webm|ogg)$/i) ? (
+            ) : archivoPreview.type.includes("video") ? (
               <video
-                src={archivoPreview}
+                src={archivoPreview.url}
                 controls
                 style={{
                   width: "100%",
@@ -558,7 +616,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 }}
               ></video>
             ) : (
-              <p>Formato de archivo no compatible.</p>
+              <p>Formato de archivo no compatible o URL de vista previa no válida.</p>
             )}
           </div>
         </div>
