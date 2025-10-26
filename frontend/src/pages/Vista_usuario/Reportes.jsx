@@ -62,7 +62,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     const reglas = [
       { palabras: ["robo", "asalto", "hurto", "intento de asesinato", "homicidio", "secuestro"], escala: "3" }, // Alto
       { palabras: ["accidente", "choque", "incendio", "explosión", "pelea", "amenaza"], escala: "2" }, // Medio
-      { palabras: ["daño", "vandalismo", "desperfecto", "perida de mascota", "pérdida menor"], escala: "1" }, // Bajo
+      { palabras: ["daño", "vandalismo", "desperfecto", "perdida de mascota", "pérdida menor"], escala: "1" }, // Bajo
     ];
 
     // Buscar coincidencia dentro del texto

@@ -28,8 +28,8 @@ const UNCLASS = { name: "No clasificado", color: "#9e9e9e" };
 // --- Heurística para inferir nivel por título si no viene id/texto de escala
 const inferFromTitle = (t = "") => {
   const s = String(t).toLowerCase();
-  const alto  = ["incendio", "arma", "disparo", "asalto armado", "explosión"];
-  const medio = ["robo", "pelea", "choque", "accidente", "vandalismo"];
+  const alto  = ["robo", "asalto", "hurto", "intento de asesinato", "homicidio", "secuestro"];
+  const medio = ["accidente", "choque", "incendio", "explosión", "pelea", "amenaza"];
   if (alto.some(k => s.includes(k))) return 3;
   if (medio.some(k => s.includes(k))) return 2;
   return 1; // resto -> bajo

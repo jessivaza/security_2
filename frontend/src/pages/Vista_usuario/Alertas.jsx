@@ -113,7 +113,7 @@ export default function MisAlertas({ darkMode }) {
 
       {/* --- Filtro de nivel --- */}
       <div className="filtros-alerta">
-        <label>Filtrar por nivel:</label>
+        <label>Filtrar por escala:</label>
         <select
           value={filtroEscala}
           onChange={(e) => setFiltroEscala(e.target.value)}
