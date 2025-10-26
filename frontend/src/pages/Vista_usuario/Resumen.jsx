@@ -1,146 +1,75 @@
 import { useEffect, useState } from "react";
 import "../../css/Vista_usuario/Graficoresumen.css";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
 } from "recharts";
 
 const API = "http://127.0.0.1:8000/api";
 
-// Colores por nivel
 const LEVELS = {
   1: { name: "Bajo", color: "#4caf50" },
   2: { name: "Medio", color: "#ff9800" },
   3: { name: "Alto", color: "#f44336" },
 };
 
-// Resuelve nivel de un reporte con múltiples intentos
 const resolveLevel = (r) => {
-  // Intenta obtener el valor de diferentes posibles campos
-  let escalaValue = r.Escala ?? r.escala ?? r.idEscala ?? r.idEscalaIncidencia ?? r.IdEscala;
-  
-  // Convierte a número si es string
+  const escalaValue =
+    r.Escala ?? r.escala ?? r.idEscala ?? r.idEscalaIncidencia ?? r.IdEscala;
   const nivel = Number(escalaValue);
-  
-  // Solo retorna si es 1, 2 o 3 (ignora 4 = Pendiente)
-  if (nivel >= 1 && nivel <= 3) {
-    return nivel;
-  }
-  
-  // Si el valor es texto, intenta mapear
-  if (typeof escalaValue === 'string') {
+  if (nivel >= 1 && nivel <= 3) return nivel;
+  if (typeof escalaValue === "string") {
     const s = escalaValue.toLowerCase().trim();
     if (s.includes("bajo")) return 1;
     if (s.includes("medio")) return 2;
     if (s.includes("alto")) return 3;
   }
-  
-  return null; // No clasificable
+  return null;
 };
 
-// Pie data desde reportes
 const rollupFromReportes = (reportes = []) => {
   const counts = { 1: 0, 2: 0, 3: 0 };
-
   for (const r of reportes) {
     const lvl = resolveLevel(r);
     if (lvl) counts[lvl] += 1;
   }
-
-  // Retorna datos solo si hay al menos un reporte
   const pieData = Object.entries(counts)
-    .map(([k, v]) => ({ 
-      name: LEVELS[k].name, 
-      value: v, 
-      color: LEVELS[k].color 
+    .map(([k, v]) => ({
+      name: LEVELS[k].name,
+      value: v,
+      color: LEVELS[k].color,
     }))
-    .filter(d => d.value > 0);
+    .filter((d) => d.value > 0);
 
-  // Si no hay datos, retorna un array con un elemento dummy
-  return pieData.length > 0 ? pieData : [{ name: "Sin datos", value: 1, color: "#ccc" }];
+  return pieData.length > 0
+    ? pieData
+    : [{ name: "Sin datos", value: 1, color: "#ccc" }];
 };
 
-// Formateo de fecha para el eje X
 const fmtTick = (ts) =>
-  new Date(ts).toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
+  new Date(ts).toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
 
-// Convierte datos de evolución a formato de línea
-const toLineData = (raw = []) =>
-  raw.map((r) => {
-    const s = String(r.fecha ?? "").slice(0, 10);
-    let ts;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-      const [y, m, d] = s.split("-").map(Number);
-      ts = new Date(y, m - 1, d).getTime();
-    } else {
-      const d = new Date(r.fecha);
-      ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    }
-    return { ts, cantidad: Number(r.cantidad) || 0 };
-  });
-
-// Fallback: agrupa reportes por día
 const rollupLineFromReportes = (reportes = []) => {
   const byDay = new Map();
   for (const r of reportes) {
     const d = new Date(r.FechaHora);
     if (Number.isNaN(d.getTime())) continue;
-    const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    byDay.set(ts, (byDay.get(ts) || 0) + 1);
+    const fecha = d.toISOString().slice(0, 10);
+    byDay.set(fecha, (byDay.get(fecha) || 0) + 1);
   }
   return [...byDay.entries()]
-    .map(([ts, cantidad]) => ({ ts, cantidad }))
-    .sort((a, b) => a.ts - b.ts);
+    .map(([fecha, cantidad]) => ({ fecha, cantidad }))
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 };
-
-//  NUEVA FUNCIÓN: Agrupa por Ubicación y cuenta los niveles
-const rollupTopZonasFromReportes = (reportes = []) => {
-    const byLocation = new Map();
-
-    for (const r of reportes) {
-        // Usar la ubicación, asegurando que sea un string válido y quitando espacios extra
-        const ubicacion = String(r.Ubicacion || "").trim();
-        if (!ubicacion) continue;
-
-        const lvl = resolveLevel(r);
-
-        if (!byLocation.has(ubicacion)) {
-            byLocation.set(ubicacion, {
-                ubicacion: ubicacion,
-                total: 0,
-                alto: 0,
-                medio: 0,
-            });
-        }
-
-        const data = byLocation.get(ubicacion);
-        data.total += 1;
-        if (lvl === 3) {
-            data.alto += 1;
-        } else if (lvl === 2) {
-            data.medio += 1;
-        }
-    }
-
-    // Convertir el mapa a array y ordenar: 1. Total (desc) 2. Alto (desc)
-    return Array.from(byLocation.values())
-        .sort((a, b) => {
-            if (b.total !== a.total) {
-                return b.total - a.total;
-            }
-            return b.alto - a.alto;
-        });
-};
-
 
 export default function Resumen() {
   const [pieData, setPieData] = useState(null);
@@ -150,47 +79,54 @@ export default function Resumen() {
 
   useEffect(() => {
     const token = localStorage.getItem("access");
-    if (!token) { 
-      setError("No hay token. Inicia sesión."); 
+    if (!token) {
+      setError("No hay token. Inicia sesión.");
       setLoading(false);
-      return; 
+      return;
     }
 
     const fetchResumen = async () => {
       try {
-        // Primero intenta obtener desde /mis-reportes (más confiable)
-        const mrRes = await fetch(`${API}/mis-reportes/`, { 
-          headers: { Authorization: `Bearer ${token}` } 
+        const mrRes = await fetch(`${API}/mis-reportes/`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        if (!mrRes.ok) throw new Error("No se pudo cargar reportes");
-        
-        const reportes = await mrRes.json();
-        
-        console.log("📊 Reportes cargados:", reportes); // Debug
-        console.log("📊 Primer reporte:", reportes[0]); // Debug
 
-        // Filtra solo niveles 1-3
-        const filteredReportes = reportes.filter(r => {
+        if (!mrRes.ok) throw new Error("No se pudo cargar reportes");
+
+        const reportes = await mrRes.json();
+        const filteredReportes = reportes.filter((r) => {
           const lvl = resolveLevel(r);
-          console.log(`Reporte ${r.idTipoIncidencia}: escala detectada = ${lvl}`); // Debug
           return lvl >= 1 && lvl <= 3;
         });
 
-        console.log("✅ Reportes filtrados (1-3):", filteredReportes.length); // Debug
-
-        // Genera datos del pie
         const pie = rollupFromReportes(filteredReportes);
         setPieData(pie);
-        
-        console.log("🥧 Datos del pie:", pie); // Debug
 
-        // Genera datos de línea
-        const line = rollupLineFromReportes(filteredReportes);
-        setLineData(line);
+        let line = rollupLineFromReportes(filteredReportes);
 
-        console.log("📈 Datos de línea:", line); // Debug
+// ✅ BLOQUE DEFINITIVO: muestra los últimos 7 días incluyendo HOY (sin desfase)
+const today = new Date();
+const last7Days = [];
 
+for (let i = 5; i >= 0; i--) {
+  const d = new Date();
+  d.setDate(today.getDate() - i);
+
+  // Corrige zona horaria manualmente
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const formatted = `${year}-${month}-${day}`;
+
+  last7Days.push(formatted);
+}
+
+const completeLineData = last7Days.map((day) => {
+  const found = line.find((r) => r.fecha === day);
+  return { fecha: day, cantidad: found ? found.cantidad : 0 };
+});
+
+        setLineData(completeLineData);
       } catch (err) {
         console.error("❌ Error cargando datos:", err);
         setError("No se pudo cargar el resumen");
@@ -206,9 +142,8 @@ export default function Resumen() {
   if (loading) return <p>Cargando resumen...</p>;
   if (!pieData || !lineData) return <p>No hay datos disponibles</p>;
 
-  // Leyenda manual
   const legendPayload = pieData
-    .filter(d => d.name !== "Sin datos")
+    .filter((d) => d.name !== "Sin datos")
     .map((d, i) => ({
       id: i,
       type: "square",
@@ -233,12 +168,18 @@ export default function Resumen() {
                 outerRadius={90}
                 label={({ payload, percent }) => {
                   if (payload.name === "Sin datos") return "Sin datos";
-                  return `${payload.name}: ${payload.value} (${(percent * 100).toFixed(0)}%)`;
+                  return `${payload.name}: ${payload.value} (${(
+                    percent * 100
+                  ).toFixed(0)}%)`;
                 }}
               >
-                {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                {pieData.map((e, i) => (
+                  <Cell key={i} fill={e.color} />
+                ))}
               </Pie>
-              <Tooltip formatter={(val, _n, { payload }) => [val, payload?.name]} />
+              <Tooltip
+                formatter={(val, _n, { payload }) => [val, payload?.name]}
+              />
               {legendPayload.length > 0 && (
                 <Legend payload={legendPayload} verticalAlign="bottom" />
               )}
@@ -251,28 +192,39 @@ export default function Resumen() {
           <h3>📈 Evolución de reportes</h3>
           {Array.isArray(lineData) && lineData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={lineData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <LineChart
+                data={lineData}
+                margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
-                  dataKey="ts"
-                  type="number"
-                  scale="time"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={fmtTick}
-                  minTickGap={20}
+                  dataKey="fecha"
+                  type="category"
+                  tickFormatter={(d) =>
+                    new Date(d).toLocaleDateString("es-PE", {
+                      day: "2-digit",
+                      month: "short",
+                    })
+                  }
                 />
                 <YAxis allowDecimals={false} domain={[0, "dataMax + 1"]} />
                 <Tooltip
                   labelFormatter={(ts) => `Fecha: ${fmtTick(ts)}`}
                   formatter={(v) => [v, "Reportes"]}
                 />
+                <defs>
+                  <linearGradient id="colorLine" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2196f3" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#2196f3" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <Line
                   type="monotone"
                   dataKey="cantidad"
                   stroke="#2196f3"
                   strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ r: 5, stroke: "#2196f3", strokeWidth: 2, fill: "#fff" }}
+                  activeDot={{ r: 7, fill: "#2196f3" }}
                 />
               </LineChart>
             </ResponsiveContainer>
