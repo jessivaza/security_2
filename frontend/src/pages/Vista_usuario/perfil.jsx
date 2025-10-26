@@ -1,4 +1,3 @@
-// frontend/src/pages/Vista_usuario/Perfil.jsx
 import { useState, useEffect, useCallback } from "react";
 import usuarioImg from "../../img/usuario/img.png";
 import "../../css/Vista_usuario/perfil.css";
@@ -6,7 +5,6 @@ import { FaEdit, FaLock, FaPhoneAlt } from "react-icons/fa";
 
 const API = "http://127.0.0.1:8000/api";
 
-/* ===================== Helpers de red ===================== */
 async function fetchJSON(path, token) {
   try {
     const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
@@ -16,6 +14,7 @@ async function fetchJSON(path, token) {
     return null;
   }
 }
+
 async function fetchFirst(paths, token) {
   for (const p of paths) {
     const data = await fetchJSON(p, token);
@@ -24,7 +23,6 @@ async function fetchFirst(paths, token) {
   return null;
 }
 
-/* ===================== Helpers de formateo ===================== */
 const getIatMsFromJWT = (token) => {
   try {
     const payload = JSON.parse(atob(String(token).split(".")[1]));
@@ -70,7 +68,6 @@ const prettyLastAccess = (raw) => {
   return `📅 ${dateStr} • ${timeStr}`;
 };
 
-/* ===================== Estilos inline suaves (modales) ===================== */
 const modalCard = {
   background: "#fff",
   borderRadius: 14,
@@ -105,7 +102,6 @@ const actions = {
   marginTop: 14,
 };
 
-/* ========= Estilos para el badge ACTIVO con brillo ========= */
 const statusWrap = {
   marginTop: 8,
   display: "inline-flex",
@@ -127,8 +123,7 @@ const glowDot = {
 };
 const statusText = { letterSpacing: ".2px" };
 
-/* ===================== Componente ===================== */
-export default function Perfil({ darkMode, setDarkMode }) {
+export default function Perfil({ darkMode, setDarkMode, setFotoPerfil }) {
   const [usuario, setUsuario] = useState({
     nombre: "Usuario",
     email: "No registrado",
@@ -137,12 +132,12 @@ export default function Perfil({ darkMode, setDarkMode }) {
     ultimo_acceso: "No disponible",
     contacto_emergencia: { nombre: "No registrado", telefono: "No registrado" },
     preferencias: {},
+    foto_url: null,
   });
 
   const [loading, setLoading] = useState(true);
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState("");
-
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
@@ -157,12 +152,17 @@ export default function Perfil({ darkMode, setDarkMode }) {
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdMsg, setPwdMsg] = useState("");
 
+  // Nueva solución: prioridad al localStorage
+  const [previewFoto, setPreviewFoto] = useState(localStorage.getItem("fotoPerfil") || usuarioImg);
+  const [nuevaFoto, setNuevaFoto] = useState(null);
+
   const handleKey = useCallback((e) => {
     if (e.key === "Escape") {
       setShowEdit(false);
       setShowPass(false);
     }
   }, []);
+
   useEffect(() => {
     if (showEdit || showPass) window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -179,10 +179,14 @@ export default function Perfil({ darkMode, setDarkMode }) {
           ...prev,
           nombre: me.username || localStorage.getItem("username") || prev.nombre,
           email: me.email || prev.email,
+          foto_url: me.foto_url || prev.foto_url
         }));
-      } else {
-        const lsName = localStorage.getItem("username");
-        if (lsName) setUsuario(prev => ({ ...prev, nombre: lsName }));
+        // Forzar persistencia en localStorage
+        if (me.foto_url) {
+          localStorage.setItem("fotoPerfil", me.foto_url);
+          setPreviewFoto(me.foto_url);
+          setFotoPerfil?.(me.foto_url);
+        }
       }
 
       const perfil = await fetchFirst(
@@ -193,15 +197,11 @@ export default function Perfil({ darkMode, setDarkMode }) {
         setUsuario(prev => ({
           ...prev,
           telefono: perfil.telefono || prev.telefono,
-          activo: true, // <- mostramos "Activo" y listo
+          activo: true,
           ultimo_acceso: perfil.ultimo_acceso || perfil.last_login || prev.ultimo_acceso,
           contacto_emergencia: {
-            nombre: perfil.contacto_emergencia_nombre
-              ?? perfil?.contacto_emergencia?.nombre
-              ?? prev.contacto_emergencia.nombre,
-            telefono: perfil.contacto_emergencia_telefono
-              ?? perfil?.contacto_emergencia?.telefono
-              ?? prev.contacto_emergencia.telefono,
+            nombre: perfil.contacto_emergencia_nombre ?? perfil?.contacto_emergencia?.nombre ?? prev.contacto_emergencia.nombre,
+            telefono: perfil.contacto_emergencia_telefono ?? perfil?.contacto_emergencia?.telefono ?? prev.contacto_emergencia.telefono,
           },
           preferencias: perfil.preferencias || prev.preferencias,
         }));
@@ -209,7 +209,7 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
       setLoading(false);
     })();
-  }, []);
+  }, [setFotoPerfil]);
 
   const isNineDigits = (v) => /^\d{9}$/.test(String(v).trim());
   const validar = () => {
@@ -226,15 +226,10 @@ export default function Perfil({ darkMode, setDarkMode }) {
     setForm({
       nombre: usuario.nombre || "",
       telefono: usuario.telefono && usuario.telefono !== "No hay número registrado" ? usuario.telefono : "",
-      contacto_emergencia_nombre:
-        usuario.contacto_emergencia?.nombre && usuario.contacto_emergencia.nombre !== "No registrado"
-          ? usuario.contacto_emergencia.nombre
-          : "",
-      contacto_emergencia_telefono:
-        usuario.contacto_emergencia?.telefono && usuario.contacto_emergencia.telefono !== "No registrado"
-          ? usuario.contacto_emergencia.telefono
-          : "",
+      contacto_emergencia_nombre: usuario.contacto_emergencia?.nombre && usuario.contacto_emergencia.nombre !== "No registrado" ? usuario.contacto_emergencia.nombre : "",
+      contacto_emergencia_telefono: usuario.contacto_emergencia?.telefono && usuario.contacto_emergencia.telefono !== "No registrado" ? usuario.contacto_emergencia.telefono : "",
     });
+    setNuevaFoto(null);
     setError("");
     setGuardado(false);
     setShowEdit(true);
@@ -244,6 +239,7 @@ export default function Perfil({ darkMode, setDarkMode }) {
     e?.preventDefault?.();
     const token = localStorage.getItem("access");
     if (!token) return;
+
     const v = validar();
     if (v) { setError(v); return; }
 
@@ -255,13 +251,14 @@ export default function Perfil({ darkMode, setDarkMode }) {
       const payload = {};
       for (const [k, v] of Object.entries(form)) if (String(v).trim() !== "") payload[k] = v.trim();
 
+      const formData = new FormData();
+      Object.entries(payload).forEach(([k, v]) => formData.append(k, v));
+      if (nuevaFoto) formData.append("foto", nuevaFoto);
+
       const res = await fetch(`${API}/perfil-usuario/`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
 
       if (!res.ok) {
@@ -271,14 +268,25 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
       setUsuario(prev => ({
         ...prev,
-        nombre: payload.nombre ?? prev.nombre,
+        ...payload,
         telefono: payload.telefono ?? prev.telefono ?? "No hay número registrado",
         contacto_emergencia: {
           nombre: payload.contacto_emergencia_nombre ?? prev.contacto_emergencia.nombre ?? "No registrado",
           telefono: payload.contacto_emergencia_telefono ?? prev.contacto_emergencia.telefono ?? "No registrado",
         },
       }));
+
       if (payload.nombre) localStorage.setItem("username", payload.nombre);
+
+      if (nuevaFoto) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPreviewFoto(reader.result);
+          setFotoPerfil?.(reader.result);
+          localStorage.setItem("fotoPerfil", reader.result); // <--- Guardar en localStorage
+        };
+        reader.readAsDataURL(nuevaFoto);
+      }
 
       setGuardado(true);
       setShowEdit(false);
@@ -330,33 +338,21 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
   return (
     <section className={`perfil ${darkMode ? "dark" : "light"}`}>
-      {/* keyframes para el brillo */}
-      <style>
-        {`
-          @keyframes pulseGlow {
-            0%   { box-shadow: 0 0 0 0 rgba(76, 175, 80, .6); }
-            70%  { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-          }
-        `}
-      </style>
+      <style>{`@keyframes pulseGlow {0% {box-shadow:0 0 0 0 rgba(76,175,80,.6);} 70% {box-shadow:0 0 0 10px rgba(76,175,80,0);} 100% {box-shadow:0 0 0 0 rgba(76,175,80,0);}}`}</style>
 
       <div className="perfil-grid">
-        {/* --------- Perfil principal --------- */}
         <div className="card perfil-foto">
-          <img src={usuarioImg} alt="Usuario" className="profile-avatar" />
+          <img src={previewFoto} alt="Usuario" className="profile-avatar" />
           <h2>{usuario.nombre}</h2>
           <p><FaPhoneAlt /> Teléfono: {usuario.telefono}</p>
           <p>Email: {usuario.email}</p>
 
-          {/* SOLO mostrar ACTIVO con icono que brilla */}
           <div style={statusWrap}>
             <span style={glowDot} />
             <span style={statusText}>Activo</span>
           </div>
         </div>
 
-        {/* --------- Contacto / edición --------- */}
         <div className="card perfil-info">
           <h3>Información de Contacto <FaEdit /></h3>
           <div className="contacto">
@@ -365,56 +361,32 @@ export default function Perfil({ darkMode, setDarkMode }) {
             <p><FaPhoneAlt /> Teléfono: {usuario.contacto_emergencia?.telefono || "No registrado"}</p>
           </div>
 
-          {guardado && (
-            <p style={{ color: "#22a06b", fontWeight: 600, marginTop: 8 }}>
-              Datos actualizados ✅
-            </p>
-          )}
-          {error && (
-            <p style={{ color: "#d33", marginTop: 8 }}>
-              {error}
-            </p>
-          )}
+          {guardado && <p style={{ color: "#22a06b", fontWeight: 600, marginTop: 8 }}>Datos actualizados ✅</p>}
+          {error && <p style={{ color: "#d33", marginTop: 8 }}>{error}</p>}
 
-          <button className="btn-edit" onClick={abrirEditar}>
-            <FaEdit /> Editar Información
-          </button>
+          <button className="btn-edit" onClick={abrirEditar}><FaEdit /> Editar Información</button>
         </div>
 
-        {/* --------- Seguridad --------- */}
         <div className="card perfil-seguridad">
           <h3>Seguridad</h3>
           <p>Último acceso: {prettyLastAccess(usuario.ultimo_acceso)}</p>
-          <button className="btn-change-pass" onClick={() => setShowPass(true)}>
-            <FaLock /> Cambiar Contraseña
-          </button>
+          <button className="btn-change-pass" onClick={() => setShowPass(true)}><FaLock /> Cambiar Contraseña</button>
           {!!pwdMsg && <p style={{ marginTop: 8 }}>{pwdMsg}</p>}
         </div>
 
-        {/* --------- Preferencias --------- */}
         <div className="card perfil-preferencias">
           <h3>Preferencias</h3>
           <label className="toggle">
-            <input
-              type="checkbox"
-              checked={!!darkMode}
-              onChange={() => setDarkMode && setDarkMode(!darkMode)}
-            />
+            <input type="checkbox" checked={!!darkMode} onChange={() => setDarkMode && setDarkMode(!darkMode)} />
             <span className="slider"></span>
             Modo Oscuro
           </label>
         </div>
       </div>
 
-      {/* ====== Modales (se mantienen tal cual) ====== */}
       {showEdit && (
         <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setShowEdit(false)}>
-          <form
-            style={modalCard}
-            className="modal"
-            onSubmit={guardarPerfil}
-            onKeyDown={(e) => e.key === "Enter" && guardarPerfil(e)}
-          >
+          <form style={modalCard} className="modal" onSubmit={guardarPerfil}>
             <div style={modalHeader}>
               <h3 style={{ margin: 0 }}>Editar Información</h3>
               <button type="button" aria-label="Cerrar" style={modalClose} onClick={() => setShowEdit(false)}>×</button>
@@ -422,63 +394,44 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
             <div style={field}>
               <label>Nombre</label>
-              <input
-                style={input}
-                type="text"
-                value={form.nombre}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                placeholder="Tu nombre"
-              />
+              <input style={input} type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
             </div>
 
             <div style={field}>
               <label>Teléfono (9 dígitos)</label>
-              <input
-                style={input}
-                type="tel"
-                inputMode="numeric"
-                pattern="\d{9}"
-                value={form.telefono}
-                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                placeholder="Tu teléfono"
-              />
+              <input style={input} type="tel" inputMode="numeric" pattern="\d{9}" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
             </div>
 
             <div style={field}>
               <label>Contacto de emergencia - Nombre</label>
-              <input
-                style={input}
-                type="text"
-                value={form.contacto_emergencia_nombre}
-                onChange={(e) =>
-                  setForm({ ...form, contacto_emergencia_nombre: e.target.value })
-                }
-                placeholder="Nombre del contacto"
-              />
+              <input style={input} type="text" value={form.contacto_emergencia_nombre} onChange={(e) => setForm({ ...form, contacto_emergencia_nombre: e.target.value })} />
             </div>
 
             <div style={field}>
               <label>Contacto de emergencia - Teléfono (9 dígitos)</label>
-              <input
-                style={input}
-                type="tel"
-                inputMode="numeric"
-                pattern="\d{9}"
-                value={form.contacto_emergencia_telefono}
-                onChange={(e) =>
-                  setForm({ ...form, contacto_emergencia_telefono: e.target.value })
+              <input style={input} type="tel" inputMode="numeric" pattern="\d{9}" value={form.contacto_emergencia_telefono} onChange={(e) => setForm({ ...form, contacto_emergencia_telefono: e.target.value })} />
+            </div>
+
+            <div style={field}>
+              <label>Foto de Perfil</label>
+              <input type="file" accept="image/*" onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  setNuevaFoto(file);
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    setPreviewFoto(reader.result);
+                    setFotoPerfil?.(reader.result);
+                    localStorage.setItem("fotoPerfil", reader.result); // Guardar en localStorage
+                  };
+                  reader.readAsDataURL(file);
                 }
-                placeholder="Teléfono del contacto"
-              />
+              }} />
             </div>
 
             <div style={actions}>
-              <button className="btn-guardar" type="submit" disabled={saving}>
-                {saving ? "Guardando..." : "Guardar"}
-              </button>
-              <button className="btn-cancelar" type="button" onClick={() => setShowEdit(false)} disabled={saving}>
-                Cancelar
-              </button>
+              <button type="button" onClick={() => setShowEdit(false)}>Cancelar</button>
+              <button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>
             </div>
           </form>
         </div>
@@ -486,12 +439,7 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
       {showPass && (
         <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setShowPass(false)}>
-          <form
-            style={modalCard}
-            className="modal"
-            onSubmit={cambiarPassword}
-            onKeyDown={(e) => e.key === "Enter" && cambiarPassword(e)}
-          >
+          <form style={modalCard} className="modal" onSubmit={cambiarPassword}>
             <div style={modalHeader}>
               <h3 style={{ margin: 0 }}>Cambiar contraseña</h3>
               <button type="button" aria-label="Cerrar" style={modalClose} onClick={() => setShowPass(false)}>×</button>
@@ -499,37 +447,21 @@ export default function Perfil({ darkMode, setDarkMode }) {
 
             <div style={field}>
               <label>Contraseña actual</label>
-              <input
-                style={input}
-                type="password"
-                value={pwd.actual}
-                onChange={(e) => setPwd({ ...pwd, actual: e.target.value })}
-                placeholder="Actual"
-              />
+              <input style={input} type="password" value={pwd.actual} onChange={(e) => setPwd({ ...pwd, actual: e.target.value })} />
             </div>
 
             <div style={field}>
               <label>Nueva contraseña</label>
-              <input
-                style={input}
-                type="password"
-                value={pwd.nueva}
-                onChange={(e) => setPwd({ ...pwd, nueva: e.target.value })}
-                placeholder="Nueva (mínimo 6 caracteres)"
-              />
+              <input style={input} type="password" value={pwd.nueva} onChange={(e) => setPwd({ ...pwd, nueva: e.target.value })} />
             </div>
 
             <div style={actions}>
-              <button className="btn-guardar" type="submit" disabled={pwdSaving}>
-                {pwdSaving ? "Actualizando..." : "Actualizar"}
-              </button>
-              <button className="btn-cancelar" type="button" onClick={() => setShowPass(false)} disabled={pwdSaving}>
-                Cancelar
-              </button>
+              <button type="submit" disabled={pwdSaving}>{pwdSaving ? "Actualizando..." : "Actualizar"}</button>
+              <button type="button" onClick={() => setShowPass(false)} disabled={pwdSaving}>Cancelar</button>
             </div>
           </form>
         </div>
       )}
     </section>
   );
-}
+}  

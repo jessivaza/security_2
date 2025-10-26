@@ -4,7 +4,7 @@ import "../../css/Vista_usuario/dashUsuario.css";
 import Resumen from "./Resumen";
 import Mapa from "./Mapa";
 import Alertas from "./Alertas";
-import Perfil from "./Perfil";
+import Perfil from "./perfil";
 import Prevencion from "./prevencion";
 import MisReportes from "./Reportes";
 import { FaMoon, FaSun } from "react-icons/fa";
@@ -29,7 +29,7 @@ function AlertasComunidad() {
   useEffect(() => {
     const interval = setInterval(() => {
       const hora = new Date().toLocaleTimeString();
-      setAlertas((prev) => [
+      setAlertas(prev => [
         { id: Date.now(), mensaje: `Nueva alerta a las ${hora}` },
         ...prev,
       ]);
@@ -40,22 +40,17 @@ function AlertasComunidad() {
   return (
     <div className="alertas-comunidad">
       <h3>Alertas minuto a minuto</h3>
-      {alertas.length === 0 ? (
-        <p>No hay alertas aún</p>
-      ) : (
+      {alertas.length === 0 ? <p>No hay alertas aún</p> :
         <ul>
-          {alertas.map((a) => (
-            <li key={a.id}>{a.mensaje}</li>
-          ))}
+          {alertas.map(a => <li key={a.id}>{a.mensaje}</li>)}
         </ul>
-      )}
+      }
     </div>
   );
 }
 
 export default function DasUsuario() {
   const navigate = useNavigate();
-  const [destination, setDestination] = useState("Plaza Norte, Lima");
   const [activeSection, setActiveSection] = useState("resumen");
   const [darkMode, setDarkMode] = useState(false);
   const [isSlim, setIsSlim] = useState(false);
@@ -63,90 +58,79 @@ export default function DasUsuario() {
   const [usuario, setUsuario] = useState({ nombre: "Usuario" });
   const [incidentesMapa, setIncidentesMapa] = useState([]);
 
-  // ✅ Callback que recibirá los reportes desde MisReportes.jsx
+  // ✅ Inicializamos fotoPerfil desde localStorage para persistencia
+  const [fotoPerfil, setFotoPerfil] = useState(localStorage.getItem("fotoPerfil") || usuarioImg);
+
+  // Callback para recibir reportes desde MisReportes
   const recibirReportesParaMapa = (reportes) => {
-  console.log("✅ Reportes que llegan al mapa:", reportes);
-  setIncidentesMapa(reportes);
-};
+    setIncidentesMapa(reportes);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("access");
     if (!token) return;
 
-    fetch(`${API}/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => {
+    fetch(`${API}/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async res => {
         if (!res.ok) {
           const text = await res.text();
           throw new Error(`HTTP ${res.status} - ${text}`);
         }
         return res.json();
       })
-      .then((data) => {
-        setUsuario((prev) => ({
+      .then(data => {
+        setUsuario(prev => ({
           ...prev,
           nombre: data?.nombre || data?.username || prev.nombre,
+          foto_url: data?.foto_url || prev.foto_url
         }));
+
+        if (data?.foto_url) {
+          setFotoPerfil(data.foto_url);
+          localStorage.setItem("fotoPerfil", data.foto_url); // ✅ Guardar en localStorage
+        }
       })
-      .catch((err) => console.error("Error /api/me:", err.message));
+      .catch(err => console.error("Error /api/me:", err.message));
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
     localStorage.removeItem("role");
+    localStorage.removeItem("fotoPerfil"); // ✅ Limpiar foto al cerrar sesión
     navigate("/login");
   };
 
   const handleNavClick = (section) => {
     setActiveSection(section);
-    setIsMobileMenuUsuarioOpen(false); // Cerrar menú al seleccionar
+    setIsMobileMenuUsuarioOpen(false); // Cerrar menú en móvil
   };
 
   return (
     <div className={`dashboard ${darkMode ? "dark" : "light"}`}>
-      {/* Backdrop para cerrar al hacer click afuera - solo en móvil */}
-      {isMobileMenuUsuarioOpen && (
-        <div 
-          className="sidebar-backdrop-usuario" 
-          onClick={() => setIsMobileMenuUsuarioOpen(false)}
-        ></div>
-      )}
+      {isMobileMenuUsuarioOpen &&
+        <div className="sidebar-backdrop-usuario" onClick={() => setIsMobileMenuUsuarioOpen(false)}></div>
+      }
 
       <aside className={`sidebar ${isSlim ? "slim" : "wide"} ${isMobileMenuUsuarioOpen ? "mobile-open-usuario" : ""}`}>
         <div className="user-profile" onClick={() => setIsSlim(!isSlim)}>
-          <img src={usuarioImg} alt="Usuario" className="sidebar-avatar" />
-          {!isSlim && (
+          <img src={fotoPerfil} alt="Usuario" className="sidebar-avatar" />
+          {!isSlim &&
             <>
               <h3>{usuario.nombre}</h3>
               <p>Los Olivos</p>
             </>
-          )}
+          }
         </div>
 
         <ul className="nav-dashusuario">
-          <li onClick={() => handleNavClick("resumen")}>
-            <FaChartBar size={25} /> {!isSlim && <span>Resumen</span>}
-          </li>
-          <li onClick={() => handleNavClick("mapa")}>
-            <FaMapMarkedAlt size={25} /> {!isSlim && <span>Mapa</span>}
-          </li>
-          <li onClick={() => handleNavClick("reportes")}>
-            <FaFileAlt size={25} /> {!isSlim && <span>Mis Reportes</span>}
-          </li>
-          <li onClick={() => handleNavClick("alertas")}>
-            <FaBell size={25} /> {!isSlim && <span>Alertas</span>}
-          </li>
-          <li onClick={() => handleNavClick("prevencion")}>
-            <FaBook size={25} /> {!isSlim && <span>Prevención</span>}
-          </li>
-          <li onClick={() => handleNavClick("perfil")}>
-            <FaUser size={25} /> {!isSlim && <span>Mi Perfil</span>}
-          </li>
-          <li className="logout-item" onClick={handleLogout}>
-            <FaDoorOpen size={25} /> {!isSlim && <span>Cerrar Sesión</span>}
-          </li>
+          <li onClick={() => handleNavClick("resumen")}><FaChartBar size={25} /> {!isSlim && <span>Resumen</span>}</li>
+          <li onClick={() => handleNavClick("mapa")}><FaMapMarkedAlt size={25} /> {!isSlim && <span>Mapa</span>}</li>
+          <li onClick={() => handleNavClick("reportes")}><FaFileAlt size={25} /> {!isSlim && <span>Mis Reportes</span>}</li>
+          <li onClick={() => handleNavClick("alertas")}><FaBell size={25} /> {!isSlim && <span>Alertas</span>}</li>
+          <li onClick={() => handleNavClick("prevencion")}><FaBook size={25} /> {!isSlim && <span>Prevención</span>}</li>
+          <li onClick={() => handleNavClick("perfil")}><FaUser size={25} /> {!isSlim && <span>Mi Perfil</span>}</li>
+          <li className="logout-item" onClick={handleLogout}><FaDoorOpen size={25} /> {!isSlim && <span>Cerrar Sesión</span>}</li>
         </ul>
 
         <div className="mode-toggle" onClick={() => setDarkMode(!darkMode)}>
@@ -157,32 +141,20 @@ export default function DasUsuario() {
 
       <main className="main-panel">
         <header className="header">
-          <button 
-            className="mobile-hamburger-usuario" 
-            onClick={() => setIsMobileMenuUsuarioOpen(!isMobileMenuUsuarioOpen)}
-          >
+          <button className="mobile-hamburger-usuario" onClick={() => setIsMobileMenuUsuarioOpen(!isMobileMenuUsuarioOpen)}>
             {isMobileMenuUsuarioOpen ? <FaTimes size={18} /> : <FaBars size={18} />}
           </button>
           <h1 className="header-title">🛡️ Seguridad Ciudadana – Los Olivos</h1>
         </header>
 
         {activeSection === "resumen" && <Resumen />}
-        {activeSection === "mapa" && (
-          <Mapa incidentes={incidentesMapa} />
-        )}
+        {activeSection === "mapa" && <Mapa incidentes={incidentesMapa} />}
         {activeSection === "prevencion" && <Prevencion />}
         {activeSection === "alertas" && <Alertas />}
-
-        {activeSection === "reportes" && (
-          <MisReportes
-            darkMode={darkMode}
-            onReportesActualizados={recibirReportesParaMapa}
-          />
-        )}
-
-        {activeSection === "perfil" && (
-          <Perfil darkMode={darkMode} setDarkMode={setDarkMode} />
-        )}
+        {activeSection === "reportes" &&
+          <MisReportes darkMode={darkMode} onReportesActualizados={recibirReportesParaMapa} />}
+        {activeSection === "perfil" &&
+          <Perfil darkMode={darkMode} setDarkMode={setDarkMode} setFotoPerfil={setFotoPerfil} />}
       </main>
     </div>
   );
