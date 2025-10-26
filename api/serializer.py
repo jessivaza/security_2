@@ -56,6 +56,11 @@ class DetalleAlertaSerializer(serializers.ModelSerializer):
             # Devuelve la URL completa del archivo
             return request.build_absolute_uri(obj.Archivo.url)
         return None
+    
+    def validate_Escala(self, value):
+        if value not in [1, 2, 3, 4]:
+            raise serializers.ValidationError("Escala inválida. Debe ser 1, 2, 3 o 4")
+        return value
 
 # Inicio Serializador para Historial de Incidentes
 class HistorialIncidenteSerializer(serializers.ModelSerializer):

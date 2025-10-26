@@ -476,3 +476,25 @@ a[href*="/media/"]:hover {
     transform: scale(1);
   }
 }
+
+.icono-orden {
+  margin-left: 5px;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.icono-orden.activo {
+  opacity: 1;
+  color: #007bff;
+}
+
+.icono-orden:hover {
+  transform: scale(1.2);
+}
+
+th {
+  user-select: none;
+  cursor: pointer;
+  text-align: center;
+}
