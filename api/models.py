@@ -218,6 +218,7 @@ class DetalleAlerta(models.Model):
         (1, "Bajo"),
         (2, "Medio"),
         (3, "Alto"),
+        (4, "Pendiente (por asignar)"),
     )
 
     idTipoIncidencia = models.AutoField(primary_key=True)

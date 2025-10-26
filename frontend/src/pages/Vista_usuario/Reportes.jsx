@@ -14,14 +14,36 @@ const ESCALAS = [
   { id: "1", nombre: "Bajo" },
   { id: "2", nombre: "Medio" },
   { id: "3", nombre: "Alto" },
+  { id: "4", nombre: "Pendiente (por asignar)" },
 ];
+
+const INCIDENTES_COMUNES = [
+  { nombre: "Robo", escala: "3" },
+  { nombre: "Asalto", escala: "3" },
+  { nombre: "Homicidio", escala: "3" },
+  { nombre: "Secuestro", escala: "3" },
+  { nombre: "Accidente de tránsito", escala: "2" },
+  { nombre: "Incendio", escala: "2" },
+  { nombre: "Pelea callejera", escala: "2" },
+  { nombre: "Amenaza", escala: "2" },
+  { nombre: "Daño a propiedad", escala: "1" },
+  { nombre: "Vandalismo", escala: "1" },
+  { nombre: "Pérdida de mascota", escala: "1" },
+  { nombre: "Otro", escala: "4" },
+];
+
+const ESCALA_MAP = {
+  "1": 1, // Bajo
+  "2": 2, // Medio
+  "3": 3, // Alto
+  "4": 4, // Pendiente (por asignar)
+};
 
 export default function MisReportes({ darkMode, onReportesActualizados }) {
   const [reportes, setReportes] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   // 🔄 archivoPreview ahora almacena el OBJETO { url, type } o null
   const [archivoPreview, setArchivoPreview] = useState(null);
-  const [tempPreviewUrl, setTempPreviewUrl] = useState(null);
   const [nuevoReporte, setNuevoReporte] = useState({
     Ubicacion: "",
     Descripcion: "",
@@ -55,7 +77,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     cargarReportes();
   }, []);
 
-  // ---------- Determinar escala automática (SOLO por NombreIncidente) ----------
+  // ---------- Determinar escala automática ----------
   const determinarEscala = (texto) => {
     if (!texto) return "";
     const t = texto.toLowerCase();
@@ -77,14 +99,12 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     return "";
   };
 
-  // ... (Funciones de Ubicación sin cambios) ...
-
   // ---------- Función para obtener ubicación por IP (Respaldo) ----------
   const obtenerUbicacionPorIP = async () => {
     try {
-      const ipRes = await axios.get('https://ipapi.co/json/');
+      const ipRes = await axios.get("https://ipapi.co/json/");
       const ipData = ipRes.data;
-
+      
       const ubicacionIP = `${ipData.city || 'Ciudad'}, ${ipData.region || 'Región'}, ${ipData.country_name || 'País'} (Aprox. por IP)`;
 
       setNuevoReporte((prev) => ({
@@ -93,17 +113,13 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         Latitud: ipData.latitude || "",
         Longitud: ipData.longitude || "",
       }));
-
-      alert(`Ubicación aproximada obtenida por IP: ${ubicacionIP}. La ubicación exacta requiere permiso de GPS.`);
-
+      alert(`Ubicación aproximada obtenida por IP: ${ubicacionIP}.`);
     } catch (e) {
       console.error("Error obteniendo ubicación por IP:", e);
       alert("No se pudo obtener la ubicación automáticamente.");
     }
   };
 
-
-  // ---------- Obtener ubicación por GPS (Máxima Precisión) ----------
   const obtenerUbicacionPorGPS = () => {
     return new Promise((resolve, reject) => {
       if (!("geolocation" in navigator)) {
@@ -114,21 +130,19 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       // Opciones para solicitar la máxima precisión (usando GPS)
       const options = {
         enableHighAccuracy: true, // Pide la máxima precisión
-        timeout: 10000,           // 10 segundos antes de fallar
-        maximumAge: 0             // No usar cache
+        timeout: 10000,           // 10 segundos antes de fallar
+        maximumAge: 0             // No usar cache
       };
 
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
           const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-
           try {
-            // Convertir coordenadas a dirección legible
             const res = await fetch(url);
             const data = await res.json();
             const direccion = data.display_name || `Lat: ${latitude}, Lon: ${longitude}`;
-
+            
             // Establecer el estado con la dirección precisa
             setNuevoReporte((prev) => ({
               ...prev,
@@ -137,11 +151,10 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               Longitud: longitude,
             }));
             resolve(true);
-          } catch (error) {
-            // Si Nominatim falla, usamos solo las coordenadas
+          } catch {
             setNuevoReporte((prev) => ({
               ...prev,
-              Ubicacion: `Lat: ${latitude}, Lon: ${longitude} (Error al obtener calle)`,
+              Ubicacion: `Lat: ${latitude}, Lon: ${longitude}`,
               Latitud: latitude,
               Longitud: longitude,
             }));
@@ -165,7 +178,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               mensaje = "Error desconocido de geolocalización.";
           }
           console.error("Error GPS:", mensaje);
-          reject(mensaje);
+          reject(mensaje); 
         },
         options
       );
@@ -174,16 +187,16 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
   const abrirModal = async () => {
     setMostrarModal(true);
-
+    
     try {
-      await obtenerUbicacionPorGPS();
+        await obtenerUbicacionPorGPS();
     } catch (errorMensaje) {
-      if (errorMensaje.includes("Permiso de ubicación denegado") || errorMensaje.includes("Ubicación no disponible") || errorMensaje.includes("Tiempo de espera agotado")) {
-        // Recurrir a la ubicación por IP si el GPS falla
-        await obtenerUbicacionPorIP();
-      } else {
-        alert(`Error crítico de ubicación: ${errorMensaje}`);
-      }
+        if (errorMensaje.includes("Permiso de ubicación denegado") || errorMensaje.includes("Ubicación no disponible") || errorMensaje.includes("Tiempo de espera agotado")) {
+            // Recurrir a la ubicación por IP si el GPS falla
+            await obtenerUbicacionPorIP();
+        } else {
+            alert(`Error crítico de ubicación: ${errorMensaje}`);
+        }
     }
   };
 
@@ -202,54 +215,48 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       Latitud: "",
       Longitud: "",
       Archivo: null,
+      esOtro: false,
+      NombreIncidenteOtro: "",
     });
   };
 
   // ---------- Vista previa ----------
-  //  MODIFICADA para manejar objeto { url, type } o string (para URLs del backend)
-  const abrirPreview = (data) => {
-    if (typeof data === 'string') {
-      // Es una URL del backend. Intentamos adivinar el tipo por la extensión.
-      const url = data;
-      let type = 'application/octet-stream'; // Default
-      if (url.endsWith('.pdf')) type = 'application/pdf';
-      else if (url.match(/\.(jpg|jpeg|png|gif)$/i)) type = 'image';
-      else if (url.match(/\.(mp4|webm|ogg)$/i)) type = 'video';
-      setArchivoPreview({ url, type });
-    } else {
-      // Es el objeto { url, type } del archivo local (tempPreviewUrl)
-      setArchivoPreview(data);
-    }
-  };
-
-  const cerrarPreview = () => {
-    // Si la URL es la temporal, la limpiamos al cerrar.
-    if (archivoPreview && archivoPreview.url === tempPreviewUrl) {
-      URL.revokeObjectURL(tempPreviewUrl);
-      setTempPreviewUrl(null);
-    }
-    setArchivoPreview(null);
-  };
+  const abrirPreview = (archivoUrl) => setArchivoPreview(archivoUrl);
+  const cerrarPreview = () => setArchivoPreview(null);
 
   // ---------- Registrar incidente (Sin cambios) ----------
   const registrarIncidente = async () => {
     if (!token) return alert("Debes iniciar sesión");
-
     try {
       const formData = new FormData();
       formData.append("Ubicacion", nuevoReporte.Ubicacion);
-      formData.append("Descripcion", nuevoReporte.Descripcion);
-      formData.append("NombreIncidente", nuevoReporte.NombreIncidente);
-      formData.append("escala", nuevoReporte.escala);
+      
+      // Si la descripción está vacía, enviar "No determinado"
+      const descripcionFinal = nuevoReporte.Descripcion.trim() || "No determinado";
+      formData.append("Descripcion", descripcionFinal);
+      
+      const nombreFinal = nuevoReporte.esOtro
+        ? (nuevoReporte.NombreIncidenteOtro || "").trim()
+        : nuevoReporte.NombreIncidente;
+
+      if (!nombreFinal) return alert("Debes especificar el nombre del incidente.");
+      formData.append("NombreIncidente", nombreFinal);
+      
+      // Asegurar que la escala sea un número válido
+      const escalaFinal = Number(nuevoReporte.escala) || 4;
+      formData.append("escala", escalaFinal);
+      
       formData.append("Latitud", nuevoReporte.Latitud);
       formData.append("Longitud", nuevoReporte.Longitud);
       if (nuevoReporte.Archivo) formData.append("Archivo", nuevoReporte.Archivo);
 
+      // Log para debugging
+      console.log("📤 Enviando escala:", escalaFinal);
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
       const res = await axios.post(`${API}/registrar-incidente`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
       const det = res.data.registro;
@@ -269,16 +276,14 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       }
 
       cerrarModal();
-      //alert("¡Incidente registrado con éxito!");
+      alert("¡Incidente registrado con éxito!");
     } catch (err) {
       console.error("Error al registrar incidente:", err);
       alert("Error al registrar el incidente. Revisa la consola.");
     }
   };
 
-  // ... (Funciones de Exportación sin cambios) ...
-
-  // ---------- Exportar PDF (Sin cambios) ----------
+  // ---------- Exportar PDF ----------
   const toDataURL = async (url) => {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -292,12 +297,17 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
   const exportarPDF = async () => {
     const doc = new jsPDF();
     try {
-      const imgData = await toDataURL(logo);
-      doc.addImage(imgData, "PNG", 14, 10, 20, 20);
+      const response = await fetch(logo);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      await new Promise((resolve) => {
+        reader.onloadend = () => resolve();
+        reader.readAsDataURL(blob);
+      });
+      doc.addImage(reader.result, "PNG", 14, 10, 20, 20);
     } catch (e) {
       console.warn("No se pudo cargar el logo:", e);
     }
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.text("Mis Reportes", 40, 22);
@@ -305,11 +315,11 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     const body = reportes.map((r) => [
       r.idTipoIncidencia,
       // Usar la hora local de Perú para el PDF
-      new Date(r.FechaHora).toLocaleString("es-ES", { timeZone: 'America/Lima' }),
+      new Date(r.FechaHora).toLocaleString("es-ES", { timeZone: 'America/Lima' }), 
       r.Ubicacion,
       r.NombreIncidente,
-      r.Descripcion,
-      r.Escala || "",
+      r.Descripcion || "No determinado",
+      r.Escala === 1 ? "Bajo" : r.Escala === 2 ? "Medio" : r.Escala === 3 ? "Alto" : r.Escala === 4 ? "Pendiente (por asignar)" : "No determinado",
       r.Archivo ? "Sí" : "No",
     ]);
 
@@ -317,33 +327,30 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       head: [["ID", "Fecha", "Ubicación", "Incidente", "Descripción", "Escala", "Archivo"]],
       body,
       startY: 50,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [41, 128, 185] },
     });
-
     doc.save("mis_reportes.pdf");
   };
 
-  // ---------- Exportar Excel (Sin cambios) ----------
+  // ---------- Exportar Excel ----------
   const exportarExcel = async () => {
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Reportes");
-
+    const ws = wb.addWorksheet("Mis Reportes");
     ws.mergeCells("B1:F2");
     const title = ws.getCell("B1");
     title.value = "Mis Reportes";
     title.font = { name: "Calibri", size: 22, bold: true };
     title.alignment = { vertical: "middle", horizontal: "left" };
-
     const rows = (reportes || []).map((r) => [
       r.idTipoIncidencia,
-      // Usar la hora local de Perú para el Excel
-      new Date(r.FechaHora).toLocaleString("es-PE", { timeZone: 'America/Lima' }),
+      new Date(r.FechaHora).toLocaleString("es-PE", { timeZone: "America/Lima" }),
       r.Ubicacion || "",
       r.NombreIncidente || "",
-      r.Descripcion || "",
-      r.Escala || "",
+      r.Descripcion || "No determinado",
+      r.Escala === 1 ? "Bajo" : r.Escala === 2 ? "Medio" : r.Escala === 3 ? "Alto" : r.Escala === 4 ? "Pendiente (por asignar)" : "No determinado",
       r.Archivo ? "Sí" : "No",
     ]);
-
     ws.addTable({
       name: "TablaReportes",
       ref: "A4",
@@ -357,14 +364,59 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         { name: "Escala" },
         { name: "Archivo" },
       ],
-      rows: rows,
+      rows,
     });
-
     const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    saveAs(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "mis_reportes.xlsx");
+  };
+
+  // ---------- FILTROS ----------
+  const [filterDate, setFilterDate] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filtrarReportesPorFecha = (reportes, fechaFiltro) => {
+    if (!fechaFiltro) return reportes;
+    const fechaSeleccionada = new Date(fechaFiltro);
+    return reportes.filter((r) => {
+      if (!r.FechaHora) return false;
+      const fechaLocal = new Date(new Date(r.FechaHora).toLocaleString("en-US", { timeZone: "America/Lima" }));
+      return (
+        fechaLocal.getDate() === fechaSeleccionada.getUTCDate() &&
+        fechaLocal.getMonth() === fechaSeleccionada.getUTCMonth() &&
+        fechaLocal.getFullYear() === fechaSeleccionada.getUTCFullYear()
+      );
     });
-    saveAs(blob, "mis_reportes.xlsx");
+  };
+
+  let filteredReportes = reportes;
+  if (filterDate) filteredReportes = filtrarReportesPorFecha(reportes, filterDate);
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filteredReportes = filteredReportes.filter(
+      (r) =>
+        r.idTipoIncidencia?.toString().toLowerCase().includes(term) ||
+        r.Ubicacion?.toLowerCase().includes(term) ||
+        r.NombreIncidente?.toLowerCase().includes(term) ||
+        r.Descripcion?.toLowerCase().includes(term)
+    );
+  }
+
+  // ---------- Ordenar ----------
+  const ordenarPor = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
+    setSortConfig({ key, direction });
+    const sorted = [...filteredReportes].sort((a, b) => {
+      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
+      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+    setReportes(sorted);
+  };
+
+  const getArrow = (key) => {
+    if (sortConfig.key !== key) return "↕️";
+    return sortConfig.direction === "asc" ? "🔼" : "🔽";
   };
 
   // ---------- Render ----------
@@ -378,16 +430,29 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         <button onClick={exportarExcel} className="btn-export">📊 Excel</button>
       </div>
 
+      {/* Filtros */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px", gap: "10px" }}>
+        <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+        <input
+          type="text"
+          placeholder="Buscar..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ marginLeft: "auto" }}
+        />
+      </div>
+
+      {/* Tabla */}
       <div className="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Fecha</th>
-              <th>Ubicación</th>
-              <th>Incidente</th>
-              <th>Descripción</th>
-              <th>Escala</th>
+              <th onClick={() => ordenarPor("idTipoIncidencia")}>ID {getArrow("idTipoIncidencia")}</th>
+              <th onClick={() => ordenarPor("FechaHora")}>Fecha {getArrow("FechaHora")}</th>
+              <th onClick={() => ordenarPor("Ubicacion")}>Ubicación {getArrow("Ubicacion")}</th>
+              <th onClick={() => ordenarPor("NombreIncidente")}>Incidente {getArrow("NombreIncidente")}</th>
+              <th onClick={() => ordenarPor("Descripcion")}>Descripción {getArrow("Descripcion")}</th>
+              <th onClick={() => ordenarPor("Escala")}>Escala {getArrow("Escala")}</th>
               <th>Archivo</th>
             </tr>
           </thead>
@@ -398,15 +463,15 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 <td>
                   {r.FechaHora
                     ? new Date(r.FechaHora).toLocaleString("es-ES", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                      // <<--- CORRECCIÓN CLAVE: Especificar el huso horario de Lima
-                      timeZone: 'America/Lima'
-                    })
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                        // <<--- CORRECCIÓN CLAVE: Especificar el huso horario de Lima
+                        timeZone: 'America/Lima' 
+                      })
                     : "-"}
                 </td>
                 <td>{r.Ubicacion}</td>
@@ -416,7 +481,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 <td style={{ textAlign: "center" }}>
                   {r.Archivo ? (
                     <button
-                      // 🔄 Pasar solo la URL para los archivos del backend (se infiere el tipo)
                       onClick={() => abrirPreview(r.Archivo)}
                       style={{
                         background: "none",
@@ -433,12 +497,12 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                   )}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Modal Registrar */}
+      {/* Modal registrar */}
       {mostrarModal && (
         <div className="modal-backdrop">
           <div className="modal">
@@ -448,11 +512,23 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               type="text"
               placeholder="Ubicación"
               value={nuevoReporte.Ubicacion}
-              onChange={(e) =>
-                setNuevoReporte({ ...nuevoReporte, Ubicacion: e.target.value })
-              }
+              onChange={(e) => setNuevoReporte({ ...nuevoReporte, Ubicacion: e.target.value })}
             />
 
+            <input
+              type="text"
+              placeholder="Descripción"
+              value={nuevoReporte.Descripcion}
+              onChange={(e) => {
+                const valor = e.target.value;
+                const escalaDetectada = determinarEscala(valor);
+                setNuevoReporte({
+                  ...nuevoReporte,
+                  Descripcion: valor,
+                  escala: escalaDetectada,
+                });
+              }}
+            />
 
             <input
               type="text"
@@ -460,78 +536,43 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               value={nuevoReporte.NombreIncidente}
               onChange={(e) => {
                 const valor = e.target.value;
-                const escalaDetectada = determinarEscala(valor);
+                const incidente = INCIDENTES_COMUNES.find((i) => i.nombre === valor);
+                const escala = incidente ? Number(incidente.escala) : 4;
                 setNuevoReporte({
                   ...nuevoReporte,
                   NombreIncidente: valor,
-                  escala: escalaDetectada,
+                  escala,
+                  esOtro: valor === "Otro",
                 });
               }}
             />
-            <input
-              type="text"
-              placeholder="Descripción"
-              value={nuevoReporte.Descripcion}
-              onChange={(e) => {
-                setNuevoReporte({
-                  ...nuevoReporte,
-                  Descripcion: e.target.value,
-                });
-              }}
-            />
-
 
             {/* Escala detectada automáticamente */}
             <p style={{ color: "#007BFF", textAlign: "center", fontWeight: "bold" }}>
-              Escala detectada:{" "}
-              {nuevoReporte.escala === "3"
+              Escala:{" "}
+              {nuevoReporte.escala === 3
                 ? "Alto"
                 : nuevoReporte.escala === "2"
-                  ? "Medio"
-                  : nuevoReporte.escala === "1"
-                    ? "Bajo"
-                    : "No determinada"}
+                ? "Medio"
+                : nuevoReporte.escala === "1"
+                ? "Bajo"
+                : "No determinada"}
             </p>
 
             {/* Visualizacion de archivo */}
             <input
               type="file"
               accept="image/*,video/*,application/pdf"
-              onChange={(e) => {
-                const file = e.target.files[0];
-
-                // Limpiar la URL anterior si existe
-                if (tempPreviewUrl) {
-                  URL.revokeObjectURL(tempPreviewUrl);
-                }
-
-                if (file) {
-                  const newUrl = URL.createObjectURL(file);
-                  setTempPreviewUrl(newUrl);
-                  setNuevoReporte({ ...nuevoReporte, Archivo: file });
-                } else {
-                  setTempPreviewUrl(null);
-                  setNuevoReporte({ ...nuevoReporte, Archivo: null });
-                }
-              }}
+              onChange={(e) =>
+                setNuevoReporte({ ...nuevoReporte, Archivo: e.target.files[0] })
+              }
             />
 
             {nuevoReporte.Archivo && (
-
-              <div className="file-upload-container" style={{ marginTop: "15px" }}>
-
-                <span className="file-upload-status">
-                  <span className="icon">📎</span> Archivo listo para subir
+              <div style={{ textAlign: "center", marginTop: "10px" }}>
+                <span style={{ color: "#007BFF", fontSize: "22px" }}>
+                  📎 Archivo listo para subir
                 </span>
-
-                {tempPreviewUrl && nuevoReporte.Archivo.type && (
-                  <button
-                    onClick={() => abrirPreview({ url: tempPreviewUrl, type: nuevoReporte.Archivo.type })}
-                    className="btn-preview-file"
-                  >
-                    <span className="icon">🔍</span> Ver Contenido
-                  </button>
-                )}
               </div>
             )}
 
@@ -560,7 +601,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               backgroundColor: "#fff",
               padding: "15px",
               borderRadius: "10px",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -575,28 +615,24 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 fontSize: "22px",
                 fontWeight: "bold",
                 color: "#555",
-                cursor: "pointer",
               }}
             >
               ✖
             </button>
 
-            <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
-              Vista previa del archivo
-            </h3>
+            <h3 style={{ textAlign: "center", marginBottom: "10px" }}>Vista previa del archivo</h3>
 
-            {/* 🔄 DETECCIÓN BASADA EN EL TIPO MIME */}
-            {archivoPreview.type.includes("pdf") ? (
+            {archivoPreview.endsWith(".pdf") ? (
               <iframe
-                src={archivoPreview.url}
+                src={archivoPreview}
                 width="100%"
                 height="400px"
                 title="Vista PDF"
                 style={{ border: "1px solid #ccc", borderRadius: "6px" }}
               ></iframe>
-            ) : archivoPreview.type.includes("image") ? (
+            ) : archivoPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
               <img
-                src={archivoPreview.url}
+                src={archivoPreview}
                 alt="Vista previa"
                 style={{
                   width: "100%",
@@ -605,9 +641,9 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                   borderRadius: "8px",
                 }}
               />
-            ) : archivoPreview.type.includes("video") ? (
+            ) : archivoPreview.match(/\.(mp4|webm|ogg)$/i) ? (
               <video
-                src={archivoPreview.url}
+                src={archivoPreview}
                 controls
                 style={{
                   width: "100%",
@@ -616,7 +652,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
                 }}
               ></video>
             ) : (
-              <p>Formato de archivo no compatible o URL de vista previa no válida.</p>
+              <p>Formato de archivo no compatible.</p>
             )}
           </div>
         </div>
