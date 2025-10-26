@@ -35,7 +35,12 @@ const INCIDENTES_COMUNES = [
 export default function MisReportes({ darkMode, onReportesActualizados }) {
   const [reportes, setReportes] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false);
+
+  // 🔄 Ahora archivoPreview almacena { url, type } o null.
   const [archivoPreview, setArchivoPreview] = useState(null);
+  // 🆕 Estado para la URL temporal del archivo local
+  const [tempPreviewUrl, setTempPreviewUrl] = useState(null);
+
   const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
 
   const [nuevoReporte, setNuevoReporte] = useState({
@@ -46,6 +51,8 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     Latitud: "",
     Longitud: "",
     Archivo: null,
+    esOtro: false,
+    NombreIncidenteOtro: "",
   });
 
   const token = localStorage.getItem("access");
@@ -71,7 +78,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     cargarReportes();
   }, []);
 
-  // ---------- Obtener ubicación ----------
+  // ---------- Obtener ubicación (simplificado, sin alerts) ----------
   const obtenerUbicacionPorIP = async () => {
     try {
       const ipRes = await axios.get("https://ipapi.co/json/");
@@ -83,10 +90,10 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
         Latitud: ipData.latitude || "",
         Longitud: ipData.longitude || "",
       }));
-      alert(`Ubicación aproximada obtenida por IP: ${ubicacionIP}.`);
+      // alert(`Ubicación aproximada obtenida por IP: ${ubicacionIP}.`); // 🛑 Eliminado
     } catch (e) {
       console.error("Error obteniendo ubicación por IP:", e);
-      alert("No se pudo obtener la ubicación automáticamente.");
+      // alert("No se pudo obtener la ubicación automáticamente."); // 🛑 Eliminado
     }
   };
 
@@ -143,6 +150,12 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
   const cerrarModal = () => {
     setMostrarModal(false);
+    // 🧹 Limpia la URL temporal al cerrar el modal
+    if (tempPreviewUrl) {
+      URL.revokeObjectURL(tempPreviewUrl);
+    }
+    setTempPreviewUrl(null);
+    setArchivoPreview(null);
     setNuevoReporte({
       Ubicacion: "",
       Descripcion: "",
@@ -156,8 +169,30 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     });
   };
 
-  const abrirPreview = (archivoUrl) => setArchivoPreview(archivoUrl);
-  const cerrarPreview = () => setArchivoPreview(null);
+  // 🔄 MODIFICADA para manejar objeto { url, type } o string (para URLs del backend)
+  const abrirPreview = (data) => {
+    if (typeof data === 'string') {
+      // Es una URL del backend. Intentamos adivinar el tipo por la extensión.
+      const url = data;
+      let type = '';
+      if (url.endsWith('.pdf')) type = 'application/pdf';
+      else if (url.match(/\.(mp4|webm|ogg)$/i)) type = 'video';
+      else if (url.match(/\.(jpg|jpeg|png|gif)$/i)) type = 'image';
+      setArchivoPreview({ url, type });
+    } else {
+      // Es el objeto { url, type } del archivo local
+      setArchivoPreview(data);
+    }
+  };
+
+  const cerrarPreview = () => {
+    // Si la URL es la temporal, la limpiamos al cerrar
+    if (archivoPreview && archivoPreview.url === tempPreviewUrl) {
+      URL.revokeObjectURL(tempPreviewUrl);
+      setTempPreviewUrl(null);
+    }
+    setArchivoPreview(null);
+  };
 
   // ---------- Registrar incidente ----------
   const registrarIncidente = async () => {
@@ -165,20 +200,20 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     try {
       const formData = new FormData();
       formData.append("Ubicacion", nuevoReporte.Ubicacion);
-      
+
       const descripcionFinal = nuevoReporte.Descripcion.trim() || "No determinado";
       formData.append("Descripcion", descripcionFinal);
-      
+
       const nombreFinal = nuevoReporte.esOtro
         ? (nuevoReporte.NombreIncidenteOtro || "").trim()
         : nuevoReporte.NombreIncidente;
 
       if (!nombreFinal) return alert("Debes especificar el nombre del incidente.");
       formData.append("NombreIncidente", nombreFinal);
-      
+
       const escalaFinal = Number(nuevoReporte.escala) || 4;
       formData.append("escala", escalaFinal);
-      
+
       formData.append("Latitud", nuevoReporte.Latitud);
       formData.append("Longitud", nuevoReporte.Longitud);
       if (nuevoReporte.Archivo) formData.append("Archivo", nuevoReporte.Archivo);
@@ -187,29 +222,29 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
       for (let [key, value] of formData.entries()) {
         console.log(key, value);
       }
-      
+
       const res = await axios.post(`${API}/registrar-incidente`, formData, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
       const det = res.data.registro;
-      
+
       const escalaNumero = Number(nuevoReporte.escala) || Number(det.Escala) || Number(det.escala) || 4;
-      
-      const reporteRegistrado = { 
-        ...det, 
+
+      const reporteRegistrado = {
+        ...det,
         Escala: escalaNumero,
         FechaHora: det.FechaHora || new Date().toISOString()
       };
-      
+
       console.log("📝 Reporte registrado:", reporteRegistrado);
       console.log("📊 Escala guardada:", escalaNumero);
-      
+
       const nuevosReportes = [reporteRegistrado, ...reportes];
       setReportes(nuevosReportes);
       if (onReportesActualizados) onReportesActualizados(nuevosReportes);
-      
-      alert("¡Incidente registrado con éxito!");
+
+      //alert("¡Incidente registrado con éxito!");
       cerrarModal();
     } catch (err) {
       console.error("Error al registrar incidente:", err);
@@ -297,7 +332,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     saveAs(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "mis_reportes.xlsx");
   };
 
-  // ---------- FILTROS ----------
+  // ---------- FILTROS y ORDENAMIENTO (Sin cambios) ----------
   const [filterDate, setFilterDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -328,7 +363,6 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
     );
   }
 
-  // ---------- Ordenar ----------
   const ordenarPor = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
@@ -495,7 +529,7 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
               value={nuevoReporte.Descripcion}
               onChange={(e) => setNuevoReporte({ ...nuevoReporte, Descripcion: e.target.value })}
             />
-            
+
             <p style={{ fontSize: "12px", color: "#666", marginTop: "-8px", marginBottom: "8px" }}>
               Si no escribes una descripción, se guardará como "No determinado"
             </p>
@@ -515,9 +549,43 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
             <input
               type="file"
-              accept="image/*,video/*"
-              onChange={(e) => setNuevoReporte({ ...nuevoReporte, Archivo: e.target.files[0] })}
+              accept="image/*,video/*,application/pdf" // Permitir PDF
+              onChange={(e) => {
+                const file = e.target.files[0];
+
+                // Limpiar la URL anterior si existe
+                if (tempPreviewUrl) {
+                  URL.revokeObjectURL(tempPreviewUrl);
+                }
+
+                if (file) {
+                  const newUrl = URL.createObjectURL(file);
+                  setTempPreviewUrl(newUrl);
+                  setNuevoReporte({ ...nuevoReporte, Archivo: file });
+                } else {
+                  setTempPreviewUrl(null);
+                  setNuevoReporte({ ...nuevoReporte, Archivo: null });
+                }
+              }}
             />
+
+            {/* Botón de Previsualización para archivos locales */}
+            {nuevoReporte.Archivo && (
+              <div style={{ textAlign: "center", marginTop: "15px" }}>
+                <span style={{ color: "#007BFF", fontSize: "1rem", verticalAlign: "middle" }}>
+                  📎 Archivo listo para subir
+                </span>
+                {tempPreviewUrl && nuevoReporte.Archivo.type && (
+                  <button
+                    onClick={() => abrirPreview({ url: tempPreviewUrl, type: nuevoReporte.Archivo.type })}
+                    className="btn-preview-file"
+                    style={{ marginLeft: '15px' }}
+                  >
+                    <span className="icon">🔍</span> Ver Contenido
+                  </button>
+                )}
+              </div>
+            )}
 
             <div style={{ display: "flex", justifyContent: "space-around", marginTop: "10px" }}>
               <button onClick={registrarIncidente} className="btn-guardar">
@@ -565,13 +633,24 @@ export default function MisReportes({ darkMode, onReportesActualizados }) {
 
             <h3 style={{ textAlign: "center", marginBottom: "10px" }}>Vista previa del archivo</h3>
 
-            {archivoPreview.endsWith(".pdf") ? (
-              <iframe src={archivoPreview} width="100%" height="400px" title="Vista PDF" />
-            ) : archivoPreview.match(/\.(mp4|webm|ogg)$/) ? (
-              <video src={archivoPreview} controls width="100%" />
-            ) : (
-              <img src={archivoPreview} alt="Vista previa" width="100%" />
-            )}
+            {/* Determinar tipo de archivo (local o remoto) por el tipo MIME o extensión */}
+            {
+              (archivoPreview.type && archivoPreview.type.includes("pdf")) ||
+                (typeof archivoPreview === 'string' && archivoPreview.endsWith(".pdf")) ? (
+                <iframe src={archivoPreview.url || archivoPreview} width="100%" height="400px" title="Vista PDF" style={{ border: "1px solid #ccc", borderRadius: "6px" }} />
+              ) :
+                (archivoPreview.type && archivoPreview.type.includes("video")) ||
+                  (typeof archivoPreview === 'string' && archivoPreview.match(/\.(mp4|webm|ogg)$/i)) ? (
+                  <video src={archivoPreview.url || archivoPreview} controls width="100%" style={{ borderRadius: "8px", maxHeight: "400px" }} />
+                ) :
+                  (archivoPreview.type && archivoPreview.type.includes("image")) ||
+                    (typeof archivoPreview === 'string') ? (
+                    <img src={archivoPreview.url || archivoPreview} alt="Vista previa" width="100%" style={{ maxHeight: "400px", objectFit: "contain", borderRadius: "8px" }} />
+                  ) : (
+                    <p style={{ color: "#cc0000", textAlign: "center", padding: "20px" }}>
+                      Formato de archivo no compatible o URL no válida.
+                    </p>
+                  )}
           </div>
         </div>
       )}
