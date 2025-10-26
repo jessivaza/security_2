@@ -30,6 +30,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 import threading
 from .models import DetalleAlerta
+from email.mime.image import MIMEImage
+import os
 
 # ===== App local =====
 from .models import (
@@ -586,6 +588,12 @@ def enviar_correo_reporte(asunto, mensaje, destinatario):
         print(f"⚠️ Error al enviar correo: {e}")
 
 
+
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import strip_tags
+import threading
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
@@ -594,7 +602,6 @@ def registrar_incidente(request):
     Crea un DetalleAlerta para el usuario autenticado y envía una notificación al correo del usuario.
     """
     u = request.user
-
     Ubicacion = (request.data.get("Ubicacion") or "").strip()
     Descripcion = (request.data.get("Descripcion") or "").strip()
     NombreIncidente = (request.data.get("NombreIncidente") or "").strip()
@@ -638,25 +645,67 @@ def registrar_incidente(request):
             FechaHora=timezone.now(),
         )
 
-        # 📩 Preparar mensaje completo con todos los detalles
+        # 📩 Armar el mensaje HTML con imagen embebida
         asunto = "Confirmación de Reporte - Sistema de Seguridad Ciudadana"
-        mensaje = (
-            f"Hola {u.nombre},\n\n"
-            f"Tu reporte ha sido registrado exitosamente.\n\n"
-            f"📝 Detalles del Incidente:\n"
-            f"- Nombre del Incidente: {det.NombreIncidente}\n"
-            f"- Descripción: {det.Descripcion}\n"
-            f"- Ubicación: {det.Ubicacion}\n"
-            f"- Fecha: {det.FechaHora.strftime('%d/%m/%Y %H:%M')}\n\n"
-            "Gracias por contribuir con la seguridad ciudadana.\n\n"
-            "Atentamente,\n"
-            "👮 Equipo de Seguridad Ciudadana"
-        )
 
-        # Enviar correo en segundo plano (sin que el usuario espere)
-        threading.Thread(target=enviar_correo_reporte, args=(asunto, mensaje, u.correo)).start()
+        mensaje_html = f"""
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <p>Hola <b>{u.nombre}</b>,</p>
+            <p>Tu reporte ha sido registrado exitosamente.</p>
+
+            <h3>📝 Detalles del Incidente:</h3>
+            <ul style="list-style-type: none; padding: 0;">
+              <li><b>Nombre del Incidente:</b> {det.NombreIncidente}</li>
+              <li><b>Descripción:</b> {det.Descripcion}</li>
+              <li><b>Escala:</b> {ESCALAS.get(det.Escala, '')}</li>
+              <li><b>Ubicación:</b> {det.Ubicacion}</li>
+              <li><b>Fecha:</b> {det.FechaHora.strftime('%d/%m/%Y %H:%M')}</li>
+            </ul>
+        """
+
+        # 📷 Si hay archivo, incrustarlo en el correo
+        mensaje_html += "<p><b>📷 Imagen del incidente:</b></p>"
+        if det.Archivo:
+            mensaje_html += '<img src="cid:imagen_reporte" style="max-width: 100%; border-radius: 8px; border: 1px solid #ccc; margin-top: 10px;" />'
+        else:
+            mensaje_html += "<p>No se adjuntó ninguna imagen.</p>"
+
+        mensaje_html += """
+            <br>
+            <p>Gracias por contribuir con la seguridad ciudadana.</p>
+            <p>Atentamente,<br>👮 <b>Equipo de Seguridad Ciudadana</b></p>
+          </body>
+        </html>
+        """
+
+        mensaje_texto = strip_tags(mensaje_html)
+
+        def enviar_correo_html():
+            email = EmailMultiAlternatives(
+                asunto,
+                mensaje_texto,
+                settings.DEFAULT_FROM_EMAIL,
+                [u.correo],
+            )
+            email.attach_alternative(mensaje_html, "text/html")
+
+            # Adjuntar imagen embebida (CID)
+            if det.Archivo:
+                ruta_imagen = det.Archivo.path
+                if os.path.exists(ruta_imagen):
+                    with open(ruta_imagen, 'rb') as f:
+                        imagen = MIMEImage(f.read())
+                        imagen.add_header('Content-ID', '<imagen_reporte>')
+                        imagen.add_header('Content-Disposition', 'inline', filename=os.path.basename(ruta_imagen))
+                        email.attach(imagen)
+
+            email.send()
+
+        threading.Thread(target=enviar_correo_html).start()
 
         # Retornar respuesta normal
+        archivo_url = f"{settings.MEDIA_URL}{det.Archivo}" if det.Archivo else ""
         return Response({
             "message": "Incidente registrado correctamente",
             "registro": {
@@ -666,14 +715,14 @@ def registrar_incidente(request):
                 "NombreIncidente": det.NombreIncidente,
                 "Descripcion": det.Descripcion,
                 "Escala": ESCALAS.get(det.Escala, ""),
-                "Archivo": "📎" if det.Archivo else ""
+                "Latitud": det.Latitud,
+                "Longitud": det.Longitud,
+                "Archivo": archivo_url or ""
             }
         }, status=201)
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
-
-
 # ------------------ RESET PASSWORD (opcional) -------------
 @api_view(['POST'])
 @permission_classes([AllowAny])
