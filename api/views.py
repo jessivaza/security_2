@@ -578,7 +578,7 @@ def mis_reportes(request):
     return Response(serializer.data)
 
 
-ESCALAS = {1: "Bajo", 2: "Medio", 3: "Alto"}
+ESCALAS = {1: "Bajo", 2: "Medio", 3: "Alto", 4: "Pendiente (por asignar)"}
 
 def enviar_correo_reporte(asunto, mensaje, destinatario):
     """Envía el correo en segundo plano (sin demorar la respuesta del servidor)."""
@@ -761,7 +761,7 @@ def determinar_escala(descripcion):
     elif any(palabra in texto for palabra in ["daño", "vandalismo", "desperfecto", "mascota perdida", "robo de mascota"]):
         return 1  # Bajo
     else:
-        return None  # No determinada
+        return 4  # Pendiente (por asignar)
 
 # ------------------ RESET PASSWORD (opcional) -------------
 @api_view(['POST'])

@@ -34,9 +34,9 @@ export default function MisAlertas({ darkMode }) {
       case "2":
         return "naranja";
       case "1":
-        return "amarillo";
+        return "verde";
       default:
-        return "amarillo";
+        return "verde";
     }
   };
 
@@ -113,7 +113,7 @@ export default function MisAlertas({ darkMode }) {
 
       {/* --- Filtro de nivel --- */}
       <div className="filtros-alerta">
-        <label>Filtrar por nivel:</label>
+        <label>Filtrar por escala:</label>
         <select
           value={filtroEscala}
           onChange={(e) => setFiltroEscala(e.target.value)}
