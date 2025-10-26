@@ -18,61 +18,55 @@ const API = "http://127.0.0.1:8000/api";
 
 // Colores por nivel
 const LEVELS = {
-  1: { name: "Bajo",  color: "#4caf50" },
+  1: { name: "Bajo", color: "#4caf50" },
   2: { name: "Medio", color: "#ff9800" },
-  3: { name: "Alto",  color: "#f44336" },
-};
-const UNCLASS = { name: "No clasificado", color: "#9e9e9e" };
-
-// --- Heurística para inferir nivel por título si no viene id/texto de escala
-const inferFromTitle = (t = "") => {
-  const s = String(t).toLowerCase();
-  const alto  = ["robo", "asalto", "hurto", "intento de asesinato", "homicidio", "secuestro"];
-  const medio = ["accidente", "choque", "incendio", "explosión", "pelea", "amenaza"];
-  if (alto.some(k => s.includes(k))) return 3;
-  if (medio.some(k => s.includes(k))) return 2;
-  return 1; // resto -> bajo
+  3: { name: "Alto", color: "#f44336" },
 };
 
-// Texto a nivel (por si el backend devuelve "Alto/Medio/Bajo")
-const strToLevel = (esc = "") => {
-  const s = String(esc).toLowerCase().trim();
-  if (s.includes("alto")) return 3;
-  if (s.includes("medio")) return 2;
-  if (s.includes("bajo")) return 1;
-  return 0;
-};
-
-// Resuelve nivel de un reporte: id -> texto -> heurística
+// Resuelve nivel de un reporte con múltiples intentos
 const resolveLevel = (r) => {
-  const id = Number(
-    r.idEscalaIncidencia ??
-    r.id_escala ??
-    r.IdEscala
-  );
-  if (!Number.isNaN(id) && id >= 1 && id <= 3) return id;
-
-  const byText = strToLevel(r.Escala || r.escala || "");
-  if (byText) return byText;
-
-  return inferFromTitle(r.NombreIncidente || r.nombre || "");
+  // Intenta obtener el valor de diferentes posibles campos
+  let escalaValue = r.Escala ?? r.escala ?? r.idEscala ?? r.idEscalaIncidencia ?? r.IdEscala;
+  
+  // Convierte a número si es string
+  const nivel = Number(escalaValue);
+  
+  // Solo retorna si es 1, 2 o 3 (ignora 4 = Pendiente)
+  if (nivel >= 1 && nivel <= 3) {
+    return nivel;
+  }
+  
+  // Si el valor es texto, intenta mapear
+  if (typeof escalaValue === 'string') {
+    const s = escalaValue.toLowerCase().trim();
+    if (s.includes("bajo")) return 1;
+    if (s.includes("medio")) return 2;
+    if (s.includes("alto")) return 3;
+  }
+  
+  return null; // No clasificable
 };
 
 // Pie data desde reportes
 const rollupFromReportes = (reportes = []) => {
   const counts = { 1: 0, 2: 0, 3: 0 };
+
   for (const r of reportes) {
     const lvl = resolveLevel(r);
-    if (lvl >= 1 && lvl <= 3) counts[lvl] += 1;
+    if (lvl) counts[lvl] += 1;
   }
-  const data = Object.entries(counts)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => ({
-      name: LEVELS[k].name,
-      value: v,
-      color: LEVELS[k].color,
-    }));
-  return data.length ? data : [{ name: UNCLASS.name, value: 0, color: UNCLASS.color }];
+
+  // Retorna datos solo si hay al menos un reporte
+  const pieData = Object.entries(counts)
+    .map(([k, v]) => ({ 
+      name: LEVELS[k].name, 
+      value: v, 
+      color: LEVELS[k].color 
+    }))
+    .filter(d => d.value > 0);
+
+  // Si no hay datos, retorna un array con un elemento dummy
+  return pieData.length > 0 ? pieData : [{ name: "Sin datos", value: 1, color: "#ccc" }];
 };
 
 // Formateo de fecha para el eje X
@@ -82,14 +76,14 @@ const fmtTick = (ts) =>
 // Convierte datos de evolución a formato de línea
 const toLineData = (raw = []) =>
   raw.map((r) => {
-    const s = String(r.fecha ?? "").slice(0, 10); // 'YYYY-MM-DD'
+    const s = String(r.fecha ?? "").slice(0, 10);
     let ts;
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
       const [y, m, d] = s.split("-").map(Number);
-      ts = new Date(y, m - 1, d).getTime(); // medianoche local
+      ts = new Date(y, m - 1, d).getTime();
     } else {
       const d = new Date(r.fecha);
-      ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); // medianoche local
+      ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     }
     return { ts, cantidad: Number(r.cantidad) || 0 };
   });
@@ -99,8 +93,8 @@ const rollupLineFromReportes = (reportes = []) => {
   const byDay = new Map();
   for (const r of reportes) {
     const d = new Date(r.FechaHora);
-    if (Number.isNaN(d)) continue;
-    const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); // medianoche local
+    if (Number.isNaN(d.getTime())) continue;
+    const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     byDay.set(ts, (byDay.get(ts) || 0) + 1);
   }
   return [...byDay.entries()]
@@ -152,78 +146,80 @@ export default function Resumen() {
   const [pieData, setPieData] = useState(null);
   const [lineData, setLineData] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("access");
-    if (!token) { setError("No hay token. Inicia sesión."); return; }
+    if (!token) { 
+      setError("No hay token. Inicia sesión."); 
+      setLoading(false);
+      return; 
+    }
 
-    fetch(`${API}/resumen/`, { headers: { Authorization: `Bearer ${token}` }})
-      .then(r => { if (!r.ok) throw new Error("No se pudo cargar el resumen"); return r.json(); })
-      .then(async (res) => {
-        // ---- PIE desde /resumen
-        const raw = (res?.niveles_incidencia ?? []);
-        const mapped = raw.map(n => {
-          const desc =
-            n.idEscalaIncidencia__Descripcion ??
-            n.Descripcion ??
-            n.name ??
-            n.Escala ??
-            "";
-          const lvl = strToLevel(desc);
-          if (lvl) {
-            return { name: LEVELS[lvl].name, value: n.total, color: LEVELS[lvl].color };
-          }
-          return { name: UNCLASS.name, value: n.total, color: UNCLASS.color };
+    const fetchResumen = async () => {
+      try {
+        // Primero intenta obtener desde /mis-reportes (más confiable)
+        const mrRes = await fetch(`${API}/mis-reportes/`, { 
+          headers: { Authorization: `Bearer ${token}` } 
         });
-        const onlyUnclass = mapped.length && mapped.every(d => d.name === UNCLASS.name);
+        
+        if (!mrRes.ok) throw new Error("No se pudo cargar reportes");
+        
+        const reportes = await mrRes.json();
+        
+        console.log("📊 Reportes cargados:", reportes); // Debug
+        console.log("📊 Primer reporte:", reportes[0]); // Debug
 
-        // ---- LÍNEA desde /resumen (pasado a medianoche LOCAL)
-        const evo = toLineData(res?.evolucion_reportes ?? []);
+        // Filtra solo niveles 1-3
+        const filteredReportes = reportes.filter(r => {
+          const lvl = resolveLevel(r);
+          console.log(`Reporte ${r.idTipoIncidencia}: escala detectada = ${lvl}`); // Debug
+          return lvl >= 1 && lvl <= 3;
+        });
 
-        // Fallback si /resumen no clasifica o no trae nada útil
-        if (!mapped.length || onlyUnclass) {
-          const mrRes = await fetch(`${API}/mis-reportes/`, { headers: { Authorization: `Bearer ${token}` }});
-          const mr = mrRes.ok ? await mrRes.json() : [];
-          setPieData(rollupFromReportes(mr));
-          setLineData(evo.length ? evo : rollupLineFromReportes(mr));
-        } else {
-          setPieData(mapped);
-          setLineData(evo);
-        }
-      })
-      .catch(async (errResumen) => {
-        console.warn("Fallo /resumen, usando /mis-reportes", errResumen);
-        try {
-          const token2 = localStorage.getItem("access");
-          const mrRes = await fetch(`${API}/mis-reportes/`, {
-            headers: { Authorization: `Bearer ${token2}` },
-          });
-          if (!mrRes.ok) throw new Error("mis-reportes no disponible");
-          const mr = await mrRes.json();
-          setPieData(rollupFromReportes(mr));
-          setLineData(rollupLineFromReportes(mr));
-        } catch (errFallback) {
-          console.error("Fallo también /mis-reportes:", errFallback);
-          setError("No se pudo cargar el resumen");
-        }
-      });
+        console.log("✅ Reportes filtrados (1-3):", filteredReportes.length); // Debug
+
+        // Genera datos del pie
+        const pie = rollupFromReportes(filteredReportes);
+        setPieData(pie);
+        
+        console.log("🥧 Datos del pie:", pie); // Debug
+
+        // Genera datos de línea
+        const line = rollupLineFromReportes(filteredReportes);
+        setLineData(line);
+
+        console.log("📈 Datos de línea:", line); // Debug
+
+      } catch (err) {
+        console.error("❌ Error cargando datos:", err);
+        setError("No se pudo cargar el resumen");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResumen();
   }, []);
 
   if (error) return <p style={{ color: "red" }}>⚠️ {error}</p>;
-  if (!pieData || !lineData) return <p>Cargando resumen...</p>;
+  if (loading) return <p>Cargando resumen...</p>;
+  if (!pieData || !lineData) return <p>No hay datos disponibles</p>;
 
-  // Leyenda manual (evita que aparezca "value")
-  const legendPayload = pieData.map((d, i) => ({
-    id: i,
-    type: "square",
-    value: d.name,
-    color: d.color,
-  }));
+  // Leyenda manual
+  const legendPayload = pieData
+    .filter(d => d.name !== "Sin datos")
+    .map((d, i) => ({
+      id: i,
+      type: "square",
+      value: d.name,
+      color: d.color,
+    }));
 
   return (
     <section className="resumen-section">
       <div className="resumen-cards">
-        {/* --------- PIE --------- */}
+        {/* PIE CHART */}
         <div className="resumen-card">
           <h3>🚨 Incidentes por nivel</h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -235,21 +231,22 @@ export default function Resumen() {
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
-                label={({ payload, percent }) =>
-                  `${payload.name} : ${payload.value}${
-                    percent ? ` (${(percent * 100).toFixed(0)}%)` : ""
-                  }`
-                }
+                label={({ payload, percent }) => {
+                  if (payload.name === "Sin datos") return "Sin datos";
+                  return `${payload.name}: ${payload.value} (${(percent * 100).toFixed(0)}%)`;
+                }}
               >
                 {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Pie>
               <Tooltip formatter={(val, _n, { payload }) => [val, payload?.name]} />
-              <Legend payload={legendPayload} verticalAlign="bottom" />
+              {legendPayload.length > 0 && (
+                <Legend payload={legendPayload} verticalAlign="bottom" />
+              )}
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* --------- LÍNEA --------- */}
+        {/* LINE CHART */}
         <div className="resumen-card">
           <h3>📈 Evolución de reportes</h3>
           {Array.isArray(lineData) && lineData.length > 0 ? (
