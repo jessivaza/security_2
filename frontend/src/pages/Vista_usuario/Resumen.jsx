@@ -287,8 +287,6 @@ export default function Resumen() {
                         <tr>
                             <th>Puesto</th>
                             <th>Ubicación</th>
-                            <th style={{ color: LEVELS[3].color }}>Alto</th>
-                            <th style={{ color: LEVELS[2].color }}>Medio</th>
                             <th>Total</th>
                         </tr>
                     </thead>
@@ -298,9 +296,7 @@ export default function Resumen() {
                             <tr key={index}>
                                 <td>{index + 1}</td>
                                 <td>{zona.ubicacion || 'Sin Especificar'}</td>
-                                <td style={{ color: LEVELS[3].color, fontWeight: zona.alto > 0 ? 'bold' : 'normal' }}>{zona.alto || 0}</td>
-                                <td style={{ color: LEVELS[2].color, fontWeight: zona.medio > 0 ? 'bold' : 'normal' }}>{zona.medio || 0}</td>
-                                <td><b>{zona.total || 0}</b></td>
+                                 <td><b>{zona.total || 0}</b></td>
                             </tr>
                         ))}
                     </tbody>
