@@ -1,10 +1,16 @@
+//IMPORTACIONES 
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Inicio from './src/pages/inicio.jsx';
 
+
+
+
+//DEFINE LAS URLS DE LAS PÁGINAS CREADAS :D
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>ESTA ES UNA PRUEBA 2</Text>
+      <Inicio />
       <StatusBar style="auto" />
     </View>
   );
@@ -13,8 +19,5 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
