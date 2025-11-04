@@ -100,3 +100,25 @@ git commit
 ```
 10. **======== PDF y EXCEL =============**
   npm install jspdf jspdf-autotable xlsx 
+
+```
+```
+**=================================== APLICACIÓN MOBILE ======================================**
+
+#Dependencias de expo para la creación de la carpeta mobile 
+npm install -g expo-cli
+
+#Creación de la carpeta mobile 
+npx create-expo-app mobile
+
+#Ingresar a la carpeta mobile
+cd mobile
+
+#Runnear la aplicación
+npx expo start
+
+-----ingresar la letra "a" para abrir el emulador con expo---------
+a
+
+
+```
