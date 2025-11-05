@@ -106,6 +106,7 @@ git commit
 **=================================== APLICACIÓN MOBILE ======================================**
 
 #Dependencias de expo para la creación de la carpeta mobile 
+cd mobile
 npm install -g expo-cli
 
 #Instalar dependencias de React Native 
