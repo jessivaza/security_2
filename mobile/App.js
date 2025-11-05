@@ -1,7 +1,7 @@
 //IMPORTACIONES 
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
-import Inicio from './src/pages/inicio.jsx';
+import Inicio from './src/screens/inicio.jsx';
 
 
 
