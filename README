@@ -105,9 +105,6 @@ git commit
 ```
 **=================================== APLICACIÓN MOBILE ======================================**
 
-#Creación de la carpeta mobile con js  (YA ESTÁ CREADO!) 
-npx create-expo-app mobile --template blank
-
 #Dependencias de expo para la creación de la carpeta mobile 
 npm install -g expo-cli
 
@@ -118,16 +115,11 @@ npx expo install @react-navigation/native @react-navigation/native-stack
 npx expo install react-native-screens react-native-safe-area-context
 npm install axios
 
-#Ingresar a la carpeta mobile
-cd mobile
-
-#Runnear el backend de esta manera: 
-py manage.py runserver 0.0.0.0:8000
-
-
 #Runnear la aplicación
 npx expo start
-
+ 
+#Iniciar el backend de esta manera: 
+py manage.py runserver 0.0.0.0:8000
 -----ingresar la letra "a" para abrir el emulador con expo---------
 a
 
