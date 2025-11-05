@@ -100,3 +100,28 @@ git commit
 ```
 10. **======== PDF y EXCEL =============**
   npm install jspdf jspdf-autotable xlsx 
+
+```
+```
+**=================================== APLICACIÓN MOBILE ======================================**
+
+#Dependencias de expo para la creación de la carpeta mobile 
+npm install -g expo-cli
+
+#Instalar dependencias de React Native 
+cd mobile
+npm install react-native-web react-dom
+npx expo install @react-navigation/native @react-navigation/native-stack
+npx expo install react-native-screens react-native-safe-area-context
+npm install axios
+
+#Runnear la aplicación
+npx expo start
+ 
+#Iniciar el backend de esta manera: 
+py manage.py runserver 0.0.0.0:8000
+-----ingresar la letra "a" para abrir el emulador con expo---------
+a
+
+
+```
