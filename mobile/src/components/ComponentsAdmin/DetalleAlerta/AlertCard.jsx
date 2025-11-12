@@ -3,6 +3,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../../theme/ThemeContext';
 
 const AlertCard = ({ alerta, onPress }) => {
     const getEscalaColor = (escala) => {
@@ -46,9 +47,10 @@ const AlertCard = ({ alerta, onPress }) => {
         });
     };
 
+    const { theme } = useTheme();
     return (
         <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}
             onPress={() => onPress(alerta)}
             activeOpacity={0.7}
         >
@@ -67,27 +69,27 @@ const AlertCard = ({ alerta, onPress }) => {
 
             {/* Contenido */}
             <View style={styles.content}>
-                <Text style={styles.titulo} numberOfLines={2}>
+                <Text style={[styles.titulo, { color: theme.textPrimary }]} numberOfLines={2}>
                     {alerta.nombre_incidente}
                 </Text>
 
                 <View style={styles.detailRow}>
-                    <Ionicons name="location" size={16} color="#666" />
-                    <Text style={styles.detailText} numberOfLines={1}>
+                    <Ionicons name="location" size={16} color={theme.textSecondary} />
+                    <Text style={[styles.detailText, { color: theme.textSecondary }]} numberOfLines={1}>
                         {alerta.ubicacion}
                     </Text>
                 </View>
 
                 {alerta.descripcion && (
-                    <Text style={styles.descripcion} numberOfLines={2}>
+                    <Text style={[styles.descripcion, { color: theme.textSecondary }]} numberOfLines={2}>
                         {alerta.descripcion}
                     </Text>
                 )}
 
                 <View style={styles.footer}>
                     <View style={styles.detailRow}>
-                        <Ionicons name="time" size={14} color="#999" />
-                        <Text style={styles.fechaText}>
+                        <Ionicons name="time" size={14} color={theme.textMuted} />
+                        <Text style={[styles.fechaText, { color: theme.textMuted }]}>
                             {formatFecha(alerta.fecha)}
                         </Text>
                     </View>
@@ -108,7 +110,6 @@ const AlertCard = ({ alerta, onPress }) => {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#fff',
         borderRadius: 12,
         marginHorizontal: 16,
         marginVertical: 8,
@@ -151,7 +152,6 @@ const styles = StyleSheet.create({
     titulo: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#333',
         marginBottom: 8,
     },
     detailRow: {
@@ -161,13 +161,11 @@ const styles = StyleSheet.create({
     },
     detailText: {
         fontSize: 14,
-        color: '#666',
         marginLeft: 6,
         flex: 1,
     },
     descripcion: {
         fontSize: 13,
-        color: '#777',
         marginTop: 6,
         marginBottom: 8,
         lineHeight: 18,
@@ -183,7 +181,6 @@ const styles = StyleSheet.create({
     },
     fechaText: {
         fontSize: 12,
-        color: '#999',
         marginLeft: 4,
     },
     coordText: {

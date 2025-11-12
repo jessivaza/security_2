@@ -6,6 +6,8 @@ import { StyleSheet } from 'react-native';
 
 // IMPORTACIONES
 import DetalleAlerta from './src/screens/Vista_Admin/DetalleAlerta.jsx';
+import DashboardAdmin from './src/screens/Vista_Admin/DashboardAdmin.jsx';
+import { ThemeProvider } from './src/theme/ThemeContext.js';
 
 // Crea el Stack Navigator
 const Stack = createNativeStackNavigator();
@@ -13,16 +15,21 @@ const Stack = createNativeStackNavigator();
 //================ DEFINE LAS URLS DE LAS PÁGINAS (SCREENS) CREADAS :D ========================
 export default function App() {
   return (
+    <ThemeProvider>
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator
-        initialRouteName="DetalleAlerta"  // 👈 Esta será la pantalla inicial
+        /* initialRouteName="DetalleAlerta" */ // 👈 Esta será la pantalla inicial
+        initialRouteName="DashboardAdmin"
       >
         {/* ======= PANTALLA PRINCIPAL ======= */}
         <Stack.Screen
-          name="DetalleAlerta"
+          /* name="DetalleAlerta"
           component={DetalleAlerta}
-          options={{ title: 'ALERTAS' }} //TITULO QUE VA EN LA PÁGINA
+          options={{ title: 'ALERTAS' }} */ //TITULO QUE VA EN LA PÁGINA
+          name="DashboardAdmin"
+          component={DashboardAdmin}
+          options={{ title: 'DashboardAdmin' }}
         />
 
         {/* ======= EJEMPLOS DE OTRAS PÁGINAS SECUNDARIAS ======= */}
@@ -40,6 +47,7 @@ export default function App() {
         */}
       </Stack.Navigator>
     </NavigationContainer>
+    </ThemeProvider>
   );
 }
 

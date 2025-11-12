@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { alertasAPI } from '../../services/api';
 import AlertCard from '../../components/ComponentsAdmin/DetalleAlerta/AlertCard';
+import { useTheme } from '../../theme/ThemeContext';
 
 const Inicio = ({ navigation }) => {
     const [alertas, setAlertas] = useState([]);
@@ -21,6 +22,7 @@ const Inicio = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [filtro, setFiltro] = useState('todas'); // 'todas', 'pendientes', 'proceso', 'resueltas'
+    const { theme } = useTheme();
 
     // Cargar alertas al montar el componente
     useEffect(() => {
@@ -102,48 +104,48 @@ const Inicio = ({ navigation }) => {
     };
 
     const renderHeader = () => (
-        <View style={styles.header}>
-            <Text style={styles.headerTitle}>Alertas Activas</Text>
-            <Text style={styles.headerSubtitle}>
+        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+            <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Alertas Activas</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>
                 {alertasFiltradas.length} {alertasFiltradas.length === 1 ? 'alerta' : 'alertas'}
             </Text>
         </View>
     );
 
     const renderFiltros = () => (
-        <View style={styles.filtrosContainer}>
+        <View style={[styles.filtrosContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
             <TouchableOpacity
-                style={[styles.filtroBtn, filtro === 'todas' && styles.filtroActivo]}
+                style={[styles.filtroBtn, { backgroundColor: theme.filtroBg }, filtro === 'todas' && { backgroundColor: theme.filtroActiveBg } ]}
                 onPress={() => setFiltro('todas')}
             >
-                <Text style={[styles.filtroText, filtro === 'todas' && styles.filtroTextoActivo]}>
+                <Text style={[styles.filtroText, { color: theme.textSecondary }, filtro === 'todas' && { color: '#fff' }]}>
                     Todas
                 </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.filtroBtn, filtro === 'pendientes' && styles.filtroActivo]}
+                style={[styles.filtroBtn, { backgroundColor: theme.filtroBg }, filtro === 'pendientes' && { backgroundColor: theme.filtroActiveBg } ]}
                 onPress={() => setFiltro('pendientes')}
             >
-                <Text style={[styles.filtroText, filtro === 'pendientes' && styles.filtroTextoActivo]}>
+                <Text style={[styles.filtroText, { color: theme.textSecondary }, filtro === 'pendientes' && { color: '#fff' }]}>
                     Pendientes
                 </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.filtroBtn, filtro === 'proceso' && styles.filtroActivo]}
+                style={[styles.filtroBtn, { backgroundColor: theme.filtroBg }, filtro === 'proceso' && { backgroundColor: theme.filtroActiveBg } ]}
                 onPress={() => setFiltro('proceso')}
             >
-                <Text style={[styles.filtroText, filtro === 'proceso' && styles.filtroTextoActivo]}>
+                <Text style={[styles.filtroText, { color: theme.textSecondary }, filtro === 'proceso' && { color: '#fff' }]}>
                     En Proceso
                 </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.filtroBtn, filtro === 'resueltas' && styles.filtroActivo]}
+                style={[styles.filtroBtn, { backgroundColor: theme.filtroBg }, filtro === 'resueltas' && { backgroundColor: theme.filtroActiveBg } ]}
                 onPress={() => setFiltro('resueltas')}
             >
-                <Text style={[styles.filtroText, filtro === 'resueltas' && styles.filtroTextoActivo]}>
+                <Text style={[styles.filtroText, { color: theme.textSecondary }, filtro === 'resueltas' && { color: '#fff' }]}>
                     Resueltas
                 </Text>
             </TouchableOpacity>
@@ -153,7 +155,7 @@ const Inicio = ({ navigation }) => {
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
             <Ionicons name="information-circle-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
                 {filtro === 'todas'
                     ? 'No hay alertas para mostrar'
                     : `No hay alertas ${filtro === 'pendientes' ? 'pendientes' : filtro === 'proceso' ? 'en proceso' : 'resueltas'}`
@@ -176,7 +178,7 @@ const Inicio = ({ navigation }) => {
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }] }>
             <FlatList
                 data={alertasFiltradas}
                 keyExtractor={(item) => item.id.toString()}
