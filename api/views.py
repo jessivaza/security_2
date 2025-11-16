@@ -858,17 +858,19 @@ def perfil_usuario(request):
 @permission_classes([IsAuthenticated])
 def cambiar_password(request):
     u = request.user
-    actual = (request.data.get("actual") or "").strip()
     nueva = (request.data.get("nueva") or "").strip()
 
-    if not check_password(actual, u.password):
-        return Response({"error": "Contraseña actual incorrecta"}, status=400)
     if len(nueva) < 6:
-        return Response({"error": "La nueva contraseña debe tener al menos 6 caracteres"}, status=400)
+        return Response(
+            {"error": "La nueva contraseña debe tener al menos 6 caracteres"},
+            status=400
+        )
 
+    # Cambiar la contraseña directamente
     u.set_password(nueva)
     u.save()
-    return Response({"message": "Contraseña actualizada"})
+
+    return Response({"message": "Contraseña actualizada correctamente"})
 
 # --- Historial vista administrador ---
 

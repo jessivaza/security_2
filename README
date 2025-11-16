@@ -123,6 +123,12 @@ npx expo start
 py manage.py runserver 0.0.0.0:8000
 -----ingresar la letra "a" para abrir el emulador con expo---------
 a
+#Cambio de IPs
+Para ver tu IP abre tu cmd y pon ipconfig IPv4 
+Se debe cambiar las rutas en la carpeta services- mobile (api.js y auth.js) a tu ip local "IMPORTANTE"
+
+#Para el gif
+npm i lottie-react-native
 
 
 ```

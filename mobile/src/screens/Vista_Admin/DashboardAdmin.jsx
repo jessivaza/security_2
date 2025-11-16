@@ -9,32 +9,33 @@ import {
   ScrollView,
 } from 'react-native';
 
-// Importa tus pantallas aquí
 import Alertas from './DetalleAlerta';
 import Personal from './Personal';
 import MapadeAlertas from './MapadeAlertas';
 import Historial from './Historial';
 import Gestion from './Gestion';
+
 import { useTheme } from '../../theme/ThemeContext';
 import ThemeToggle from '../../components/ThemeToggle';
+import { logout } from "../../services/auth";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get('window');
+const MENU_WIDTH = width * 0.75;
 
-const DashboardAdmin = () => {
+const DashboardAdmin = ({ onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [currentScreen, setCurrentScreen] = useState('Dashboard');
-  const [slideAnim] = useState(new Animated.Value(-width * 0.75));
+  const slideAnim = useState(new Animated.Value(-MENU_WIDTH))[0];
   const { theme } = useTheme();
 
   const toggleMenu = () => {
-    const toValue = menuOpen ? -width * 0.75 : 0;
-    
+    const toValue = menuOpen ? -MENU_WIDTH : 0;
     Animated.timing(slideAnim, {
       toValue,
-      duration: 300,
+      duration: 250,
       useNativeDriver: true,
     }).start();
-    
     setMenuOpen(!menuOpen);
   };
 
@@ -43,10 +44,9 @@ const DashboardAdmin = () => {
     toggleMenu();
   };
 
-  const handleLogout = () => {
-    // Implementa tu lógica de cierre de sesión aquí
-    console.log('Cerrar sesión');
-    toggleMenu();
+  const handleLogout = async () => {
+    await logout();
+    onLogout();
   };
 
   const menuItems = [
@@ -58,80 +58,52 @@ const DashboardAdmin = () => {
     { name: 'Gestión', screen: 'Gestion' },
   ];
 
-  // Componente de icono de hamburguesa
-  const HamburgerIcon = () => (
-    <View style={styles.hamburgerIcon}>
-      <View style={[styles.hamburgerLine, { backgroundColor: theme.headerText }]} />
-      <View style={[styles.hamburgerLine, { backgroundColor: theme.headerText }]} />
-      <View style={[styles.hamburgerLine, { backgroundColor: theme.headerText }]} />
-    </View>
-  );
-
-  // Componente de icono X
-  const CloseIcon = () => (
-    <View style={styles.closeIcon}>
-      <View style={[styles.closeLine1, { backgroundColor: theme.headerText }]} />
-      <View style={[styles.closeLine2, { backgroundColor: theme.headerText }]} />
-    </View>
-  );
-
-  // Renderiza el contenido según la pantalla actual
   const renderContent = () => {
     switch (currentScreen) {
-      case 'Dashboard':
-        return (
-          <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Dashboard</Text>
-            <Text style={styles.contentText}>
-              Bienvenido al panel de administración
-            </Text>
-          </View>
-        );
-      case 'Alertas':
-        return <Alertas />;
-      case 'Personal':
-        return <Personal />;
-      case 'MapadeAlertas':
-        return <MapadeAlertas />;
-      case 'Historial':
-        return <Historial />;
-      case 'Gestion':
-        return <Gestion />;
-      default:
-        return null;
+      case 'Dashboard': return <Text style={styles.contentText}>Bienvenido al Dashboard</Text>;
+      case 'Alertas': return <Alertas />;
+      case 'Personal': return <Personal />;
+      case 'MapadeAlertas': return <MapadeAlertas />;
+      case 'Historial': return <Historial />;
+      case 'Gestion': return <Gestion />;
+      default: return null;
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={toggleMenu}
-          activeOpacity={0.7}
-        >
-          {menuOpen ? <CloseIcon /> : <HamburgerIcon />}
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.headerText }]}>SEGURIDAD</Text>
-        <ThemeToggle />
-      </View>
 
-      {/* Contenido principal */}
-      <View style={[styles.mainContent, { backgroundColor: theme.background }]}>
+      {/* HEADER dentro del área segura */}
+      <SafeAreaView
+        edges={['top']}
+        style={[styles.header, { backgroundColor: theme.headerBg }]}
+      >
+        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+          <Text style={{ color: theme.headerText, fontSize: 24 }}>☰</Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>
+          SEGURIDAD
+        </Text>
+
+        <ThemeToggle />
+      </SafeAreaView>
+
+      {/* CONTENIDO PRINCIPAL */}
+      <View style={styles.mainContent}>
         {renderContent()}
       </View>
 
-      {/* Overlay oscuro cuando el menú está abierto */}
+      {/* OVERLAY */}
       {menuOpen && (
         <TouchableOpacity
-          style={[styles.overlay, { backgroundColor: theme.overlay }]}
+          style={[styles.overlay]}
           activeOpacity={1}
           onPress={toggleMenu}
         />
       )}
 
-      {/* Menú lateral */}
+      {/* MENÚ LATERAL */}
       <Animated.View
         style={[
           styles.sideMenu,
@@ -142,29 +114,29 @@ const DashboardAdmin = () => {
         ]}
       >
         <View style={[styles.menuHeader, { backgroundColor: theme.headerBg }]}>
-          <Text style={[styles.menuLogo, { color: theme.headerText }]}>SEGURIDAD</Text>
+          <Text style={[styles.menuLogo, { color: theme.headerText }]}>MENÚ</Text>
         </View>
 
-        <ScrollView style={styles.menuContent}>
+        <ScrollView>
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
               style={styles.menuItem}
               onPress={() => navigateTo(item.screen)}
-              activeOpacity={0.7}
             >
-              <Text style={[styles.menuItemText, { color: theme.textPrimary }]}>{item.name}</Text>
-              <Text style={[styles.menuItemArrow, { color: theme.textSecondary }]}>→</Text>
+              <Text style={[styles.menuItemText, { color: theme.textPrimary }]}>
+                {item.name}
+              </Text>
             </TouchableOpacity>
           ))}
 
           <TouchableOpacity
-            style={[styles.menuItem, styles.logoutItem]}
+            style={[styles.menuItem, { marginTop: 20 }]}
             onPress={handleLogout}
-            activeOpacity={0.7}
           >
-            <Text style={[styles.menuItemText, { color: theme.textPrimary }]}>Cerrar sesión</Text>
-            <Text style={[styles.menuItemArrow, { color: theme.textSecondary }]}>→</Text>
+            <Text style={[styles.menuItemText, { color: 'red' }]}>
+              Cerrar sesión
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </Animated.View>
@@ -173,131 +145,59 @@ const DashboardAdmin = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+
   header: {
     height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  hamburgerIcon: {
-    width: 24,
-    height: 18,
-    justifyContent: 'space-between',
-  },
-  hamburgerLine: {
-    width: 24,
-    height: 3,
-    backgroundColor: '#ffffff',
-    borderRadius: 2,
-  },
-  closeIcon: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeLine1: {
-    position: 'absolute',
-    width: 24,
-    height: 3,
-    backgroundColor: '#ffffff',
-    transform: [{ rotate: '45deg' }],
-    borderRadius: 2,
-  },
-  closeLine2: {
-    position: 'absolute',
-    width: 24,
-    height: 3,
-    backgroundColor: '#ffffff',
-    transform: [{ rotate: '-45deg' }],
-    borderRadius: 2,
-  },
-  mainContent: {
-    flex: 1,
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  contentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  contentText: {
-    fontSize: 16,
-    color: '#666',
-  },
+
+  menuButton: { width: 40, justifyContent: 'center', alignItems: 'center' },
+
+  headerTitle: { fontSize: 18, fontWeight: 'bold' },
+
+  mainContent: { flex: 1, padding: 20 },
+
+  contentText: { fontSize: 18, color: '#333' },
+
   overlay: {
     position: 'absolute',
-    top: 0,
+    top: 60 + 40, // margen extra del notch
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
+
   sideMenu: {
     position: 'absolute',
     top: 0,
     left: 0,
     bottom: 0,
-    width: width * 0.75,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    width: MENU_WIDTH,
+    elevation: 10,
+    paddingTop: 50, // margen seguro arriba
   },
+
   menuHeader: {
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuLogo: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  menuContent: {
-    flex: 1,
-  },
+
+  menuLogo: { fontSize: 20, fontWeight: 'bold' },
+
   menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 18,
+    paddingVertical: 15,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
+    borderColor: '#ccc',
   },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  menuItemArrow: {
-    fontSize: 20,
-  },
-  logoutItem: {
-    marginTop: 10,
-  },
+
+  menuItemText: { fontSize: 16 },
 });
 
 export default DashboardAdmin;
