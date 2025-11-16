@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 
-const BASE_URL = "http://192.168.100.32:8000/api"; // 👈 usa tu IP local, no 127.0.0.1
+const BASE_URL = "http://192.168.18.5:8000/api"; // 👈 usa tu IP local, no 127.0.0.1
 
 export async function login(username, password) {
   const { data } = await axios.post(`${BASE_URL}/login`, { username, password });

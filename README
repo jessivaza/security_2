@@ -124,5 +124,10 @@ py manage.py runserver 0.0.0.0:8000
 -----ingresar la letra "a" para abrir el emulador con expo---------
 a
 
+#Dependencias para el mapa de alertas: 
+expo install react-native-maps
+npm install react-native-heatmap
+
+
 
 ```

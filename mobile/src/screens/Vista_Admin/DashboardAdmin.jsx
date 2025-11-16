@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Animated,
   Dimensions,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 // Importa tus pantallas aquí
-import Alertas from './DetalleAlerta';
-import Personal from './Personal';
-import MapadeAlertas from './MapadeAlertas';
-import Historial from './Historial';
-import Gestion from './Gestion';
-import { useTheme } from '../../theme/ThemeContext';
 import ThemeToggle from '../../components/ThemeToggle';
+import { useTheme } from '../../theme/ThemeContext';
+import Alertas from './DetalleAlerta';
+import Gestion from './Gestion';
+import Historial from './Historial';
+import MapadeAlertas from './MapadeAlertas';
+import Personal from './Personal';
 
 const { width } = Dimensions.get('window');
 
