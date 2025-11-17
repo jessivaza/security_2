@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { View, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { UserContext } from "../../theme/UserContext";
@@ -18,12 +18,13 @@ export default function EditarPerfil({ navigation }) {
 
   const token = userData?.access;
 
+  // Selección de imagen
   const cambiarImagen = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") return;
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.Images,
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // CORREGIDO
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -60,7 +61,8 @@ export default function EditarPerfil({ navigation }) {
       setUserData(actualizado);
       await AsyncStorage.setItem("user", JSON.stringify(actualizado));
 
-      navigation.replace("HomeUsuario"); // 🔹 redirige al inicio automáticamente
+      // Redirige automáticamente al Home
+      navigation.replace("HomeUsuario");
     } catch (error) {
       setErrors({ general: "No se pudo actualizar el perfil" });
     }
@@ -107,6 +109,7 @@ export default function EditarPerfil({ navigation }) {
         value={newPassword}
         onChangeText={setNewPassword}
       />
+
       {errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 
       <TouchableOpacity style={styles.btn} onPress={guardarCambios}>
