@@ -25,8 +25,19 @@ export default function Login({ navigation, onLogin }) {
     setLoading(true);
     try {
       const data = await login(correo, contraseña);
+
+      // Guardar datos en contexto
       setUserData(data);
-      onLogin(data.role);
+
+      // ===============================
+      // 🚀 CONDICIÓN @admin.com
+      // ===============================
+      const email = (data.email || "").toLowerCase();
+      const role = email.endsWith("@admin.com") ? "admin" : "user";
+
+      // Enviar el rol correcto a la app
+      onLogin(role);
+
     } catch (error) {
       setErrors({ general: error.message });
     } finally {
