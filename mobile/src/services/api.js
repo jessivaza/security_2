@@ -3,7 +3,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
+<<<<<<< Updated upstream
+<<<<<<< HEAD
 const BASE_URL = "http://192.168.18.9:8000/api";
+=======
+const BASE_URL = "http://192.168.18.245:8000/api";
+>>>>>>> origin/main
+=======
+const BASE_URL = "http://192.168.18.9:8000/api";
+>>>>>>> Stashed changes
 
 // Crear instancia de axios con configuración base
 const api = axios.create({

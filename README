@@ -130,5 +130,15 @@ Se debe cambiar las rutas en la carpeta services- mobile (api.js y auth.js) a tu
 #Para el gif
 npm i lottie-react-native
 
+---Dependencias ---
+npm install victory-native react-native-svg
+mapa 
+npm install react-native-maps
+npm install react-native-reanimated
+npm install react-native-chart-kit
+npm install react-native-chart-kit react-native-svg
+npx expo install react-native-svg
+npm install react-native-xlsx
+
 
 ```

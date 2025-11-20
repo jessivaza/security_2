@@ -5,7 +5,11 @@ import axios from "axios";
 import { UserContext } from "../../theme/UserContext";
 import * as ImagePicker from "expo-image-picker";
 
+<<<<<<< HEAD
 const BASE_URL = "http://192.168.18.9:8000/api";
+=======
+const BASE_URL = "http://192.168.18.245:8000/api";
+>>>>>>> origin/main
 
 export default function EditarPerfil({ navigation }) {
   const { userData, setUserData } = useContext(UserContext);
