@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const BASE_URL = "http://192.168.18.245:8000/api";
+const BASE_URL = "http://192.168.100.32:8000/api";
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
@@ -67,6 +67,11 @@ export const alertasAPI = {
     // Obtener todas las alertas desde /todas_alertas/  <===== esto está definido en urls.py
     getAlertas: async () => {
         const response = await api.get('/todas_alertas/');
+        return response.data;
+    },
+    // Obtener historial de incidentes desde /historial/incidentes/
+    getHistorialIncidentes: async () => {
+        const response = await api.get('/historial/incidentes/');
         return response.data;
     },
 };
