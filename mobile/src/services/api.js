@@ -3,15 +3,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-<<<<<<< Updated upstream
-<<<<<<< HEAD
+
 const BASE_URL = "http://192.168.18.9:8000/api";
-=======
-const BASE_URL = "http://192.168.18.245:8000/api";
->>>>>>> origin/main
-=======
-const BASE_URL = "http://192.168.18.9:8000/api";
->>>>>>> Stashed changes
+
+
+
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
@@ -79,6 +75,24 @@ export const alertasAPI = {
     },
 };
 
+export const incidenciasAPI = {
+  getAll: async () => {
+    const response = await api.get('/incidencias/');
+    return response.data;
+  },
+  create: async (incidencia) => {
+    const response = await api.post('/incidencias/', incidencia);
+    return response.data;
+  },
+  update: async (id, data) => {
+    const response = await api.put(`/incidencias/${id}/`, data);
+    return response.data;
+  },
+  delete: async (id) => {
+    const response = await api.delete(`/incidencias/${id}/`);
+    return response.data;
+  },
+};
 
 
 
