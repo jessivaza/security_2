@@ -139,6 +139,8 @@ npm install react-native-chart-kit
 npm install react-native-chart-kit react-native-svg
 npx expo install react-native-svg
 npm install react-native-xlsx
+npx expo install expo-location expo-image-picker - ubicacion
+npx expo install react-native-maps - mapa
 
 
 ```
