@@ -465,7 +465,7 @@ export default function UserHome() {
   );
 }
 
-// --- COMPONENTE DE BARRA DE NAVEGACIÓN INFERIOR (Barra Central) ---
+// --- COMPONENTE DE BARRA DE NAVEGACIÓN INFERIOR (Estilo mejorado) ---
 const CurvedBottomBar = ({ activeTab, onTabPress }) => {
   const centerItem = TAB_ITEMS.find(item => item.id === 'crear');
 
