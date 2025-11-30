@@ -1,13 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 
-<<<<<<< HEAD
+
 
 const BASE_URL = "http://192.168.18.9:8000/api"; // 👈 usa tu IP local, no 127.0.0.1
 
-=======
-const BASE_URL = "http://192.168.100.32:8000/api";
->>>>>>> origin/main
 
 // ======================================================
 // 🔹 LOGIN
