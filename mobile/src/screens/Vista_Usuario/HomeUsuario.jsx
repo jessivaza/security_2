@@ -14,17 +14,25 @@ import {
   KeyboardAvoidingView,
 }
 from "react-native";
-// Importamos el componente de Mapa
+
+// Importaciones requeridas para las nuevas funcionalidades
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker'; 
+
+// Importaciones existentes
 import MapScreen from './Mapa.jsx'; 
 import { Ionicons } from "@expo/vector-icons";
 import ExcelJS from "exceljs";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
+
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.4;
 const CHART_HEIGHT = 200;
 
+// ===================================================================
+// 💡 CONSTANTES Y OPCIONES CENTRALES
 const COLORS = {
   primary: "#1a237e", // Azul Noche (Principal)
   secondary: "#ff9f43", // Naranja (para prioridad MEDIA)
@@ -42,6 +50,17 @@ const COLORS = {
   darkPrimary: "#0d124b", 
 };
 
+// Opciones de Incidentes y su escala (Prioridad)
+const INCIDENT_TYPES = {
+    'Seleccione un incidente...': 'No determinado',
+    'Robo en tienda': 'Alta',
+    'Asalto a persona': 'Alta',
+    'Vandalismo': 'Media',
+    'Fuga de agua': 'Baja',
+    'Incendio': 'Alta',
+};
+const INCIDENT_OPTIONS = Object.keys(INCIDENT_TYPES);
+
 const TAB_ITEMS = [
   { id: "principal", icon: "home-outline", activeIcon: "home", label: "Inicio", iconType: Ionicons },
   { id: "mapa", icon: "map-outline", activeIcon: "map", label: "Mapa", iconType: Ionicons }, 
@@ -49,6 +68,7 @@ const TAB_ITEMS = [
   { id: "alertas", icon: "alert-circle-outline", activeIcon: "alert-circle", label: "Alertas", iconType: Ionicons },
   { id: "perfil", icon: "person-outline", activeIcon: "person", label: "Perfil", iconType: Ionicons },
 ];
+// ===================================================================
 
 const ScreenPlaceholder = ({ title, children }) => (
   <View style={styles.placeholder}>
@@ -138,156 +158,292 @@ const StatCard = ({ title, value, icon, color }) => (
 );
 
 
-// --- COMPONENTE MODAL PARA CREAR INCIDENCIA ---
+// --- COMPONENTE MODAL PARA CREAR INCIDENCIA (ACTUALIZADO CON SOLUCIÓN AL ERROR) ---
 const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
-	const [title, setTitle] = useState('');
-	const [description, setDescription] = useState('');
-	const [priority, setPriority] = useState('Alta'); 
-	const [location, setLocation] = useState(''); 
-    const [attachments, setAttachments] = useState([]); 
+    // ⚠️ ATENCIÓN: TODOS LOS HOOKS DEBEN ESTAR AL INICIO E INCONDICIONALMENTE
+    const [currentLocation, setCurrentLocation] = useState('Obteniendo ubicación...');
+    const [coords, setCoords] = useState(null);
+    const [selectedIncident, setSelectedIncident] = useState(INCIDENT_OPTIONS[0]);
+    const [description, setDescription] = useState('');
+    const [attachments, setAttachments] = useState([]); 
+    const [scale, setScale] = useState(INCIDENT_TYPES[INCIDENT_OPTIONS[0]]);
+    const [isPickerVisible, setIsPickerVisible] = useState(false); 
 
-	if (!isVisible) return null;
+    // 💡 EFECTO: Obtener ubicación al abrir el modal (Corregido)
+    useEffect(() => {
+        // Ejecutamos la lógica SÓLO si el modal está visible.
+        if (!isVisible) return; 
 
-	const handleSave = () => {
-		if (!title || !description || !location) {
-			Alert.alert("Campos Requeridos", "Por favor, complete el título, la descripción y la ubicación.");
-			return;
-		}
-		
-		const newIncidence = {
-			nombre: title,
-			descripcion: description,
-			prioridad: priority,
-			location: location,
-            attachments: attachments,
-		};
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setCurrentLocation('Permiso de ubicación denegado.');
+                return;
+            }
 
-		onSave(newIncidence);
-		// Resetear formulario
-		setTitle('');
-		setDescription('');
-		setPriority('Alta');
-		setLocation('');
-        setAttachments([]);
-	};
+            try {
+                let location = await Location.getCurrentPositionAsync({});
+                setCoords({ lat: location.coords.latitude, lon: location.coords.longitude });
+                
+                // Simulación de geocodificación inversa
+                const address = `Lat: ${location.coords.latitude.toFixed(4)}, Lon: ${location.coords.longitude.toFixed(4)} (Ubicación Actual)`;
+                setCurrentLocation(address);
+                
+            } catch (error) {
+                setCurrentLocation('No se pudo obtener la ubicación.');
+            }
+        })();
+    }, [isVisible]); // El efecto se dispara cuando isVisible cambia.
 
-    // Lógica simulada para añadir archivos adjuntos (Foto/Video en tiempo real)
-    const handleAddAttachment = (type) => {
-        let actionDescription = "";
-        if (type === 'Foto') {
-            actionDescription = "Captura de Foto simulada";
-        } else if (type === 'Video') {
-            actionDescription = "Grabación de Video simulada";
+    // 💡 FUNCIÓN: Abrir cámara y guardar foto/video
+    const handleCaptureMedia = async () => {
+        let cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+        if (cameraPermission.status !== 'granted') {
+            Alert.alert('Error', 'Necesitas otorgar permiso de cámara para capturar evidencia.');
+            return;
         }
 
-        const newAttachment = `${type} - ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
-        setAttachments(prev => [...prev, newAttachment]);
-        Alert.alert("Simulación de Captura", `${actionDescription} completada. Archivo adjuntado: ${newAttachment}`);
+        Alert.alert(
+            "Capturar Evidencia",
+            "¿Deseas capturar una foto o un video?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Tomar Foto", 
+                    onPress: async () => {
+                        let pickerResult = await ImagePicker.launchCameraAsync({
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                            allowsEditing: false,
+                            quality: 0.5,
+                        });
+                        if (!pickerResult.canceled) {
+                            const newAttachment = `Foto - ${new Date().toLocaleTimeString()}`;
+                            setAttachments(prev => [...prev, newAttachment]);
+                            Alert.alert("Éxito", "Foto adjuntada.");
+                        }
+                    }
+                },
+                { 
+                    text: "Grabar Video", 
+                    onPress: async () => {
+                        let pickerResult = await ImagePicker.launchCameraAsync({
+                            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                            allowsEditing: false,
+                            quality: 0.5,
+                            maxDuration: 15, 
+                        });
+                        if (!pickerResult.canceled) {
+                            const newAttachment = `Video - ${new Date().toLocaleTimeString()}`;
+                            setAttachments(prev => [...prev, newAttachment]);
+                            Alert.alert("Éxito", "Video adjuntado.");
+                        }
+                    }
+                },
+            ],
+            { cancelable: true }
+        );
     };
 
+    // 💡 FUNCIÓN: Guardar la incidencia
+    const handleSave = () => {
+        if (selectedIncident === INCIDENT_OPTIONS[0] || !coords) {
+            Alert.alert("Campos Requeridos", "Por favor, seleccione un incidente y asegúrese de tener la ubicación GPS.");
+            return;
+        }
+        
+        const newIncidence = {
+            nombre: selectedIncident,
+            descripcion: description || "No determinado",
+            prioridad: scale,
+            coords: coords, 
+            attachments: attachments,
+        };
 
-	return (
-		<KeyboardAvoidingView 
-			style={styles.modalOverlay}
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-		>
-			<View style={styles.modalContainer}>
-				<View style={styles.modalHeader}>
-					<Text style={styles.modalTitle}>Reportar Nueva Incidencia</Text>
-					<TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
-						<Ionicons name="close-circle-outline" size={30} color={COLORS.inactive} />
-					</TouchableOpacity>
-				</View>
+        onSave(newIncidence);
+        // Resetear formulario
+        setCurrentLocation('Obteniendo ubicación...');
+        setCoords(null);
+        setSelectedIncident(INCIDENT_OPTIONS[0]);
+        setDescription('');
+        setAttachments([]);
+        setScale(INCIDENT_TYPES[INCIDENT_OPTIONS[0]]);
+    };
 
-				<ScrollView style={styles.modalBody}>
-					<Text style={styles.formLabel}>Título (Resumen)</Text>
-					<TextInput
-						style={styles.textInput}
-						value={title}
-						onChangeText={setTitle}
-						placeholder="Ej: Cableado caído en calle 5"
-						placeholderTextColor={COLORS.textLight}
-					/>
+    // 💡 Lógica para manejar la selección del incidente y la escala
+    const handleIncidentChange = (incident) => {
+        setSelectedIncident(incident);
+        setScale(INCIDENT_TYPES[incident] || 'No determinado');
+        setIsPickerVisible(false);
+    };
 
-					<Text style={styles.formLabel}>Descripción Detallada</Text>
-					<TextInput
-						style={[styles.textInput, { height: 100, textAlignVertical: 'top' }]}
-						value={description}
-						onChangeText={setDescription}
-						placeholder="Describa el problema, impacto y posibles riesgos."
-						multiline
-						placeholderTextColor={COLORS.textLight}
-					/>
+    const getScaleColor = (currentScale) => {
+        if (currentScale === 'Alta') return COLORS.danger;
+        if (currentScale === 'Media') return COLORS.secondary;
+        return COLORS.primary;
+    }
 
-					<Text style={styles.formLabel}>Ubicación / Referencia</Text>
-					<TextInput
-						style={styles.textInput}
-						value={location}
-						onChangeText={setLocation}
-						placeholder="Coordenadas, dirección o punto de referencia"
-						placeholderTextColor={COLORS.textLight}
-					/>
 
-					<Text style={[styles.formLabel, { marginBottom: 10, color: COLORS.danger }]}>
-                        Prioridad Establecida: Alta (Reporte Rápido)
-                    </Text> 
-					
-                    {/* Sección para adjuntar foto/video - Simulación de captura en tiempo real */}
-					<Text style={styles.formLabel}>Adjuntar Evidencia (Cámara en Tiempo Real)</Text>
-                    <View style={styles.attachmentRow}>
-                        <TouchableOpacity 
-                            style={styles.mediaButton}
-                            onPress={() => handleAddAttachment('Foto')}
-                        >
-                            <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
-                            <Text style={styles.mediaButtonText}>Tomar Foto</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={[styles.mediaButton, { marginLeft: 10 }]}
-                            onPress={() => handleAddAttachment('Video')}
-                        >
-                            <Ionicons name="videocam-outline" size={24} color={COLORS.primary} />
-                            <Text style={styles.mediaButtonText}>Grabar Video</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={{ fontSize: 12, color: COLORS.textLight, marginTop: 5 }}>
-                        *En producción, esto abriría la cámara del dispositivo para captura inmediata.
-                    </Text>
+    // ⚠️ Cierre Condicional SEGURO después de todos los Hooks
+    if (!isVisible) return null;
 
-                    {attachments.length > 0 && (
-                        <View style={styles.attachmentsList}>
-                            <Text style={[styles.formLabel, { marginTop: 0, marginBottom: 5 }]}>Adjuntos ({attachments.length}):</Text>
-                            {attachments.map((att, index) => (
-                                <Text key={index} style={styles.attachmentItem} numberOfLines={1}>
-                                    <Ionicons name="checkmark-circle" size={12} color={COLORS.success} /> 
-                                    <Text> {att}</Text> 
-                                </Text>
+    // --- Renderizado del Modal ---
+    return (
+        <KeyboardAvoidingView 
+            style={styles.modalOverlay}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <View style={styles.modalContainer}>
+                {/* Título en el centro */}
+                <View style={styles.modalHeaderSimplified}>
+                    <Text style={styles.modalTitleSimplified}>Registrar Incidente</Text>
+                </View>
+
+                <ScrollView style={styles.modalBody}>
+                    
+                    {/* 1. Ubicación (Output de GPS) */}
+                    <TextInput
+                        style={[styles.textInput, styles.locationInput, { fontWeight: '600' }]}
+                        value={currentLocation}
+                        editable={false} 
+                        placeholderTextColor={COLORS.textDark}
+                        multiline
+                        numberOfLines={2}
+                    />
+                    
+                    {/* 2. Selector de Incidente (Touchable que simula dropdown) */}
+                    <TouchableOpacity 
+                        style={styles.dropdownInput} 
+                        onPress={() => setIsPickerVisible(prev => !prev)}
+                    >
+                        <Text style={styles.dropdownText}>
+                            {selectedIncident}
+                        </Text>
+                        <Ionicons 
+                            name={isPickerVisible ? "chevron-up" : "chevron-down"} 
+                            size={20} 
+                            color={COLORS.textDark} 
+                            style={styles.dropdownIcon} 
+                        />
+                    </TouchableOpacity>
+
+                    {/* Opciones del selector (Picker Simulado en un View) */}
+                    {isPickerVisible && (
+                        <View style={styles.pickerOptionsContainer}>
+                            {INCIDENT_OPTIONS.map((option) => (
+                                <TouchableOpacity 
+                                    key={option} 
+                                    style={[
+                                        styles.pickerOption, 
+                                        selectedIncident === option && styles.pickerOptionSelected
+                                    ]}
+                                    onPress={() => handleIncidentChange(option)}
+                                >
+                                    <Text style={styles.pickerOptionText}>{option}</Text>
+                                </TouchableOpacity>
                             ))}
                         </View>
                     )}
 
-				</ScrollView>
-				
-				<TouchableOpacity 
-					style={[styles.button, { backgroundColor: COLORS.primary, marginTop: 10 }]}
-					onPress={handleSave}
-				>
-					<Text style={styles.buttonText}>Crear Incidencia (Prioridad Alta)</Text>
-				</TouchableOpacity>
-			</View>
-		</KeyboardAvoidingView>
-	);
+                    {/* 3. Descripción (Opcional) */}
+                    <TextInput
+                        // Si el picker está visible, el margin-top es 0
+                        style={[styles.textInput, { height: 80, textAlignVertical: 'top', marginTop: isPickerVisible ? 0 : 15 }]}
+                        value={description}
+                        onChangeText={setDescription}
+                        placeholder="Descripción (opcional)"
+                        placeholderTextColor={COLORS.textLight}
+                        autoCapitalize="none"
+                        multiline
+                    />
+                    <Text style={styles.descriptionHint}>
+                        Si no escribes una descripción, se guardará como "No determinado"
+                    </Text>
+
+                    {/* 4. Escala (Texto dinámico) */}
+                    <Text style={[styles.scaleText, { color: getScaleColor(scale) }]}>
+                        Escala: **{scale}**
+                    </Text>
+                    
+                    {/* 5. Selector de Archivo (Botón para abrir Cámara) */}
+                    <View style={styles.fileSelectorContainer}>
+                        {/* Botón principal para abrir cámara y capturar */}
+                        <TouchableOpacity
+                            style={styles.fileSelectButton}
+                            onPress={handleCaptureMedia} 
+                        >
+                            <Text style={styles.fileSelectButtonText}>Seleccionar archivo</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.fileStatusText}>
+                            {attachments.length > 0 ? `${attachments.length} archivo(s) adjuntado(s)` : "Sin archivos seleccionados"}
+                        </Text>
+                    </View>
+                    
+                    {/* Lista de Adjuntos (Opcional) */}
+                    {attachments.length > 0 && (
+                        <View style={styles.attachmentsList}>
+                            {attachments.map((att, index) => (
+                                <Text key={index} style={styles.attachmentItem} numberOfLines={1}>
+                                    <Ionicons name="checkmark-circle" size={12} color={COLORS.success} /> 
+                                    <Text> {att}</Text> 
+                                </Text>
+                            ))}
+                        </View>
+                    )}
+
+                </ScrollView>
+                
+                {/* 7. Botones Guardar y Cancelar */}
+                <View style={styles.modalFooterButtons}>
+                    <TouchableOpacity 
+                        style={[styles.button, styles.saveButton]}
+                        onPress={handleSave}
+                    >
+                        <Text style={styles.saveButtonText}>Guardar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.button, styles.cancelButton]}
+                        onPress={onClose}
+                    >
+                        <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </KeyboardAvoidingView>
+    );
 };
 
 
 export default function UserHome() {
-  const [activeTab, setActiveTab] = useState("mapa"); 
+  const [activeTab, setActiveTab] = useState("principal"); // Cambiado a 'principal' para iniciar en Home
   const [data, setData] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [userName, setUserName] = useState("Jessica "); 
   // --- Estado para la visibilidad del Modal ---
-	const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+
+    // 💡 FUNCIÓN CERRAR SESIÓN
+    const handleLogout = useCallback(() => {
+        Alert.alert(
+            "Cerrar Sesión",
+            "¿Estás segura de que quieres cerrar tu sesión actual? (Esta acción te dirigiría a la pantalla de Login)",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                { 
+                    text: "Sí, Cerrar Sesión", 
+                    onPress: () => {
+                        // Aquí iría la lógica para limpiar tokens y navegación:
+                        // Ejemplo: navigation.replace('LoginScreen'); 
+                        Alert.alert("Sesión Cerrada", "Has cerrado sesión exitosamente. (Simulación de Logout/Redirección)");
+                    },
+                    style: 'destructive',
+                }
+            ]
+        );
+    }, []);
 
   useEffect(() => {
     setData([
@@ -300,32 +456,32 @@ export default function UserHome() {
     ]);
   }, []);
 
-	// --- Función de Guardado de Incidencia (Estabilizada con useCallback) ---
-	const handleSaveIncidence = useCallback((newIncidence) => {
-		const currentDate = new Date();
-		const newId = Date.now(); 
-		
-		const incidenceWithMetadata = {
-			id: newId,
-			nombre: newIncidence.nombre,
-			fecha: currentDate.toISOString().split('T')[0],
-			hora: currentDate.toTimeString().split(' ')[0].substring(0, 5),
-			estado: "Pendiente", 
-			prioridad: newIncidence.prioridad,
-			usuario: { name: userName, initials: userName.charAt(0) + ' ' },
-			icono: "alert-circle-outline",
-			location: newIncidence.location,
-			descripcion: newIncidence.descripcion,
-            attachments: newIncidence.attachments,
-			// Coordenadas simuladas para el nuevo reporte
-			coords: { lat: -12.049, lon: -77.045 }, 
-		};
+    // --- Función de Guardado de Incidencia (Estabilizada con useCallback) ---
+    const handleSaveIncidence = useCallback((newIncidence) => {
+        const currentDate = new Date();
+        const newId = Date.now(); 
+        
+        const incidenceWithMetadata = {
+            id: newId,
+            nombre: newIncidence.nombre,
+            fecha: currentDate.toISOString().split('T')[0],
+            hora: currentDate.toTimeString().split(' ')[0].substring(0, 5),
+            estado: "Pendiente", 
+            prioridad: newIncidence.prioridad,
+            usuario: { name: userName, initials: userName.charAt(0) + ' ' },
+            icono: "alert-circle-outline",
+            location: newIncidence.location,
+            descripcion: newIncidence.descripcion,
+            attachments: newIncidence.attachments,
+            // Coordenadas simuladas para el nuevo reporte (usar las coordenadas reales capturadas)
+            coords: newIncidence.coords || { lat: -12.049, lon: -77.045 }, 
+        };
 
-		setData(prevData => [incidenceWithMetadata, ...prevData]); 
-		setIsModalVisible(false); 
-		Alert.alert("Éxito", `Incidencia (${newIncidence.nombre}) creada y marcada como Pendiente.`);
-		setActiveTab("principal"); 
-	}, [userName]);
+        setData(prevData => [incidenceWithMetadata, ...prevData]); 
+        setIsModalVisible(false); 
+        Alert.alert("Éxito", `Incidencia (${newIncidence.nombre}) creada y marcada como Pendiente.`);
+        setActiveTab("principal"); 
+    }, [userName]);
 
   const filteredData = useMemo(() => {
     let result = data;
@@ -376,8 +532,10 @@ export default function UserHome() {
             
             {/* 1. Resumen de Incidencias */}
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Incidencias Totales</Text>
-              <Text style={styles.summaryValue}>{totalIncidencias}</Text>
+              <View>
+                  <Text style={styles.summaryTitle}>Incidencias Totales</Text>
+                  <Text style={styles.summaryValue}>{totalIncidencias}</Text>
+              </View>
               {/* BOTÓN PARA ABRIR MODAL DESDE EL RESUMEN */}
               <TouchableOpacity 
                 style={styles.summaryAddButton}
@@ -423,20 +581,46 @@ export default function UserHome() {
       case "alertas":
         return <ScreenPlaceholder title="⚠️ Alertas y Notificaciones" />;
       case "perfil":
-        return <ScreenPlaceholder title="👤 Configuración de Perfil" />;
+        return (
+            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+                <View style={styles.profileContainer}>
+                    <Text style={styles.profileTitle}>👤 Perfil de Usuario</Text>
+                    <Text style={styles.profileText}>Nombre: {userName}</Text>
+                    <Text style={styles.profileText}>ID: 123456</Text>
+                    <Text style={styles.profileText}>Rol: Supervisor/Reportero</Text>
+                </View>
+                
+                {/* OPCIÓN DE CERRAR SESIÓN */}
+                <TouchableOpacity 
+                    style={[styles.button, styles.logoutButton]} 
+                    onPress={handleLogout}
+                >
+                    <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
+                    <Text style={[styles.buttonText, { marginLeft: 10 }]}>Cerrar Sesión</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={[styles.button, styles.exportButton]} 
+                    onPress={exportToExcel}
+                >
+                    <Ionicons name="download-outline" size={20} color={COLORS.textDark} />
+                    <Text style={[styles.buttonText, { marginLeft: 10, color: COLORS.textDark }]}>Exportar Reporte (Excel)</Text>
+                </TouchableOpacity>
+            </ScrollView>
+        );
       default:
         return null;
     }
-  }, [activeTab, data]);
+  }, [activeTab, data, userName, handleLogout]);
 
-	// --- FUNCIÓN DE MANEJO DE TABS (ABRE EL MODAL O CAMBIA LA PESTAÑA) ---
-	const handleTabPress = (tabId) => {
-		if (tabId === 'crear') {
-			setIsModalVisible(true);
-		} else {
-			setActiveTab(tabId);
-		}
-	};
+    // --- FUNCIÓN DE MANEJO DE TABS (ABRE EL MODAL O CAMBIA LA PESTAÑA) ---
+    const handleTabPress = (tabId) => {
+        if (tabId === 'crear') {
+            setIsModalVisible(true);
+        } else {
+            setActiveTab(tabId);
+        }
+    };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -453,62 +637,67 @@ export default function UserHome() {
 
       {/* RENDERIZADO DEL MODAL */}
       <CreateIncidenceModal 
-      	isVisible={isModalVisible} 
-      	onClose={() => setIsModalVisible(false)} 
-      	onSave={handleSaveIncidence}
+        isVisible={isModalVisible} 
+        onClose={() => setIsModalVisible(false)} 
+        onSave={handleSaveIncidence}
       />
     </SafeAreaView>
   );
 }
 
-// --- COMPONENTE DE BARRA DE NAVEGACIÓN INFERIOR (Barra Central) ---
+// --- COMPONENTE DE BARRA DE NAVEGACIÓN INFERIOR (Estilo mejorado) ---
 const CurvedBottomBar = ({ activeTab, onTabPress }) => {
-  const centerItem = TAB_ITEMS.find(item => item.id === 'crear');
+    return (
+        // tabBarContainerNew es el contenedor principal, le ponemos el color de fondo y sombra
+        <View style={styles.tabBarContainerNew}>
+            <View style={styles.tabRowNew}>
+                {TAB_ITEMS.map((tab) => {
+                    const Icon = tab.iconType;
+                    const isActive = tab.id === activeTab;
+                    const isCenter = tab.id === 'crear';
 
-  return (
-    <View style={styles.tabBarContainer}>
-        <View style={styles.tabBarBackground} />
-        
-        <View style={styles.tabRow}>
-            {TAB_ITEMS.map((tab, index) => {
-                const Icon = tab.iconType;
-                const isActive = tab.id === activeTab;
-                const isCenter = tab.id === 'crear';
+                    // Si es el botón central 'Crear', usamos el estilo flotante
+                    if (isCenter) {
+                        return (
+                            <View key={tab.id} style={styles.centerButtonWrapperNew}>
+                                <TouchableOpacity
+                                    onPress={() => onTabPress(tab.id)}
+                                    style={styles.centerButtonNew}
+                                >
+                                    <Ionicons name={"add-sharp"} size={32} color={COLORS.white} />
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    }
 
-                if (isCenter) {
+                    // Botones laterales
                     return (
-                        <View key={tab.id} style={styles.centerButtonWrapper}>
-                            <TouchableOpacity
-                                onPress={() => onTabPress(tab.id)} // Llama a onTabPress (que abrirá el modal)
-                                style={styles.centerButton}
+                        <TouchableOpacity
+                            key={tab.id}
+                            onPress={() => onTabPress(tab.id)}
+                            style={styles.tabButtonNew} // Estilo más simple para el botón
+                        >
+                            <Icon
+                                name={isActive ? tab.activeIcon : tab.icon}
+                                size={24}
+                                color={isActive ? COLORS.primary : COLORS.inactive}
+                            />
+                            <Text 
+                                style={[
+                                    styles.tabLabelNew, 
+                                    isActive ? { color: COLORS.primary } : { color: COLORS.inactive }
+                                ]}
                             >
-                                <Ionicons name={"add-sharp"} size={35} color={COLORS.white} />
-                            </TouchableOpacity>
-                        </View>
+                                {tab.label}
+                            </Text>
+                        </TouchableOpacity>
                     );
-                }
-
-                return (
-                    <TouchableOpacity
-                        key={tab.id}
-                        onPress={() => onTabPress(tab.id)}
-                        style={styles.tabButton}
-                    >
-                        <Icon
-                            name={isActive ? tab.activeIcon : tab.icon}
-                            size={26}
-                            color={isActive ? COLORS.primary : COLORS.inactive}
-                        />
-                       <Text style={[styles.tabLabel, isActive ? { color: COLORS.primary } : { color: COLORS.inactive }]}>
-                            {tab.label}
-                        </Text>
-                    </TouchableOpacity>
-                );
-            })}
+                })}
+            </View>
         </View>
-    </View>
-  );
+    );
 };
+// ----------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
@@ -520,9 +709,42 @@ const styles = StyleSheet.create({
   },
   placeholderTitle: { fontSize: 22, fontWeight: "bold", color: COLORS.primary, marginBottom: 15 },
   button: {
-    backgroundColor: COLORS.success, padding: 15, borderRadius: 12, marginTop: 20, alignItems: "center",
+    // Estilo base para botones grandes
+    padding: 15, borderRadius: 12, marginTop: 20, 
+    flexDirection: 'row', 
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  // 💡 NUEVOS ESTILOS PARA PERFIL
+  profileContainer: {
+    backgroundColor: COLORS.white,
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 20,
+    marginTop: 5,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  profileTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 15,
+  },
+  profileText: {
+    fontSize: 16,
+    color: COLORS.textDark,
+    marginBottom: 5,
+  },
+  logoutButton: {
+    backgroundColor: COLORS.danger, // Rojo para la acción de logout
+  },
+  exportButton: {
+    backgroundColor: COLORS.warning, // Amarillo/Naranja para exportar
+  },
   noResultsText: { textAlign: 'center', color: COLORS.textLight, marginTop: 20 },
   noDataText: { color: COLORS.textLight, marginTop: 5, marginLeft: 5 },
 
@@ -556,19 +778,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start', // Alinear al inicio para que el botón + esté arriba
   },
   summaryTitle: { fontSize: 16, color: COLORS.white, opacity: 0.8 },
   summaryValue: { fontSize: 40, fontWeight: 'bold', color: COLORS.white, marginTop: 5 },
   summaryAddButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    // Botón de acción rápida
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute', // Permite que se posicione sobre el fondo azul
+    right: 20,
+    top: 20,
   },
   sectionContainer: {
     flexDirection: 'row',
@@ -642,123 +868,255 @@ const styles = StyleSheet.create({
   statTitle: { fontSize: 12, color: COLORS.textLight, marginTop: 5 },
   statValue: { fontSize: 20, fontWeight: 'bold', marginTop: 5 },
   
-  // ▫ Tab Bar
-  tabBarContainer: { position: "absolute", bottom: 0, left: 0, right: 0, height: 90, paddingHorizontal: 10 },
-  tabBarBackground: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, height: 60, backgroundColor: COLORS.white,
-    shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: -5 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 8,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+  // ----------------------------------------------------------------------
+  // ▫ Tab Bar MEJORADOS (ACTUALIZADOS)
+  tabBarContainerNew: { 
+    position: "absolute", 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    height: 75, // Altura general de la barra
   },
-  tabRow: { flexDirection: "row", justifyContent: "space-around", alignItems: 'center', height: 60, position: 'absolute', bottom: 0, width: width, paddingHorizontal: 10 },
-  tabButton: { flex: 1, alignItems: "center", paddingVertical: 5, justifyContent: 'center', minWidth: 50 },
-  centerButtonWrapper: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center', marginBottom: 40 },
-  centerButton: {
-    width: 55, height: 55, borderRadius: 27.5, backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 10,
+  tabRowNew: { 
+    flexDirection: "row", 
+    justifyContent: "space-around", 
+    alignItems: 'flex-start', // Alinea los botones laterales arriba
+    height: 75, 
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20,
+    paddingHorizontal: 5,
+    paddingTop: 10, // Un poco de padding arriba
+    // Sombra para dar efecto de elevación a la barra
+    shadowColor: COLORS.shadow, 
+    shadowOffset: { width: 0, height: -3 }, 
+    shadowOpacity: 0.15, 
+    shadowRadius: 8, 
+    elevation: 10,
   },
-  tabLabel: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+  tabButtonNew: { 
+    flex: 1, 
+    alignItems: "center", 
+    paddingVertical: 5, 
+    justifyContent: 'flex-start', // Asegura que los iconos estén arriba
+    minWidth: 50,
+  },
+  // Espacio invisible para el botón central
+  centerButtonWrapperNew: { 
+    width: 70, // Espacio reservado para el botón central
+    height: 75, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+  },
+  centerButtonNew: {
+    width: 65, 
+    height: 65, 
+    borderRadius: 32.5, 
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 40, 
+    shadowColor: COLORS.primary, 
+    shadowOffset: { width: 0, height: 5 }, 
+    shadowOpacity: 0.5, 
+    shadowRadius: 10, 
+    elevation: 15,
+    borderWidth: 4, 
+    borderColor: COLORS.background, 
+  },
+  tabLabelNew: { 
+    fontSize: 11, 
+    fontWeight: '600', 
+    marginTop: 4 
+  },
+  // ----------------------------------------------------------------------
 
-	// --- ESTILOS DEL MODAL ---
-	modalOverlay: {
-		position: 'absolute',
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'flex-end',
-		alignItems: 'center',
-	},
-	modalContainer: {
-		width: '100%',
-		maxHeight: '90%',
-		backgroundColor: COLORS.background,
-		borderTopLeftRadius: 25,
-		borderTopRightRadius: 25,
-		padding: 20,
-		paddingBottom: 40,
-		alignItems: 'center',
-	},
-	modalHeader: {
-		width: '100%',
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		marginBottom: 15,
-	},
-	modalTitle: {
-		fontSize: 22,
-		fontWeight: 'bold',
-		color: COLORS.primary,
-	},
-	modalCloseButton: {
-		padding: 5,
-	},
-	modalBody: {
-		width: '100%',
-		flexGrow: 0,
-		marginBottom: 10,
-	},
-	formLabel: {
-		fontSize: 14,
-		fontWeight: '600',
-		color: COLORS.textDark,
-		marginTop: 15,
-		marginBottom: 5,
-	},
-	textInput: {
-		width: '100%',
-		backgroundColor: COLORS.white,
-		padding: 15,
-		borderRadius: 10,
-		fontSize: 16,
-		color: COLORS.textDark,
-		borderWidth: 1,
-		borderColor: COLORS.border,
-		shadowColor: COLORS.shadow,
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 1,
-		elevation: 1,
-	},
-    // --- ESTILOS PARA FOTO/VIDEO ---
-    attachmentRow: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		marginTop: 10,
-	},
-	mediaButton: {
-		flex: 1,
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		backgroundColor: COLORS.white,
-		padding: 12,
-		borderRadius: 10,
-		borderWidth: 1,
-		borderColor: COLORS.primary,
-        // El marginHorizontal asegura que no se peguen a los bordes y entre ellos
-		marginHorizontal: 0, 
-	},
-	mediaButtonText: {
-		marginLeft: 8,
-		color: COLORS.primary,
-		fontWeight: '600',
-		fontSize: 13,
-	},
-    attachmentsList: {
-        marginTop: 15,
-        padding: 15,
-        backgroundColor: COLORS.white,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: COLORS.border,
+
+    // --- ESTILOS DEL MODAL (ACTUALIZADO) ---
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center', 
+        alignItems: 'center',
+    },
+    modalContainer: {
+        width: '90%', 
+        maxHeight: '90%',
+        backgroundColor: COLORS.white, 
+        borderRadius: 8,
+        padding: 20,
+        alignItems: 'center',
+    },
+    modalHeaderSimplified: {
+        width: '100%',
+        alignItems: 'center',
+        marginBottom: 15,
     },
-    attachmentItem: {
+    modalTitleSimplified: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.textDark,
+    },
+    modalBody: {
+        width: '100%',
+        flexGrow: 0,
+        marginBottom: 10,
+    },
+    locationInput: {
         fontSize: 14,
-        color: COLORS.textLight,
-        marginTop: 5,
+        color: COLORS.textDark,
+        paddingVertical: 10,
+        backgroundColor: COLORS.white, 
+        borderWidth: 1, 
+        borderColor: COLORS.border,
+        paddingHorizontal: 10,
+    },
+    // Selector de Incidente (Simulación de Dropdown)
+    dropdownInput: {
         flexDirection: 'row',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 4,
+        marginTop: 15,
+        backgroundColor: COLORS.white,
+        justifyContent: 'space-between',
+        paddingRight: 10,
     },
+    dropdownText: {
+        fontSize: 16,
+        padding: 10,
+        color: COLORS.textDark,
+    },
+    dropdownIcon: {
+        paddingRight: 5,
+    },
+    // Opciones del Picker
+    pickerOptionsContainer: {
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 4,
+        marginTop: 0,
+        width: '100%',
+        maxHeight: 180,
+        overflow: 'hidden',
+    },
+    pickerOption: {
+        padding: 10,
+    },
+    pickerOptionSelected: {
+        backgroundColor: COLORS.background, // Resaltar la selección
+    },
+    pickerOptionText: {
+        color: COLORS.textDark,
+    },
+    // Fin Selector
+    textInput: {
+        width: '100%',
+        backgroundColor: COLORS.white,
+        padding: 10,
+        borderRadius: 4,
+        fontSize: 16,
+        color: COLORS.textDark,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    descriptionHint: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        marginTop: 8,
+        textAlign: 'left',
+        width: '100%',
+    },
+    scaleText: {
+        fontSize: 16,
+        // Usamos el color dinámico en el componente
+        fontWeight: 'bold',
+        marginTop: 15,
+        marginBottom: 10,
+        textAlign: 'center',
+        width: '100%',
+    },
+    
+    // Contenedor de Archivos (Nuevo diseño)
+    fileSelectorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 20,
+        width: '100%',
+    },
+    fileSelectButton: {
+        backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.inactive,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 4,
+    },
+    fileSelectButtonText: {
+        color: COLORS.textDark,
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    fileStatusText: {
+        marginLeft: 15,
+        fontSize: 14,
+        color: COLORS.textLight,
+    },
+
+    // Footer con botones Guardar/Cancelar
+    modalFooterButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        width: '100%',
+        paddingTop: 20,
+    },
+    saveButton: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 4,
+        marginRight: 10,
+        marginTop: 0,
+        width: 100, // Fijar ancho
+    },
+    saveButtonText: {
+        color: COLORS.white,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    cancelButton: {
+        backgroundColor: COLORS.inactive, // Gris para cancelar
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 4,
+        marginTop: 0,
+        width: 100, // Fijar ancho
+    },
+    cancelButtonText: {
+        color: COLORS.white,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    
+    attachmentsList: {
+        width: '100%',
+        marginTop: 15,
+        padding: 15,
+        backgroundColor: COLORS.white,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    attachmentItem: {
+        fontSize: 14,
+        color: COLORS.textLight,
+        marginTop: 5,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
 });
