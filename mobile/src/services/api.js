@@ -27,7 +27,17 @@ api.interceptors.request.use(
         return Promise.reject(error);
     }
 );
-
+api.interceptors.request.use(
+    async (config) => {
+        const token = await AsyncStorage.getItem('access');
+        console.log("Token que se va a enviar:", token ? "Token presente" : "Token NO presente"); // <-- AÑADIR ESTO
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    //...
+);
 // Interceptor para manejar errores de autenticación
 api.interceptors.response.use(
     (response) => response,
@@ -76,6 +86,16 @@ export const alertasAPI = {
     },
 };
 
+// ================== REGISTRAR INCIDENTE ==================
+export async function registrarIncidente(datos) {
+    try {
+        const response = await api.post("/registrar-incidente/", datos);
+        return response.data;
+    } catch (error) {
+        console.error("Error al registrar incidente:", error.response?.data || error);
+        throw error;
+    }
+}
 
 
 
