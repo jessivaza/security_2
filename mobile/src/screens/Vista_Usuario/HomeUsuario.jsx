@@ -645,7 +645,7 @@ export default function UserHome() {
   );
 }
 
-// --- COMPONENTE DE BARRA DE NAVEGACIÓN INFERIOR (Estilo mejorado) ---
+
 const CurvedBottomBar = ({ activeTab, onTabPress }) => {
     return (
         // tabBarContainerNew es el contenedor principal, le ponemos el color de fondo y sombra
