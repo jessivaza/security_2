@@ -27,7 +27,17 @@ api.interceptors.request.use(
         return Promise.reject(error);
     }
 );
-
+api.interceptors.request.use(
+    async (config) => {
+        const token = await AsyncStorage.getItem('access');
+        console.log("Token que se va a enviar:", token ? "Token presente" : "Token NO presente"); // <-- AÑADIR ESTO
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    //...
+);
 // Interceptor para manejar errores de autenticación
 api.interceptors.response.use(
     (response) => response,
@@ -76,24 +86,6 @@ export const alertasAPI = {
     },
 };
 
-export const incidenciasAPI = {
-  getAll: async () => {
-    const response = await api.get('/incidencias/');
-    return response.data;
-  },
-  create: async (incidencia) => {
-    const response = await api.post('/incidencias/', incidencia);
-    return response.data;
-  },
-  update: async (id, data) => {
-    const response = await api.put(`/incidencias/${id}/`, data);
-    return response.data;
-  },
-  delete: async (id) => {
-    const response = await api.delete(`/incidencias/${id}/`);
-    return response.data;
-  },
-};
 
 
 
