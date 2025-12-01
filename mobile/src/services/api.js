@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const BASE_URL = "http://192.168.100.32:8000/api";
+const BASE_URL = "http://192.168.18.9:8000/api";
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
@@ -14,30 +14,36 @@ const api = axios.create({
     }
 });
 
-// Interceptor para agregar el token automáticamente
+// Interceptor para agregar el token automáticamente y manejar FormData
 api.interceptors.request.use(
     async (config) => {
         const token = await AsyncStorage.getItem('access');
+        
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // 🔧 Si es FormData, eliminar Content-Type para que Axios lo establezca automáticamente con boundary
+        if (config.data instanceof FormData) {
+            console.log("📦 [API] Detectado FormData - Content-Type será establecido automáticamente por Axios");
+            delete config.headers['Content-Type'];
+        } else {
+            console.log("📋 [API] Enviando JSON - Content-Type: application/json");
+            config.headers['Content-Type'] = 'application/json';
+        }
+        
+        console.log("🔐 [API] Token:", token ? "✅ Presente" : "❌ NO presente");
+        console.log("📌 [API] URL:", config.url);
+        console.log("📊 [API] Método:", config.method.toUpperCase());
+        
         return config;
     },
     (error) => {
+        console.error("❌ [API] Error en interceptor request:", error);
         return Promise.reject(error);
     }
 );
-api.interceptors.request.use(
-    async (config) => {
-        const token = await AsyncStorage.getItem('access');
-        console.log("Token que se va a enviar:", token ? "Token presente" : "Token NO presente"); // <-- AÑADIR ESTO
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    //...
-);
+
 // Interceptor para manejar errores de autenticación
 api.interceptors.response.use(
     (response) => response,
@@ -84,9 +90,12 @@ export const alertasAPI = {
         const response = await api.get('/historial/incidentes/');
         return response.data;
     },
+    // Crear una nueva alerta/incidencia en DetalleAlerta
+    createAlerta: async (alertData) => {
+        // El interceptor se encargará de FormData automáticamente
+        const response = await api.post('/registrar-incidente/', alertData);
+        return response.data;
+    },
 };
-
-
-
 
 export default api;

@@ -21,7 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 # ===== Django REST Framework & JWT =====
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -596,7 +596,7 @@ import threading
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser, FormParser])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def registrar_incidente(request):
     """
     Crea un DetalleAlerta para el usuario autenticado y envía una notificación al correo del usuario.
@@ -733,15 +733,17 @@ def todas_alertas(request):
         data = [
             {
                 "id": a.idTipoIncidencia,
+                "idTipoIncidencia": a.idTipoIncidencia,
                 "ubicacion": a.Ubicacion,
                 "descripcion": a.Descripcion,
                 "fecha": a.FechaHora.strftime("%Y-%m-%d %H:%M:%S"),
                 "nombre_incidente": a.NombreIncidente,
-                "escala": a.idEscalaIncidencia_id if a.idEscalaIncidencia_id else None,
-                "estado": a.EstadoIncidente,
+                "escala": a.Escala,  # Devolver el escala directo (1, 2, 3, 4)
+                "estado": getattr(a, "EstadoIncidente", None) or "Pendiente",
                 "latitud": a.Latitud,
                 "longitud": a.Longitud,
                 "usuario": a.idUsuario_id if a.idUsuario_id else None,
+                "usuario_nombre": a.idUsuario.nombre if a.idUsuario else "Sistema",
             }
             for a in alertas
         ]

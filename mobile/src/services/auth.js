@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 
-const BASE_URL = "http://192.168.100.32:8000/api";
+const BASE_URL = "http://192.168.18.9:8000/api";
 
 // ======================================================
 // 🔹 LOGIN
@@ -22,7 +22,7 @@ export async function login(correo, contraseña) {
       ["refresh", data.refresh],
       ["idUsuario", String(data.idUsuario)],
       ["role", data.role || "user"],
-      ["nombre", data.nombre || ""],
+      ["nombre", data.nombre || data.username || data.first_name || data.email || ""],
       ["correo", correo],
     ]);
 

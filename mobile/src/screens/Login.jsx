@@ -26,8 +26,12 @@ export default function Login({ navigation, onLogin }) {
     try {
       const data = await login(correo, contraseña);
 
-      // Guardar datos en contexto
-      setUserData(data);
+      // Guardar datos en contexto - asegurar que tenga nombre
+      const dataWithName = {
+        ...data,
+        nombre: data.nombre || data.username || correo.split("@")[0] || "Usuario"
+      };
+      setUserData(dataWithName);
 
       // ===============================
       // 🚀 CONDICIÓN @admin.com
