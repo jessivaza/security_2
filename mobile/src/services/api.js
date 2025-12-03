@@ -3,12 +3,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const BASE_URL = "http://192.168.18.9:8000/api";
+const BASE_URL = "http://192.168.18.248:8000/api";
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
     baseURL: BASE_URL,
-    timeout: 10000,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
     }
@@ -92,9 +92,42 @@ export const alertasAPI = {
     },
     // Crear una nueva alerta/incidencia en DetalleAlerta
     createAlerta: async (alertData) => {
-        // El interceptor se encargará de FormData automáticamente
-        const response = await api.post('/registrar-incidente/', alertData);
-        return response.data;
+        try {
+            // Si es FormData, usar fetch directamente (más confiable en React Native)
+            if (alertData instanceof FormData) {
+                console.log("📦 [createAlerta] FormData detectado - usando FETCH directo");
+                const token = await AsyncStorage.getItem('access');
+                
+                const response = await fetch(BASE_URL + '/registrar-incidente/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // ✅ NO incluir Content-Type - fetch auto-detecta multipart/form-data
+                    },
+                    body: alertData,
+                });
+
+                console.log("📊 [Fetch] Status:", response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("❌ Error response:", errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log("✅ [Fetch] Respuesta:", data);
+                return data;
+            } else {
+                // JSON: usar axios con interceptor normal
+                console.log("📋 [createAlerta] JSON - usando axios");
+                const response = await api.post('/registrar-incidente/', alertData);
+                return response.data;
+            }
+        } catch (error) {
+            console.error("❌ [createAlerta] Error:", error.message);
+            throw error;
+        }
     },
 };
 

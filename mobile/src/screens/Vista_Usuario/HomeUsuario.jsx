@@ -16,7 +16,7 @@ import {
 }
     from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 // Importaciones requeridas para las nuevas funcionalidades
 import * as Location from 'expo-location';
@@ -26,10 +26,12 @@ import * as ImagePicker from 'expo-image-picker';
 import MapScreen from './Mapa.jsx';
 import { Ionicons } from "@expo/vector-icons";
 import ExcelJS from "exceljs";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { UserContext } from "../../theme/UserContext";
-import { alertasAPI } from "../../services/api"; const { width } = Dimensions.get("window");
+import { alertasAPI } from "../../services/api";
+
+const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.4;
 const CHART_HEIGHT = 200;
 
@@ -50,6 +52,10 @@ const COLORS = {
     textLight: "#666",
     // Nuevo color para fondo oscuro de tarjetas (Azul Noche Oscuro)
     darkPrimary: "#0d124b",
+    // Nuevo color para seleccionar incidentes
+    incidentHigh: "#FFEBEB", // Fondo suave para incidente Alto (Robo, Secuestro)
+    incidentMedium: "#FFF7EB", // Fondo suave para incidente Medio
+    incidentLow: "#EBEDFF", // Fondo suave para incidente Bajo
 };
 
 // ===== ESCALAS =====
@@ -60,16 +66,16 @@ const ESCALAS = [
     { id: "4", nombre: "Pendiente (por asignar)" },
 ];
 
-// ===== INCIDENTES COMUNES =====
+// ===== INCIDENTES COMUNES (con ícono) =====
 const INCIDENTES_COMUNES = [
-    { nombre: "Robo", escala: "3" },
-    { nombre: "Secuestro", escala: "3" },
-    { nombre: "Incendio", escala: "2" },
-    { nombre: "Pelea callejera", escala: "2" },
-    { nombre: "Amenaza", escala: "2" },
-    { nombre: "Vandalismo", escala: "1" },
-    { nombre: "Pérdida de mascota", escala: "1" },
-    { nombre: "Otro", escala: "4" },
+    { nombre: "Robo", escala: "3", icono: "flash" },
+    { nombre: "Secuestro", escala: "3", icono: "hand-left" },
+    { nombre: "Incendio", escala: "2", icono: "flame" },
+    { nombre: "Pelea callejera", escala: "2", icono: "people" },
+    { nombre: "Amenaza", escala: "2", icono: "warning" },
+    { nombre: "Vandalismo", escala: "1", icono: "brush" },
+    { nombre: "Pérdida de mascota", escala: "1", icono: "paw" },
+    { nombre: "Otro", escala: "4", icono: "help-circle" },
 ];
 
 // Opciones de Incidentes y su escala (Prioridad) - Compatibilidad hacia atrás
@@ -95,8 +101,7 @@ const ScreenPlaceholder = ({ title, children }) => (
 );
 
 // 💡 COMPONENTE HEADER CON BOTÓN DE CERRAR SESIÓN AÑADIDO
-const Header = ({ userName, onLogout }) => ( // 👈 onLogout ACEPTADO COMO PROP
-    // ... (código de Header sin cambios)
+const Header = ({ userName, onLogout }) => (
     <View style={styles.headerContainer}>
         <View>
             <Text style={styles.greetingText}>Hola,</Text>
@@ -195,6 +200,34 @@ const StatCard = ({ title, value, icon, color }) => (
     </View>
 );
 
+// --- NUEVO Componente para las opciones del Selector de Incidente (SIMPLIFICADO) ---
+const IncidentPickerOption = ({ incident, isSelected, onPress }) => {
+    // Hemos eliminado la lógica de colores, iconos y escala.
+    
+    // Color de fondo y borde simple.
+    const bgColor = COLORS.white;
+    // Borde azul si está seleccionado, gris claro si no lo está.
+    const borderColor = isSelected ? COLORS.primary : COLORS.border;
+
+    return (
+        <TouchableOpacity
+            style={[
+                styles.simplifiedIncidentOption, 
+                { backgroundColor: bgColor, borderColor: borderColor },
+            ]}
+            onPress={() => onPress(incident)}
+        >
+            {/* Solo mostramos el nombre del incidente */}
+            <Text style={styles.incidentOptionTitleSimplified}>
+                {incident}
+            </Text>
+
+            {/* Marcador de selección, útil para el usuario */}
+            {isSelected && <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />}
+        </TouchableOpacity>
+    );
+};
+
 
 // --- COMPONENTE MODAL PARA CREAR INCIDENCIA ---
 const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
@@ -203,6 +236,7 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
     const [coords, setCoords] = useState(null);
     const [selectedIncident, setSelectedIncident] = useState("");
     const [description, setDescription] = useState('');
+    // Guardaremos objetos de adjuntos { uri, name, type } para el FormData
     const [attachments, setAttachments] = useState([]);
     const [scale, setScale] = useState(INCIDENT_TYPES[INCIDENT_OPTIONS[0]]);
     // Para manejar cuando el usuario elige "Otro"
@@ -222,7 +256,6 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                 console.log("📍 Estado de permiso de ubicación:", status);
 
                 if (status !== 'granted') {
-                    console.warn("⚠️ Permiso de ubicación no concedido. Estado:", status);
                     // Pedir al usuario que habilite permisos
                     Alert.alert(
                         "Permiso requerido",
@@ -258,14 +291,10 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
 
                     const lat = location.coords.latitude;
                     const lon = location.coords.longitude;
-                    const accuracy = location.coords.accuracy;
-
-                    console.log("✅ Ubicación exacta obtenida:", { lat, lon, accuracy: `${accuracy?.toFixed(1)}m` });
                     setCoords({ lat, lon });
 
                     // 🔄 Obtener dirección de calle usando reverse geocoding
                     try {
-                        console.log("🔍 Realizando reverse geocoding...");
                         const geocodeResult = await Location.reverseGeocodeAsync({
                             latitude: lat,
                             longitude: lon,
@@ -284,65 +313,21 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                             ].filter(Boolean);
 
                             const fullAddress = addressParts.join(', ');
-                            console.log("✅ Dirección obtenida:", fullAddress);
                             setCurrentLocation(fullAddress);
                         } else {
-                            console.warn("⚠️ No se encontró dirección, usando coordenadas");
                             const address = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
                             setCurrentLocation(address);
                         }
                     } catch (geocodeError) {
-                        console.warn("⚠️ Error en reverse geocoding:", geocodeError.message);
-                        // Fallback a coordenadas si falla geocoding
                         const address = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
                         setCurrentLocation(address);
                     }
 
                 } catch (locationError) {
                     console.warn("⚠️ No se pudo obtener ubicación precisa:", locationError.message);
-
-                    // Intentar con precisión reducida como fallback
-                    try {
-                        console.log("🔄 Intentando con precisión balanceada...");
-                        let location = await Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.Balanced,
-                            timeout: 10000,
-                            maximumAge: 0,
-                        });
-
-                        const lat = location.coords.latitude;
-                        const lon = location.coords.longitude;
-
-                        console.log("✅ Ubicación (precisión balanceada) obtenida:", { lat, lon });
-                        setCoords({ lat, lon });
-
-                        // 🔄 Obtener dirección de calle usando reverse geocoding
-                        try {
-                            console.log("🔍 Realizando reverse geocoding (precisión balanceada)...");
-                            const geocodeResult = await Location.reverseGeocodeAsync({
-                                latitude: lat,
-                                longitude: lon,
-                            });
-
-                            if (geocodeResult && geocodeResult.length > 0) {
-                                const { street, name, city, region, country } = geocodeResult[0];
-                                const addressParts = [street || name, city, region, country].filter(Boolean);
-                                const fullAddress = addressParts.join(', ');
-                                console.log("✅ Dirección obtenida (fallback):", fullAddress);
-                                setCurrentLocation(fullAddress);
-                            } else {
-                                setCurrentLocation(`Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`);
-                            }
-                        } catch (geocodeError) {
-                            console.warn("⚠️ Error en reverse geocoding (fallback):", geocodeError.message);
-                            setCurrentLocation(`Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`);
-                        }
-                    } catch (fallbackError) {
-                        console.warn("⚠️ Fallback también falló:", fallbackError.message);
-                        // Usar por defecto
-                        setCoords({ lat: -12.0464, lon: -77.0428 });
-                        setCurrentLocation('Lima, Perú (ubicación por defecto)');
-                    }
+                    // Fallback a coordenadas si falla geocoding
+                    setCoords({ lat: -12.0464, lon: -77.0428 });
+                    setCurrentLocation('Lima, Perú (ubicación por defecto)');
                 }
             } catch (error) {
                 console.error("❌ Error general:", error);
@@ -352,14 +337,17 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
         })();
     }, [isVisible]); // El efecto se dispara cuando isVisible cambia.
 
+
     // 💡 FUNCIÓN: Abrir cámara y guardar foto/video
     const handleCaptureMedia = async () => {
+        // 1. Pedir permisos
         let cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
         if (cameraPermission.status !== 'granted') {
             Alert.alert('Error', 'Necesitas otorgar permiso de cámara para capturar evidencia.');
             return;
         }
 
+        // 2. Pedir al usuario que elija
         Alert.alert(
             "Capturar Evidencia",
             "¿Deseas capturar una foto o un video?",
@@ -371,12 +359,10 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                         let pickerResult = await ImagePicker.launchCameraAsync({
                             mediaTypes: ImagePicker.MediaTypeOptions.Images,
                             allowsEditing: false,
-                            quality: 0.5,
+                            quality: 0.7,
                         });
-                        if (!pickerResult.canceled) {
-                            const newAttachment = `Foto - ${new Date().toLocaleTimeString()}`;
-                            setAttachments(prev => [...prev, newAttachment]);
-                            Alert.alert("Éxito", "Foto adjuntada.");
+                        if (!pickerResult.canceled && pickerResult.assets.length > 0) {
+                            await saveAttachment(pickerResult.assets[0].uri, 'image/jpeg');
                         }
                     }
                 },
@@ -386,13 +372,11 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                         let pickerResult = await ImagePicker.launchCameraAsync({
                             mediaTypes: ImagePicker.MediaTypeOptions.Videos,
                             allowsEditing: false,
-                            quality: 0.5,
+                            quality: 0.7,
                             maxDuration: 15,
                         });
-                        if (!pickerResult.canceled) {
-                            const newAttachment = `Video - ${new Date().toLocaleTimeString()}`;
-                            setAttachments(prev => [...prev, newAttachment]);
-                            Alert.alert("Éxito", "Video adjuntado.");
+                        if (!pickerResult.canceled && pickerResult.assets.length > 0) {
+                            await saveAttachment(pickerResult.assets[0].uri, 'video/mp4');
                         }
                     }
                 },
@@ -401,40 +385,82 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
         );
     };
 
+    // 💡 FUNCIÓN: Guardar el archivo en la carpeta local y actualizar estado
+    const saveAttachment = async (tempUri, mimeType) => {
+        // Crear el directorio de archivos si no existe
+        const dirUri = FileSystem.cacheDirectory + 'archivo_mobile/';
+        const fileInfo = await FileSystem.getInfoAsync(dirUri);
+        if (!fileInfo.exists) {
+            await FileSystem.makeDirectoryAsync(dirUri, { intermediates: true });
+        }
+
+        // Crear nombre de archivo único
+        const filename = `${new Date().toISOString().replace(/[:.]/g, '-')}.${mimeType.split('/')[1]}`;
+        const newUri = dirUri + filename;
+
+        try {
+            // Mover/Copiar el archivo temporal a la ubicación deseada
+            await FileSystem.moveAsync({
+                from: tempUri,
+                to: newUri,
+            });
+
+            // Agregar a la lista de adjuntos
+            const newAttachment = {
+                uri: newUri,
+                name: filename,
+                type: mimeType,
+            };
+
+            setAttachments(prev => [...prev, newAttachment]);
+            Alert.alert("Éxito", `${mimeType.includes('image') ? 'Foto' : 'Video'} adjuntado y guardado localmente en 'archivo_mobile'.`);
+
+        } catch (error) {
+            console.error("❌ Error al guardar el archivo:", error);
+            Alert.alert("Error de Archivo", "No se pudo guardar la evidencia localmente.");
+        }
+    };
+
+
     // 💡 FUNCIÓN: Guardar la incidencia
     const handleSave = () => {
         if (!coords) {
-            Alert.alert("Campos Requeridos", "Por favor, seleccione un incidente y asegúrese de tener la ubicación GPS.");
+            Alert.alert("Campos Requeridos", "Por favor, asegúrese de tener la ubicación GPS.");
             return;
         }
 
         const nombreFinal = esOtro ? nombreIncidenteOtro : selectedIncident;
-        if (!nombreFinal || nombreFinal.trim() === "") {
-            Alert.alert("Campos Requeridos", "Especifique el incidente.");
+        if (!nombreFinal || nombreFinal.trim() === "" || selectedIncident === "") {
+            Alert.alert("Campos Requeridos", "Seleccione o especifique el incidente.");
             return;
         }
+
         const newIncidence = {
-            nombre: selectedIncident,
+            nombre: nombreFinal, // Usar el nombre especificado si es "Otro"
             descripcion: description || "No determinado",
             prioridad: scale,
             location: currentLocation,
             coords: coords,
-            attachments: attachments,
+            attachments: attachments, // Ahora contiene la lista de objetos { uri, name, type }
         };
+
         onSave(newIncidence);
         // Reset
         setNombreIncidenteOtro("");
         setEsOtro(false);
+        setAttachments([]); // Limpiar adjuntos después de guardar
+        onClose(); // Cerrar el modal
     };
 
     // 💡 Lógica para manejar la selección del incidente y la escala
     const handleIncidentChange = (incident) => {
         setSelectedIncident(incident);
-        setScale(INCIDENT_TYPES[incident] || 'No determinado');
+        // Buscar la escala para el incidente seleccionado, por defecto "4" (Pendiente) si no se encuentra
+        const foundScale = INCIDENT_TYPES[incident] || '4';
+        setScale(foundScale);
         setEsOtro(incident === "Otro");
-        setIsPickerVisible(false);
+        setIsPickerVisible(false); // Cerrar picker al seleccionar
     };
-
 
 
     const getScaleName = (escalaId) => {
@@ -443,12 +469,11 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
     };
 
     const getScaleColor = (currentScale) => {
-        // Maneja tanto strings ("3") como números (3)
         const scaleNum = String(currentScale);
         if (scaleNum === '3') return COLORS.danger;      // Alto - Rojo
         if (scaleNum === '2') return COLORS.secondary;   // Medio - Naranja
         if (scaleNum === '1') return COLORS.primary;     // Bajo - Azul
-        return COLORS.primary;                            // Pendiente - Azul
+        return COLORS.primary;                          // Pendiente - Azul
     }
 
 
@@ -465,11 +490,15 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                 {/* Título en el centro */}
                 <View style={styles.modalHeaderSimplified}>
                     <Text style={styles.modalTitleSimplified}>Registrar Incidente</Text>
+                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                        <Ionicons name="close-circle-outline" size={28} color={COLORS.inactive} />
+                    </TouchableOpacity>
                 </View>
 
                 <ScrollView style={styles.modalBody}>
 
                     {/* 1. Ubicación (Output de GPS) */}
+                    <Text style={styles.inputLabel}>Ubicación GPS Actual</Text>
                     <TextInput
                         style={[styles.textInput, styles.locationInput, { fontWeight: '600' }]}
                         value={currentLocation}
@@ -479,50 +508,45 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                         numberOfLines={2}
                     />
 
-                        {/* Botón del dropdown */}
-                        <TouchableOpacity
-                            style={styles.dropdownInput}
-                            onPress={() => setIsPickerVisible(!isPickerVisible)}
-                        >
-                            <Text style={styles.dropdownText}>
-                                {selectedIncident || "Seleccionar incidente"}
-                            </Text>
-                            <Ionicons
-                                name={isPickerVisible ? "chevron-up" : "chevron-down"}
-                                size={20}
-                                color={COLORS.textDark}
-                                style={styles.dropdownIcon}
-                            />
-                        </TouchableOpacity>
+                    {/* 2. Selector de Incidente */}
+                    <Text style={styles.inputLabel}>Tipo de Incidente</Text>
+                    <TouchableOpacity
+                        style={styles.dropdownInput}
+                        onPress={() => setIsPickerVisible(!isPickerVisible)}
+                    >
+                        <Text style={styles.dropdownText}>
+                            {selectedIncident || "Seleccionar incidente"}
+                        </Text>
+                        <Ionicons
+                            name={isPickerVisible ? "chevron-up" : "chevron-down"}
+                            size={20}
+                            color={COLORS.textDark}
+                            style={styles.dropdownIcon}
+                        />
+                    </TouchableOpacity>
 
-                        {isPickerVisible && (
-                            <View style={styles.pickerOptionsContainer}>
-                                <ScrollView>
-                                    {INCIDENT_OPTIONS.map((option) => (
-                                        <TouchableOpacity
-                                            key={option}
-                                            style={[
-                                                styles.pickerOption,
-                                                selectedIncident === option && styles.pickerOptionSelected
-                                            ]}
-                                            onPress={() => handleIncidentChange(option)}
-                                        >
-                                            <Text style={styles.pickerOptionText}>{option}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            </View>
-                        )}
-                 
-
-
+                    {isPickerVisible && (
+                        <View style={styles.pickerOptionsContainer}>
+                            <ScrollView nestedScrollEnabled={true}>
+                                {INCIDENTES_COMUNES.map((incidente) => (
+                                    <IncidentPickerOption
+                                        key={incidente.nombre}
+                                        incident={incidente.nombre}
+                                        isSelected={selectedIncident === incidente.nombre}
+                                        onPress={handleIncidentChange}
+                                    />
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
 
 
                     {/* INPUT para “Otro” */}
                     {esOtro && (
                         <TextInput
-                            style={styles.input}
-                            placeholder="Especifique el incidente"
+                            style={styles.textInput}
+                            placeholder="Especifique el incidente (si eligió 'Otro')"
+                            placeholderTextColor={COLORS.textLight}
                             value={nombreIncidenteOtro}
                             onChangeText={setNombreIncidenteOtro}
                         />
@@ -530,33 +554,29 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
 
 
                     {/* 3. Descripción (Opcional) */}
+                    <Text style={[styles.inputLabel, { marginTop: esOtro ? 15 : 10 }]}>Descripción (Opcional)</Text>
                     <TextInput
-                        // Si el picker está visible, el margin-top es 0
-                        style={[styles.textInput, { height: 80, textAlignVertical: 'top', marginTop: isPickerVisible ? 0 : 15 }]}
+                        style={[styles.textInput, { height: 80, textAlignVertical: 'top' }]}
                         value={description}
                         onChangeText={setDescription}
-                        placeholder="Descripción (opcional)"
+                        placeholder="Detalles adicionales del incidente"
                         placeholderTextColor={COLORS.textLight}
                         autoCapitalize="none"
                         multiline
                     />
                     <Text style={styles.descriptionHint}>
-                        Si no escribes una descripción, se guardará como "No determinado"
+                        Prioridad estimada: **{getScaleName(scale)}**
                     </Text>
 
-                    {/* 4. Escala (Texto dinámico) */}
-                    <Text style={[styles.scaleText, { color: getScaleColor(scale) }]}>
-                        Escala: **{scale}**
-                    </Text>
-
-                    {/* 5. Selector de Archivo (Botón para abrir Cámara) */}
+                    {/* 4. Selector de Archivo (Botón para abrir Cámara) */}
                     <View style={styles.fileSelectorContainer}>
                         {/* Botón principal para abrir cámara y capturar */}
                         <TouchableOpacity
                             style={styles.fileSelectButton}
                             onPress={handleCaptureMedia}
                         >
-                            <Text style={styles.fileSelectButtonText}>Seleccionar archivo</Text>
+                            <Ionicons name="camera-outline" size={20} color={COLORS.primary} style={{ marginRight: 5 }} />
+                            <Text style={styles.fileSelectButtonText}>Capturar Evidencia</Text>
                         </TouchableOpacity>
                         <Text style={styles.fileStatusText}>
                             {attachments.length > 0 ? `${attachments.length} archivo(s) adjuntado(s)` : "Sin archivos seleccionados"}
@@ -567,29 +587,29 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
                     {attachments.length > 0 && (
                         <View style={styles.attachmentsList}>
                             {attachments.map((att, index) => (
-                                <Text key={index} style={styles.attachmentItem} numberOfLines={1}>
-                                    <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
-                                    <Text> {att}</Text>
-                                </Text>
+                                <View key={index} style={styles.attachmentItem} numberOfLines={1}>
+                                    <Ionicons name="checkmark-circle" size={14} color={COLORS.success} style={{ marginRight: 5 }} />
+                                    <Text style={{ fontSize: 14, color: COLORS.textDark }}>{att.name}</Text>
+                                </View>
                             ))}
                         </View>
                     )}
 
                 </ScrollView>
 
-                {/* 7. Botones Guardar y Cancelar */}
+                {/* 5. Botones Guardar y Cancelar */}
                 <View style={styles.modalFooterButtons}>
-                    <TouchableOpacity
-                        style={[styles.button, styles.saveButton]}
-                        onPress={handleSave}
-                    >
-                        <Text style={styles.saveButtonText}>Guardar</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.button, styles.cancelButton]}
                         onPress={onClose}
                     >
                         <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.button, styles.saveButton]}
+                        onPress={handleSave}
+                    >
+                        <Text style={styles.saveButtonText}>Guardar</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -637,10 +657,11 @@ export default function UserHome() {
     }, [userData]);
 
     // 💡 FUNCIÓN CERRAR SESIÓN
+    const navigation = useNavigation();
     const handleLogout = useCallback(() => {
         Alert.alert(
             "Cerrar Sesión",
-            "¿Estás segura de que quieres cerrar tu sesión actual? (Esta acción te dirigiría a la pantalla de Login)",
+            "¿Estás segura de que quieres cerrar tu sesión actual?",
             [
                 {
                     text: "Cancelar",
@@ -648,16 +669,27 @@ export default function UserHome() {
                 },
                 {
                     text: "Sí, Cerrar Sesión",
-                    onPress: () => {
-                        // Aquí iría la lógica para limpiar tokens y navegación:
-                        // Ejemplo: navigation.replace('LoginScreen'); 
-                        Alert.alert("Sesión Cerrada", "Has cerrado sesión exitosamente. (Simulación de Logout/Redirección)");
+                    onPress: async () => {
+                        try {
+                            // Limpiar datos sensibles de AsyncStorage
+                            await AsyncStorage.multiRemove(['access', 'refresh', 'idUsuario', 'role', 'username', 'email', 'nombre']);
+                            console.log('🔐 Tokens y datos de sesión eliminados');
+
+                            // Navegar al Login y reiniciar el stack para evitar volver atrás
+                            navigation.reset({
+                                index: 0,
+                                routes: [{ name: 'Login' }],
+                            });
+                        } catch (e) {
+                            console.error('❌ Error al limpiar sesión:', e);
+                            Alert.alert('Error', 'No se pudo cerrar sesión correctamente. Intente de nuevo.');
+                        }
                     },
                     style: 'destructive',
                 }
             ]
         );
-    }, []);
+    }, [navigation]);
 
     useFocusEffect(
         useCallback(() => {
@@ -712,39 +744,51 @@ export default function UserHome() {
                 // Aquí puedes hacer limpieza si es necesario
             };
         }, [])
-    );    // --- Función de Guardado de Incidencia (Estabilizada con useCallback) ---
+    );
+
     // --- Función de Guardado de Incidencia (Estabilizada con useCallback) ---
     const handleSaveIncidence = useCallback(async (newIncidence) => {
         try {
             const currentDate = new Date();
 
-            // Si hay archivos adjuntos, usar FormData y multipart/form-data
             let requestData;
             let hasAttachments = newIncidence.attachments && newIncidence.attachments.length > 0;
 
             if (hasAttachments) {
                 // Usar FormData para enviar archivos
                 requestData = new FormData();
-                requestData.append('NombreIncidente', newIncidence.nombre);
-                requestData.append('Descripcion', newIncidence.descripcion || '');
-                requestData.append('Ubicacion', newIncidence.location || 'No especificada');
-                requestData.append('escala', parseInt(newIncidence.prioridad) || 2);
-                requestData.append('Latitud', newIncidence.coords?.lat || -12.049);
-                requestData.append('Longitud', newIncidence.coords?.lon || -77.045);
+                requestData.append('NombreIncidente', String(newIncidence.nombre));
+                requestData.append('Descripcion', String(newIncidence.descripcion || ''));
+                requestData.append('Ubicacion', String(newIncidence.location || 'No especificada'));
+                requestData.append('escala', String(parseInt(newIncidence.prioridad) || 2));
+                requestData.append('Latitud', String(newIncidence.coords?.lat || -12.049));
+                requestData.append('Longitud', String(newIncidence.coords?.lon || -77.045));
 
-                // Adjuntar archivos - En React Native, FormData necesita el formato correcto
+                // **ADVERTENCIA:** FormData en React Native necesita la propiedad 'uri'
                 newIncidence.attachments.forEach((attachment, index) => {
-                    requestData.append('Archivo', {
-                        uri: attachment.uri,
-                        type: attachment.type || 'application/octet-stream',
-                        name: attachment.name || `attachment_${index}`,
-                    });
+                    // El URI local guardado en saveAttachment
+                    let fileUri = attachment.uri;
+                    const fileName = attachment.name;
+                    const fileType = attachment.type;
+
+                    // ✅ Asegurar que URI tiene el protocolo file://
+                    if (!fileUri.startsWith('file://')) {
+                        fileUri = 'file://' + fileUri;
+                    }
+
+                    if (fileUri) {
+                        requestData.append('Archivo', {
+                            uri: fileUri,
+                            type: fileType,
+                            name: fileName,
+                        });
+                        console.log(`📤 [Archivo ${index}] URI: ${fileUri}`);
+                        console.log(`📤 [Archivo ${index}] Nombre: ${fileName}`);
+                        console.log(`📤 [Archivo ${index}] Tipo: ${fileType}`);
+                    }
                 });
 
-                console.log("📤 [FormData] Enviando incidencia con", newIncidence.attachments.length, "archivo(s)");
-                console.log("📤 [FormData] NombreIncidente:", newIncidence.nombre);
-                console.log("📤 [FormData] Ubicacion:", newIncidence.location);
-                console.log("📤 [FormData] escala:", parseInt(newIncidence.prioridad));
+                console.log("📤 [FormData] Enviando incidencia con archivos. Datos:", requestData._parts);
             } else {
                 // Enviar JSON simple sin archivos
                 requestData = {
@@ -755,7 +799,6 @@ export default function UserHome() {
                     Latitud: newIncidence.coords?.lat || -12.049,
                     Longitud: newIncidence.coords?.lon || -77.045,
                 };
-
                 console.log("📤 [JSON] Enviando incidencia:", JSON.stringify(requestData, null, 2));
             }
 
@@ -780,7 +823,7 @@ export default function UserHome() {
 
             setData(prevData => [incidenceWithMetadata, ...prevData]);
             setIsModalVisible(false);
-            Alert.alert("Éxito", `Incidencia "${newIncidence.nombre}" guardada correctamente en DetalleAlerta.`);
+            Alert.alert("Éxito", `Incidencia "${newIncidence.nombre}" guardada correctamente.`);
             setActiveTab("principal");
         } catch (error) {
             console.error("❌ Error al guardar incidencia:", error);
@@ -791,7 +834,10 @@ export default function UserHome() {
             const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message;
             Alert.alert("Error", `No se pudo guardar la incidencia:\n${errorMsg}`);
         }
-    }, [userName]); const filteredData = useMemo(() => {
+    }, [userName]);
+
+
+    const filteredData = useMemo(() => {
         let result = data;
         if (activeFilter !== "Todos") {
             result = result.filter((item) => item.estado === activeFilter);
@@ -814,7 +860,13 @@ export default function UserHome() {
                 { header: "Prioridad", key: "prioridad", width: 12 },
             ];
             data.forEach((item) => worksheet.addRow(item));
-            const fileUri = FileSystem.cacheDirectory + "reporte.xlsx";
+            // Usar la carpeta 'archivo_mobile' dentro de cacheDirectory
+            const dirUri = FileSystem.cacheDirectory + 'archivo_mobile/';
+            const fileInfo = await FileSystem.getInfoAsync(dirUri);
+            if (!fileInfo.exists) {
+                await FileSystem.makeDirectoryAsync(dirUri, { intermediates: true });
+            }
+            const fileUri = dirUri + "reporte.xlsx";
             const buffer = await workbook.xlsx.writeBuffer();
             await FileSystem.writeAsStringAsync(fileUri, buffer.toString("base64"), { encoding: FileSystem.EncodingType.Base64 });
             if (!(await Sharing.isAvailableAsync())) {
@@ -934,7 +986,7 @@ export default function UserHome() {
             {/* CONTENIDO PRINCIPAL - con padding bottom para la barra */}
             <View style={{ flex: 1, paddingBottom: 85, paddingHorizontal: 12 }}>
                 {renderActiveScreen()}
-            </View>      {/* Usa la nueva función de manejo */}
+            </View>
             <CurvedBottomBar activeTab={activeTab} onTabPress={handleTabPress} />
 
             {/* RENDERIZADO DEL MODAL */}
@@ -1171,7 +1223,7 @@ const styles = StyleSheet.create({
     statValue: { fontSize: 20, fontWeight: 'bold', marginTop: 5 },
 
     // ----------------------------------------------------------------------
-    // ▫ Tab Bar MEJORADOS (ACTUALIZADOS)
+    // ▫ Tab Bar MEJORADOS
     tabBarContainerNew: {
         position: "absolute",
         bottom: 0,
@@ -1183,14 +1235,13 @@ const styles = StyleSheet.create({
     tabRowNew: {
         flexDirection: "row",
         justifyContent: "space-around",
-        alignItems: 'flex-start', // Alinea los botones laterales arriba
+        alignItems: 'flex-start',
         height: 75,
         backgroundColor: COLORS.white,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingHorizontal: 5,
-        paddingTop: 10, // Un poco de padding arriba
-        // Sombra para dar efecto de elevación a la barra
+        paddingTop: 10,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.15,
@@ -1201,12 +1252,11 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         paddingVertical: 5,
-        justifyContent: 'flex-start', // Asegura que los iconos estén arriba
+        justifyContent: 'flex-start',
         minWidth: 50,
     },
-    // Espacio invisible para el botón central
     centerButtonWrapperNew: {
-        width: 70, // Espacio reservado para el botón central
+        width: 70,
         height: 75,
         justifyContent: 'center',
         alignItems: 'center',
@@ -1247,53 +1297,67 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContainer: {
-        width: '90%',
-        maxHeight: '90%',
+        width: '95%', // Aumentado para más espacio
+        maxHeight: '95%',
         backgroundColor: COLORS.white,
-        borderRadius: 8,
+        borderRadius: 12, // Más redondeado
         padding: 20,
         alignItems: 'center',
     },
     modalHeaderSimplified: {
         width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        paddingBottom: 10,
+    },
+    closeButton: {
+        padding: 5,
     },
     modalTitleSimplified: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
-        color: COLORS.textDark,
+        color: COLORS.primary,
     },
     modalBody: {
         width: '100%',
         flexGrow: 0,
         marginBottom: 10,
     },
+    inputLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: COLORS.textDark,
+        marginTop: 15,
+        marginBottom: 5,
+    },
     locationInput: {
         fontSize: 14,
         color: COLORS.textDark,
         paddingVertical: 10,
-        backgroundColor: COLORS.white,
+        backgroundColor: COLORS.background, // Fondo diferente para indicar que es solo lectura
         borderWidth: 1,
         borderColor: COLORS.border,
         paddingHorizontal: 10,
     },
     // Selector de Incidente (Simulación de Dropdown)
     dropdownInput: {
-        position: 'relative',  // <-- Agregado
+        position: 'relative',
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: COLORS.border,
-        borderRadius: 4,
-        marginTop: 15,
+        borderRadius: 8,
         backgroundColor: COLORS.white,
         justifyContent: 'space-between',
         paddingRight: 10,
     },
     dropdownText: {
         fontSize: 16,
-        padding: 10,
+        padding: 12,
         color: COLORS.textDark,
     },
     dropdownIcon: {
@@ -1301,39 +1365,51 @@ const styles = StyleSheet.create({
     },
     // Opciones del Picker
     pickerOptionsContainer: {
-        position: "absolute",
-        top: 55,
-        left: 0,
-        right: 0,
+        position: "relative", // Cambiado a relative para que fluya en el ScrollView
+        marginTop: 10,
         backgroundColor: "#fff",
         borderWidth: 1,
         borderColor: COLORS.border,
         borderRadius: 8,
-        maxHeight: 350,    // Scroll aparecerá aquí
-        zIndex: 99999,
-        elevation: 20,
-        overflow: "hidden",  // Solo el contenedor del scroll puede cortar
-    }
-    ,
-    pickerOption: {
-        padding: 10,
+        maxHeight: 250, // Altura limitada para scroll
+        overflow: "hidden",
+        zIndex: 10, // Asegurar que esté sobre otros elementos
     },
-    pickerOptionSelected: {
-        backgroundColor: COLORS.background, // Resaltar la selección
+    // --- ESTILOS DE OPCIONES TIPO TARJETA (DESACTIVADO/ELIMINADO) ---
+    // NO SE USAN MÁS: incidentOptionCard, incidentOptionCardSelected, incidentOptionIcon, incidentOptionDetails, incidentOptionScale
+
+    // --- NUEVOS ESTILOS PARA LAS OPCIONES SIMPLIFICADAS ---
+    simplifiedIncidentOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 15, 
+        paddingVertical: 12,
+        marginHorizontal: 0, 
+        marginVertical: 0, 
+        borderRadius: 0, 
+        borderWidth: 0,
+        borderBottomWidth: 1, 
+        borderColor: COLORS.border,
+        justifyContent: 'space-between',
+        backgroundColor: COLORS.white, // Asegurar fondo blanco
     },
-    pickerOptionText: {
+    incidentOptionTitleSimplified: {
+        fontSize: 16,
+        fontWeight: '400', 
         color: COLORS.textDark,
+        flex: 1, 
     },
     // Fin Selector
     textInput: {
         width: '100%',
         backgroundColor: COLORS.white,
-        padding: 10,
-        borderRadius: 4,
+        padding: 12,
+        borderRadius: 8,
         fontSize: 16,
         color: COLORS.textDark,
         borderWidth: 1,
         borderColor: COLORS.border,
+        marginTop: 5,
     },
     descriptionHint: {
         fontSize: 12,
@@ -1341,10 +1417,10 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: 'left',
         width: '100%',
+        fontWeight: '600',
     },
     scaleText: {
         fontSize: 16,
-        // Usamos el color dinámico en el componente
         fontWeight: 'bold',
         marginTop: 15,
         marginBottom: 10,
@@ -1352,25 +1428,34 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 
-    // Contenedor de Archivos (Nuevo diseño)
+    // Contenedor de Archivos
     fileSelectorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 20,
         width: '100%',
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
     },
     fileSelectButton: {
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.white,
         borderWidth: 1,
-        borderColor: COLORS.inactive,
+        borderColor: COLORS.primary,
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        shadowColor: COLORS.shadow,
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 1,
     },
     fileSelectButtonText: {
-        color: COLORS.textDark,
+        color: COLORS.primary,
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     fileStatusText: {
         marginLeft: 15,
@@ -1383,16 +1468,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'flex-end',
         width: '100%',
-        paddingTop: 20,
+        paddingTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
     },
     saveButton: {
         backgroundColor: COLORS.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 4,
-        marginRight: 10,
+        borderRadius: 8,
+        marginLeft: 10,
         marginTop: 0,
-        width: 100, // Fijar ancho
+        width: 110,
     },
     saveButtonText: {
         color: COLORS.white,
@@ -1403,9 +1490,9 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.inactive, // Gris para cancelar
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 4,
+        borderRadius: 8,
         marginTop: 0,
-        width: 100, // Fijar ancho
+        width: 110,
     },
     cancelButtonText: {
         color: COLORS.white,
@@ -1415,10 +1502,10 @@ const styles = StyleSheet.create({
 
     attachmentsList: {
         width: '100%',
-        marginTop: 15,
-        padding: 15,
-        backgroundColor: COLORS.white,
-        borderRadius: 10,
+        marginTop: 10,
+        padding: 10,
+        backgroundColor: COLORS.background,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: COLORS.border,
     },
@@ -1430,9 +1517,3 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 });
-
-
-
-
-
-
