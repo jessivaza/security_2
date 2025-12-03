@@ -116,7 +116,12 @@ const Header = ({ userName, onLogout }) => (
                 <View style={styles.notificationBadge} />
             </TouchableOpacity>
             {/* 👈 BOTÓN DE CERRAR SESIÓN EN LA ESQUINA */}
-            <TouchableOpacity style={styles.headerIconButton} onPress={onLogout}>
+            <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={onLogout}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Cerrar sesión"
+            >
                 <Ionicons name="log-out-outline" size={24} color={COLORS.danger} />
             </TouchableOpacity>
         </View>
@@ -203,7 +208,7 @@ const StatCard = ({ title, value, icon, color }) => (
 // --- NUEVO Componente para las opciones del Selector de Incidente (SIMPLIFICADO) ---
 const IncidentPickerOption = ({ incident, isSelected, onPress }) => {
     // Hemos eliminado la lógica de colores, iconos y escala.
-    
+
     // Color de fondo y borde simple.
     const bgColor = COLORS.white;
     // Borde azul si está seleccionado, gris claro si no lo está.
@@ -212,7 +217,7 @@ const IncidentPickerOption = ({ incident, isSelected, onPress }) => {
     return (
         <TouchableOpacity
             style={[
-                styles.simplifiedIncidentOption, 
+                styles.simplifiedIncidentOption,
                 { backgroundColor: bgColor, borderColor: borderColor },
             ]}
             onPress={() => onPress(incident)}
@@ -618,7 +623,7 @@ const CreateIncidenceModal = ({ isVisible, onClose, onSave }) => {
 };
 
 
-export default function UserHome() {
+export default function UserHome({ onLogout: onLogoutFromApp }) {
     const { userData } = useContext(UserContext);
     const [activeTab, setActiveTab] = useState("principal"); // Cambiado a 'principal' para iniciar en Home
     const [data, setData] = useState([]);
@@ -675,11 +680,14 @@ export default function UserHome() {
                             await AsyncStorage.multiRemove(['access', 'refresh', 'idUsuario', 'role', 'username', 'email', 'nombre']);
                             console.log('🔐 Tokens y datos de sesión eliminados');
 
-                            // Navegar al Login y reiniciar el stack para evitar volver atrás
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'Login' }],
-                            });
+                            // Notificar al contenedor (App.js) que cierre sesión
+                            // App.js controla qué stack se renderiza mediante `userType`.
+                            if (typeof onLogoutFromApp === 'function') {
+                                onLogoutFromApp();
+                                console.log('🔁 onLogoutFromApp invoked to reset navigation at root');
+                            } else {
+                                console.warn('⚠️ onLogoutFromApp no está disponible. Si persiste el problema, reinicia la app.');
+                            }
                         } catch (e) {
                             console.error('❌ Error al limpiar sesión:', e);
                             Alert.alert('Error', 'No se pudo cerrar sesión correctamente. Intente de nuevo.');
@@ -689,7 +697,7 @@ export default function UserHome() {
                 }
             ]
         );
-    }, [navigation]);
+    }, [navigation, onLogoutFromApp]);
 
     useFocusEffect(
         useCallback(() => {
@@ -944,15 +952,6 @@ export default function UserHome() {
                             <Text style={styles.profileText}>ID: 123456</Text>
                             <Text style={styles.profileText}>Rol: Supervisor/Reportero</Text>
                         </View>
-
-                        {/* OPCIÓN DE CERRAR SESIÓN */}
-                        <TouchableOpacity
-                            style={[styles.button, styles.logoutButton]}
-                            onPress={handleLogout}
-                        >
-                            <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
-                            <Text style={[styles.buttonText, { marginLeft: 10 }]}>Cerrar Sesión</Text>
-                        </TouchableOpacity>
 
                         <TouchableOpacity
                             style={[styles.button, styles.exportButton]}
@@ -1382,22 +1381,22 @@ const styles = StyleSheet.create({
     simplifiedIncidentOption: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 15, 
+        paddingHorizontal: 15,
         paddingVertical: 12,
-        marginHorizontal: 0, 
-        marginVertical: 0, 
-        borderRadius: 0, 
+        marginHorizontal: 0,
+        marginVertical: 0,
+        borderRadius: 0,
         borderWidth: 0,
-        borderBottomWidth: 1, 
+        borderBottomWidth: 1,
         borderColor: COLORS.border,
         justifyContent: 'space-between',
         backgroundColor: COLORS.white, // Asegurar fondo blanco
     },
     incidentOptionTitleSimplified: {
         fontSize: 16,
-        fontWeight: '400', 
+        fontWeight: '400',
         color: COLORS.textDark,
-        flex: 1, 
+        flex: 1,
     },
     // Fin Selector
     textInput: {
