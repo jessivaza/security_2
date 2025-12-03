@@ -660,6 +660,7 @@ export default function UserHome({ onLogout: onLogoutFromApp }) {
         };
         loadUserName();
     }, [userData]);
+    
 
     // 💡 FUNCIÓN CERRAR SESIÓN
     const navigation = useNavigation();
@@ -944,24 +945,39 @@ export default function UserHome({ onLogout: onLogoutFromApp }) {
             case "alertas":
                 return <ScreenPlaceholder title="⚠️ Alertas y Notificaciones" />;
             case "perfil":
-                return (
-                    <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                        <View style={styles.profileContainer}>
-                            <Text style={styles.profileTitle}>👤 Perfil de Usuario</Text>
-                            <Text style={styles.profileText}>Nombre: {userName}</Text>
-                            <Text style={styles.profileText}>ID: 123456</Text>
-                            <Text style={styles.profileText}>Rol: Supervisor/Reportero</Text>
-                        </View>
+    return (
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+            
+            {/* Contenedor del perfil */}
+            <View style={styles.profileContainer}>
+                <Text style={styles.profileTitle}>👤 Perfil de Usuario</Text>
+                <Text style={styles.profileText}>Nombre: {userName}</Text>
+            </View>
 
-                        <TouchableOpacity
-                            style={[styles.button, styles.exportButton]}
-                            onPress={exportToExcel}
-                        >
-                            <Ionicons name="download-outline" size={20} color={COLORS.textDark} />
-                            <Text style={[styles.buttonText, { marginLeft: 10, color: COLORS.textDark }]}>Exportar Reporte (Excel)</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
-                );
+            {/* BOTÓN PARA EDITAR PERFIL */}
+            <TouchableOpacity
+                style={[styles.button, { backgroundColor: COLORS.primary, marginTop: 10 }]}
+                onPress={() => navigation.navigate("EditarPerfil")}
+            >
+                <Ionicons name="person-circle-outline" size={20} color="#fff" />
+                <Text style={[styles.buttonText, { marginLeft: 10, color: "#fff" }]}>
+                    Editar Perfil
+                </Text>
+            </TouchableOpacity>
+
+            {/* BOTÓN PARA EXPORTAR EXCEL */}
+            <TouchableOpacity
+                style={[styles.button, styles.exportButton]}
+                onPress={exportToExcel}
+            >
+                <Ionicons name="download-outline" size={20} color={COLORS.textDark} />
+                <Text style={[styles.buttonText, { marginLeft: 10, color: COLORS.textDark }]}>
+                    Exportar Reporte (Excel)
+                </Text>
+            </TouchableOpacity>
+
+        </ScrollView>
+    );
             default:
                 return null;
         }

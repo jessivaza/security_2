@@ -814,6 +814,7 @@ def Cambio_Contrasena(request, token):
 
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])  # <- importante
 def perfil_usuario(request):
     u = request.user
     perfil, _ = PerfilUsuario.objects.get_or_create(usuario=u)
@@ -852,7 +853,21 @@ def perfil_usuario(request):
             perfil.contacto_emergencia_telefono = str(ce_tel).strip()
         perfil.save()
 
-    return Response({"message": "Perfil actualizado"})
+    # Devuelve el perfil actualizado completo para que el front cierre spinner
+    return Response({
+        "idUsuario": getattr(u, "idUsuario", None),
+        "nombre": u.nombre,
+        "email": u.correo,
+        "telefono": perfil.telefono,
+        "activo": u.is_active,
+        "ultimo_acceso": getattr(u, "last_login", None),
+        "contacto_emergencia": {
+            "nombre": perfil.contacto_emergencia_nombre,
+            "telefono": perfil.contacto_emergencia_telefono
+        },
+        "preferencias": perfil.preferencias or {},
+        "message": "Perfil actualizado correctamente"
+    })
 
 
 # --- CAMBIAR CONTRASEÑA del usuario autenticado ---
