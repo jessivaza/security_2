@@ -15,16 +15,20 @@ export default function MapadeAlertas() {
   const [points, setPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [byStatus, setByStatus] = useState({});
+  const [region, setRegion] = useState({
+    ...centerLosOlivos,
+    latitudeDelta: 0.04,
+    longitudeDelta: 0.04,
+  });
 
+  // Traer todos los incidentes
   const fetchPoints = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("access");
-
       const res = await axios.get(`${BASE_URL}/alertas/heatmap/`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-
       setPoints(res.data.points || []);
       setByStatus(res.data.meta?.by_status || {});
     } catch (error) {
@@ -36,17 +40,22 @@ export default function MapadeAlertas() {
 
   useEffect(() => {
     fetchPoints();
-    const interval = setInterval(fetchPoints, 10000);
+    const interval = setInterval(fetchPoints, 10000); // refresco cada 10 seg
     return () => clearInterval(interval);
   }, []);
 
+  // Separar por estado
   const pendientes = points.filter(p => p[3] === "Pendiente");
   const proceso = points.filter(p => p[3] === "En proceso");
   const otros = points.filter(p => p[3] !== "Pendiente" && p[3] !== "En proceso");
 
+  // Radio dinámico según zoom
   const getRadius = (intensity) => {
-    if (!intensity) return 60;
-    return 40 + intensity * 120;
+    // latitudeDelta pequeño = zoom cercano → radio más pequeño
+    // latitudeDelta grande = zoom lejano → radio más grande
+    const baseRadius = 60; // ajuste inicial del tamaño
+    const factor = region.latitudeDelta / 0.04; // relación con delta inicial
+    return baseRadius * factor; 
   };
 
   return (
@@ -67,14 +76,8 @@ export default function MapadeAlertas() {
             <View
               style={[
                 styles.colorBox,
-                {
-                  backgroundColor:
-                    label === "Pendiente"
-                      ? "#3d7eff"
-                      : label === "En proceso"
-                      ? "#ff4d4f"
-                      : "#999999",
-                },
+                { backgroundColor: label === "Pendiente" ? "#3d7eff" :
+                                  label === "En proceso" ? "#ff4d4f" : "#999999" },
               ]}
             />
             <Text style={styles.legendText}>{label}</Text>
@@ -90,11 +93,8 @@ export default function MapadeAlertas() {
       {/* MAPA */}
       <MapView
         style={{ flex: 1 }}
-        initialRegion={{
-          ...centerLosOlivos,
-          latitudeDelta: 0.04,
-          longitudeDelta: 0.04,
-        }}
+        initialRegion={region}
+        onRegionChangeComplete={r => setRegion(r)}
       >
         {pendientes.map((p, idx) => (
           <Circle
@@ -105,7 +105,6 @@ export default function MapadeAlertas() {
             strokeColor="transparent"
           />
         ))}
-
         {proceso.map((p, idx) => (
           <Circle
             key={"proc-" + idx}
@@ -115,7 +114,6 @@ export default function MapadeAlertas() {
             strokeColor="transparent"
           />
         ))}
-
         {otros.map((p, idx) => (
           <Circle
             key={"otros-" + idx}
@@ -130,7 +128,6 @@ export default function MapadeAlertas() {
   );
 }
 
-
 const styles = StyleSheet.create({
   legendContainer: {
     position: "absolute",
@@ -142,7 +139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     zIndex: 999,
     elevation: 6,
-    width: 135, // ancho suficiente para mostrar nombres completos
+    width: 180,
   },
   legendTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 6 },
   legendItem: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
