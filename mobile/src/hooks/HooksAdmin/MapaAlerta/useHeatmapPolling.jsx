@@ -17,12 +17,8 @@ export default function useHeatmapPolling({
     const fetchOnce = async () => {
         try {
             const token = await AsyncStorage.getItem("access");
-            console.log("🔥 TOKEN LEÍDO EN HOOK:", token);
 
-            if (!token) {
-                console.log("⚠️ No hay token guardado → 401 seguro");
-                return;
-            }
+            if (!token) return;
 
             const now = new Date();
             const start = new Date(now.getTime() - daysWindow * 86400000).toISOString();
@@ -35,7 +31,6 @@ export default function useHeatmapPolling({
 
             setPoints(res.data.points || []);
         } catch (err) {
-            console.log("❌ ERROR HEATMAP:", err?.response?.status, err?.response?.data);
             setError(err);
         } finally {
             setLoading(false);
