@@ -123,6 +123,24 @@ npx expo start
 py manage.py runserver 0.0.0.0:8000
 -----ingresar la letra "a" para abrir el emulador con expo---------
 a
+#Cambio de IPs
+Para ver tu IP abre tu cmd y pon ipconfig IPv4 
+Se debe cambiar las rutas en la carpeta services- mobile (api.js y auth.js y tambien en editarperfil.jsx) a tu ip local "IMPORTANTE"
+
+#Para el gif
+npm i lottie-react-native
+
+---Dependencias ---
+npm install victory-native react-native-svg
+mapa 
+npm install react-native-maps
+npm install react-native-reanimated
+npm install react-native-chart-kit
+npm install react-native-chart-kit react-native-svg
+npx expo install react-native-svg
+npm install react-native-xlsx
+npx expo install expo-location expo-image-picker - ubicacion
+npx expo install react-native-maps - mapa
 
 #Dependencias para el mapa de alertas: 
 expo install react-native-maps

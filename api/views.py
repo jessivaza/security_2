@@ -21,7 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 # ===== Django REST Framework & JWT =====
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -596,7 +596,7 @@ import threading
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser, FormParser])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def registrar_incidente(request):
     """
     Crea un DetalleAlerta para el usuario autenticado y envía una notificación al correo del usuario.
@@ -733,15 +733,17 @@ def todas_alertas(request):
         data = [
             {
                 "id": a.idTipoIncidencia,
+                "idTipoIncidencia": a.idTipoIncidencia,
                 "ubicacion": a.Ubicacion,
                 "descripcion": a.Descripcion,
                 "fecha": a.FechaHora.strftime("%Y-%m-%d %H:%M:%S"),
                 "nombre_incidente": a.NombreIncidente,
-                "escala": a.idEscalaIncidencia_id if a.idEscalaIncidencia_id else None,
-                "estado": a.EstadoIncidente,
+                "escala": a.Escala,  # Devolver el escala directo (1, 2, 3, 4)
+                "estado": getattr(a, "EstadoIncidente", None) or "Pendiente",
                 "latitud": a.Latitud,
                 "longitud": a.Longitud,
                 "usuario": a.idUsuario_id if a.idUsuario_id else None,
+                "usuario_nombre": a.idUsuario.nombre if a.idUsuario else "Sistema",
             }
             for a in alertas
         ]
@@ -812,6 +814,7 @@ def Cambio_Contrasena(request, token):
 
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])  # <- importante
 def perfil_usuario(request):
     u = request.user
     perfil, _ = PerfilUsuario.objects.get_or_create(usuario=u)
@@ -850,7 +853,21 @@ def perfil_usuario(request):
             perfil.contacto_emergencia_telefono = str(ce_tel).strip()
         perfil.save()
 
-    return Response({"message": "Perfil actualizado"})
+    # Devuelve el perfil actualizado completo para que el front cierre spinner
+    return Response({
+        "idUsuario": getattr(u, "idUsuario", None),
+        "nombre": u.nombre,
+        "email": u.correo,
+        "telefono": perfil.telefono,
+        "activo": u.is_active,
+        "ultimo_acceso": getattr(u, "last_login", None),
+        "contacto_emergencia": {
+            "nombre": perfil.contacto_emergencia_nombre,
+            "telefono": perfil.contacto_emergencia_telefono
+        },
+        "preferencias": perfil.preferencias or {},
+        "message": "Perfil actualizado correctamente"
+    })
 
 
 # --- CAMBIAR CONTRASEÑA del usuario autenticado ---
@@ -858,17 +875,19 @@ def perfil_usuario(request):
 @permission_classes([IsAuthenticated])
 def cambiar_password(request):
     u = request.user
-    actual = (request.data.get("actual") or "").strip()
     nueva = (request.data.get("nueva") or "").strip()
 
-    if not check_password(actual, u.password):
-        return Response({"error": "Contraseña actual incorrecta"}, status=400)
     if len(nueva) < 6:
-        return Response({"error": "La nueva contraseña debe tener al menos 6 caracteres"}, status=400)
+        return Response(
+            {"error": "La nueva contraseña debe tener al menos 6 caracteres"},
+            status=400
+        )
 
+    # Cambiar la contraseña directamente
     u.set_password(nueva)
     u.save()
-    return Response({"message": "Contraseña actualizada"})
+
+    return Response({"message": "Contraseña actualizada correctamente"})
 
 # --- Historial vista administrador ---
 
