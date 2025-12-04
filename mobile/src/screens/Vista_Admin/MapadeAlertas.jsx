@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
-import MapView, { Circle } from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import MapView, { Circle } from "react-native-maps";
 
 const BASE_URL = "http://192.168.18.5:8000/api";
 
@@ -15,6 +15,11 @@ export default function MapadeAlertas() {
   const [points, setPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [byStatus, setByStatus] = useState({});
+  const [region, setRegion] = useState({
+    ...centerLosOlivos,
+    latitudeDelta: 0.04,
+    longitudeDelta: 0.04,
+  });
 
   // Función para traer todos los incidentes
   const fetchPoints = async () => {
@@ -42,14 +47,17 @@ export default function MapadeAlertas() {
   }, []);
 
   // Separar por estado
-  const pendientes = points.filter(p => p[3] === "Pendiente");
-  const proceso = points.filter(p => p[3] === "En proceso");
-  const otros = points.filter(p => p[3] !== "Pendiente" && p[3] !== "En proceso");
+  const pendientes = points.filter((p) => p[3] === "Pendiente");
+  const proceso = points.filter((p) => p[3] === "En proceso");
+  const otros = points.filter(
+    (p) => p[3] !== "Pendiente" && p[3] !== "En proceso"
+  );
 
-  // Radio dinámico según intensidad (p[2])
+  // Radio dinámico según intensidad y zoom
   const getRadius = (intensity) => {
-    if (!intensity) return 60;
-    return 40 + intensity * 120; // 0.33 → 80m, 0.66 → 120m, 1.0 → 160m
+    const base = 40 + (intensity || 0.33) * 20; // tamaño base según intensidad
+    const zoomFactor = region.latitudeDelta / 0.04; // proporcional al zoom
+    return base * zoomFactor;
   };
 
   return (
@@ -57,8 +65,13 @@ export default function MapadeAlertas() {
       {loading && (
         <ActivityIndicator
           size="large"
-          color="#3d7eff"
-          style={{ position: "absolute", top: 20, alignSelf: "center", zIndex: 999 }}
+          color="#0055ffff"
+          style={{
+            position: "absolute",
+            top: 20,
+            alignSelf: "center",
+            zIndex: 999,
+          }}
         />
       )}
 
@@ -70,14 +83,22 @@ export default function MapadeAlertas() {
             <View
               style={[
                 styles.colorBox,
-                { backgroundColor: label === "Pendiente" ? "#3d7eff" :
-                                  label === "En proceso" ? "#ff4d4f" : "#999999" },
+                {
+                  backgroundColor:
+                    label === "Pendiente"
+                      ? "#3d7eff"
+                      : label === "En proceso"
+                      ? "#ff4d4f"
+                      : "#999999",
+                },
               ]}
             />
             <Text style={styles.legendText}>{label}</Text>
             <Text style={styles.legendCount}>
               {label === "Otros"
-                ? points.length - (byStatus["Pendiente"] ?? 0) - (byStatus["En proceso"] ?? 0)
+                ? points.length -
+                  (byStatus["Pendiente"] ?? 0) -
+                  (byStatus["En proceso"] ?? 0)
                 : byStatus[label] ?? 0}
             </Text>
           </View>
@@ -87,11 +108,8 @@ export default function MapadeAlertas() {
       {/* MAPA */}
       <MapView
         style={{ flex: 1 }}
-        initialRegion={{
-          ...centerLosOlivos,
-          latitudeDelta: 0.04,
-          longitudeDelta: 0.04,
-        }}
+        initialRegion={region}
+        onRegionChangeComplete={(r) => setRegion(r)}
       >
         {/* 🔵 Pendiente */}
         {pendientes.map((p, idx) => (
@@ -99,7 +117,7 @@ export default function MapadeAlertas() {
             key={"pend-" + idx}
             center={{ latitude: p[0], longitude: p[1] }}
             radius={getRadius(p[2])}
-            fillColor="rgba(61, 126, 255, 0.35)"
+            fillColor="rgba(0, 85, 255, 0.35)"
             strokeColor="transparent"
           />
         ))}
@@ -110,21 +128,12 @@ export default function MapadeAlertas() {
             key={"proc-" + idx}
             center={{ latitude: p[0], longitude: p[1] }}
             radius={getRadius(p[2])}
-            fillColor="rgba(255, 77, 79, 0.35)"
+            fillColor="rgba(255, 0, 4, 0.35)"
             strokeColor="transparent"
           />
         ))}
 
-        {/* ⚪ Otros */}
-        {otros.map((p, idx) => (
-          <Circle
-            key={"otros-" + idx}
-            center={{ latitude: p[0], longitude: p[1] }}
-            radius={getRadius(p[2])}
-            fillColor="rgba(153, 153, 153, 0.35)"
-            strokeColor="transparent"
-          />
-        ))}
+        
       </MapView>
     </View>
   );
