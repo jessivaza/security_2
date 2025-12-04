@@ -1,8 +1,8 @@
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import MapView, { Circle } from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import MapView, { Circle } from "react-native-maps";
 
 const BASE_URL = "http://192.168.18.5:8000/api";
 
@@ -15,13 +15,7 @@ export default function MapadeAlertas() {
   const [points, setPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [byStatus, setByStatus] = useState({});
-  const [region, setRegion] = useState({
-    ...centerLosOlivos,
-    latitudeDelta: 0.04,
-    longitudeDelta: 0.04,
-  });
 
-  // Función para traer todos los incidentes
   const fetchPoints = async () => {
     try {
       setLoading(true);
@@ -42,22 +36,17 @@ export default function MapadeAlertas() {
 
   useEffect(() => {
     fetchPoints();
-    const interval = setInterval(fetchPoints, 10000); // refresco cada 10 seg
+    const interval = setInterval(fetchPoints, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // Separar por estado
-  const pendientes = points.filter((p) => p[3] === "Pendiente");
-  const proceso = points.filter((p) => p[3] === "En proceso");
-  const otros = points.filter(
-    (p) => p[3] !== "Pendiente" && p[3] !== "En proceso"
-  );
+  const pendientes = points.filter(p => p[3] === "Pendiente");
+  const proceso = points.filter(p => p[3] === "En proceso");
+  const otros = points.filter(p => p[3] !== "Pendiente" && p[3] !== "En proceso");
 
-  // Radio dinámico según intensidad y zoom
   const getRadius = (intensity) => {
-    const base = 40 + (intensity || 0.33) * 20; // tamaño base según intensidad
-    const zoomFactor = region.latitudeDelta / 0.04; // proporcional al zoom
-    return base * zoomFactor;
+    if (!intensity) return 60;
+    return 40 + intensity * 120;
   };
 
   return (
@@ -65,13 +54,8 @@ export default function MapadeAlertas() {
       {loading && (
         <ActivityIndicator
           size="large"
-          color="#0055ffff"
-          style={{
-            position: "absolute",
-            top: 20,
-            alignSelf: "center",
-            zIndex: 999,
-          }}
+          color="#3d7eff"
+          style={{ position: "absolute", top: 20, alignSelf: "center", zIndex: 999 }}
         />
       )}
 
@@ -96,9 +80,7 @@ export default function MapadeAlertas() {
             <Text style={styles.legendText}>{label}</Text>
             <Text style={styles.legendCount}>
               {label === "Otros"
-                ? points.length -
-                  (byStatus["Pendiente"] ?? 0) -
-                  (byStatus["En proceso"] ?? 0)
+                ? points.length - (byStatus["Pendiente"] ?? 0) - (byStatus["En proceso"] ?? 0)
                 : byStatus[label] ?? 0}
             </Text>
           </View>
@@ -108,51 +90,63 @@ export default function MapadeAlertas() {
       {/* MAPA */}
       <MapView
         style={{ flex: 1 }}
-        initialRegion={region}
-        onRegionChangeComplete={(r) => setRegion(r)}
+        initialRegion={{
+          ...centerLosOlivos,
+          latitudeDelta: 0.04,
+          longitudeDelta: 0.04,
+        }}
       >
-        {/* 🔵 Pendiente */}
         {pendientes.map((p, idx) => (
           <Circle
             key={"pend-" + idx}
             center={{ latitude: p[0], longitude: p[1] }}
             radius={getRadius(p[2])}
-            fillColor="rgba(0, 85, 255, 0.35)"
+            fillColor="rgba(61, 126, 255, 0.35)"
             strokeColor="transparent"
           />
         ))}
 
-        {/* 🔴 En proceso */}
         {proceso.map((p, idx) => (
           <Circle
             key={"proc-" + idx}
             center={{ latitude: p[0], longitude: p[1] }}
             radius={getRadius(p[2])}
-            fillColor="rgba(255, 0, 4, 0.35)"
+            fillColor="rgba(255, 77, 79, 0.35)"
             strokeColor="transparent"
           />
         ))}
 
-        
+        {otros.map((p, idx) => (
+          <Circle
+            key={"otros-" + idx}
+            center={{ latitude: p[0], longitude: p[1] }}
+            radius={getRadius(p[2])}
+            fillColor="rgba(153, 153, 153, 0.35)"
+            strokeColor="transparent"
+          />
+        ))}
       </MapView>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   legendContainer: {
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 10,
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     zIndex: 999,
     elevation: 6,
+    width: 135, // ancho suficiente para mostrar nombres completos
   },
   legendTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 6 },
   legendItem: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   colorBox: { width: 12, height: 12, borderRadius: 2, marginRight: 6 },
   legendText: { flex: 1, fontSize: 13 },
-  legendCount: { opacity: 0.7, fontSize: 13 },
+  legendCount: { opacity: 0.7, fontSize: 13, marginLeft: 4 },
 });
